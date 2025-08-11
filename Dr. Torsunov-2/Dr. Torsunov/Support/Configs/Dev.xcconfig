@@ -1,0 +1,2 @@
+BASE_URL = https://revive-server.dev.myrevive.app
+DEBUG_MODE = YES

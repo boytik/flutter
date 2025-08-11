@@ -1,0 +1,52 @@
+"tab_workouts" = "Тренировки";
+"tab_calendar" = "Календарь";
+"tab_chat" = "Чат";
+
+"personal_data" = "Персональные данные";
+"account_actions" = "Действия с аккаунтом";
+"email" = "Email";
+"name" = "Имя";
+"my_physical_data" = "Мои физические данные";
+"role" = "Роль";
+"logout" = "Выход";
+"other_actions" = "Другие действия";
+
+"change_name" = "Изменить имя";
+"name_placeholder" = "Имя";
+"change_email" = "Изменить почту";
+"email_placeholder" = "Email";
+"change_role" = "Изменить роль";
+"cancel" = "Отмена";
+
+"logout_title" = "Выйти из аккаунта";
+"logout_button" = "Выйти из аккаунта";
+
+"actions_title" = "Действия с аккаунтом";
+"delete_account" = "Удалить аккаунт";
+"delete_account_title" = "Удалить аккаунт";
+"delete_account_message" = "Вы уверены, что хотите удалить аккаунт? Это действие необратимо.";
+
+"chat_input_placeholder" = "Сообщение…";
+"send" = "Отправить";
+"audio_question_sent" = "Аудиовопрос отправлен. Ответ придёт ниже (см. историю).";
+
+"need_auth_to_approve" = "Нужна авторизация для одобрения";
+
+"photo_before" = "Фото ДО";
+"photo_after" = "Фото ПОСЛЕ";
+"comment_label" = "Комментарий";
+"enter_comment_placeholder" = "Введите комментарий";
+"submit" = "Отправить";
+"submit_success" = "Успешно отправлено!";
+"submit_error" = "Ошибка отправки";
+
+"workout" = "Тренировка";
+"approved" = "Одобрено";
+"approve" = "Одобрить";
+"approve_workout" = "Одобрить тренировку";
+"need_auth_to_approve" = "Нужна авторизация для одобрения";
+
+"calendar" = "Календарь";
+"history" = "История";
+
+"duration" = "Длительность";
