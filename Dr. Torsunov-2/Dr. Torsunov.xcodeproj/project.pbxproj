@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		3E31C8CC2E4C816700527C76 /* WorkOutRep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8CB2E4C816700527C76 /* WorkOutRep.swift */; };
 		3E31C8CE2E4C876700527C76 /* WorkoutDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */; };
-		3E31C8D02E4C87E300527C76 /* resp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8CF2E4C87E300527C76 /* resp.swift */; };
 		3E31C8D22E4CA18A00527C76 /* Mod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8D12E4CA18A00527C76 /* Mod.swift */; };
 		3E3BAF062E3B6C1A0013DE9B /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */; };
 		3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */; };
@@ -18,7 +17,6 @@
 		3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */; };
 		3E70454D2E49F6D2005EDE48 /* Inspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454C2E49F6D2005EDE48 /* Inspector.swift */; };
 		3E7045502E49F6FD005EDE48 /* Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454F2E49F6FD005EDE48 /* Calendar.swift */; };
-		3E7045532E49F7C0005EDE48 /* ScheduledWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045522E49F7C0005EDE48 /* ScheduledWorkout.swift */; };
 		3E7045572E4A009D005EDE48 /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */; };
 		3E7045592E4A04C1005EDE48 /* AppleSignInError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045582E4A04C1005EDE48 /* AppleSignInError.swift */; };
 		3E70455B2E4A054C005EDE48 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70455A2E4A054C005EDE48 /* SignInView.swift */; };
@@ -74,12 +72,20 @@
 		3ED089472E460168002F09CB /* ApiRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED089462E460168002F09CB /* ApiRoutes.swift */; };
 		3ED0894A2E460683002F09CB /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED089492E460683002F09CB /* HTTPClient.swift */; };
 		3ED0894C2E460C35002F09CB /* Dr--Torsunov-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3ED089482E4602B2002F09CB /* Dr--Torsunov-Info.plist */; };
+		3EE536872E4DFC630016D879 /* BLEViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367D2E4DFC630016D879 /* BLEViewModel.swift */; };
+		3EE536882E4DFC630016D879 /* BLEMockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536792E4DFC630016D879 /* BLEMockService.swift */; };
+		3EE536892E4DFC630016D879 /* HTTPClient+RawJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536812E4DFC630016D879 /* HTTPClient+RawJSON.swift */; };
+		3EE5368A2E4DFC630016D879 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367B2E4DFC630016D879 /* BLEManager.swift */; };
+		3EE5368B2E4DFC630016D879 /* ApiRoutes+InsertData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367F2E4DFC630016D879 /* ApiRoutes+InsertData.swift */; };
+		3EE5368C2E4DFC630016D879 /* BLEScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536832E4DFC630016D879 /* BLEScanView.swift */; };
+		3EE5368D2E4DFC630016D879 /* BLEUploadRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536802E4DFC630016D879 /* BLEUploadRepository.swift */; };
+		3EE5368E2E4DFC630016D879 /* BLEUUIDs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367C2E4DFC630016D879 /* BLEUUIDs.swift */; };
+		3EE536902E4E192D0016D879 /* DayItemsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		3E31C8CB2E4C816700527C76 /* WorkOutRep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkOutRep.swift; sourceTree = "<group>"; };
 		3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailViewModel.swift; sourceTree = "<group>"; };
-		3E31C8CF2E4C87E300527C76 /* resp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = resp.swift; sourceTree = "<group>"; };
 		3E31C8D12E4CA18A00527C76 /* Mod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mod.swift; sourceTree = "<group>"; };
 		3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingView.swift; sourceTree = "<group>"; };
 		3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGridView.swift; sourceTree = "<group>"; };
@@ -88,7 +94,6 @@
 		3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " TokenStorage.swift"; sourceTree = "<group>"; };
 		3E70454C2E49F6D2005EDE48 /* Inspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Inspector.swift; sourceTree = "<group>"; };
 		3E70454F2E49F6FD005EDE48 /* Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calendar.swift; sourceTree = "<group>"; };
-		3E7045522E49F7C0005EDE48 /* ScheduledWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledWorkout.swift; sourceTree = "<group>"; };
 		3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
 		3E7045582E4A04C1005EDE48 /* AppleSignInError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInError.swift; sourceTree = "<group>"; };
 		3E70455A2E4A054C005EDE48 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
@@ -150,6 +155,15 @@
 		3ED089462E460168002F09CB /* ApiRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiRoutes.swift; sourceTree = "<group>"; };
 		3ED089482E4602B2002F09CB /* Dr--Torsunov-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Dr--Torsunov-Info.plist"; sourceTree = SOURCE_ROOT; };
 		3ED089492E460683002F09CB /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
+		3EE536792E4DFC630016D879 /* BLEMockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEMockService.swift; sourceTree = "<group>"; };
+		3EE5367B2E4DFC630016D879 /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
+		3EE5367C2E4DFC630016D879 /* BLEUUIDs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUUIDs.swift; sourceTree = "<group>"; };
+		3EE5367D2E4DFC630016D879 /* BLEViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEViewModel.swift; sourceTree = "<group>"; };
+		3EE5367F2E4DFC630016D879 /* ApiRoutes+InsertData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ApiRoutes+InsertData.swift"; sourceTree = "<group>"; };
+		3EE536802E4DFC630016D879 /* BLEUploadRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUploadRepository.swift; sourceTree = "<group>"; };
+		3EE536812E4DFC630016D879 /* HTTPClient+RawJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HTTPClient+RawJSON.swift"; sourceTree = "<group>"; };
+		3EE536832E4DFC630016D879 /* BLEScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEScanView.swift; sourceTree = "<group>"; };
+		3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayItemsSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -175,7 +189,6 @@
 			isa = PBXGroup;
 			children = (
 				3E70454F2E49F6FD005EDE48 /* Calendar.swift */,
-				3E7045522E49F7C0005EDE48 /* ScheduledWorkout.swift */,
 			);
 			path = CalendarElement;
 			sourceTree = "<group>";
@@ -186,6 +199,7 @@
 				3E7045602E4A1154005EDE48 /* StartScreen.swift */,
 				3E70455E2E4A112F005EDE48 /* AuthLandingView.swift */,
 				3E7045622E4A1363005EDE48 /* DemoPasswordView.swift */,
+				3E70455C2E4A06E8005EDE48 /* AppAuthState.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -221,9 +235,9 @@
 		3E7045742E4A22E7005EDE48 /* CalendarViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
 				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
-				3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */,
 			);
 			path = CalendarViewModels;
 			sourceTree = "<group>";
@@ -358,15 +372,14 @@
 		3EADE7752E3A2396002A2D67 /* Dr. Torsunov */ = {
 			isa = PBXGroup;
 			children = (
-				3EC132982E4B579F00B6F9B3 /* Dr. Torsunov.entitlements */,
 				3EADE7742E3A2396002A2D67 /* Dr__TorsunovApp.swift */,
-				3E70455C2E4A06E8005EDE48 /* AppAuthState.swift */,
+				3EC132982E4B579F00B6F9B3 /* Dr. Torsunov.entitlements */,
+				3EE536862E4DFC630016D879 /* BLE_Starter */,
 				3EADE7792E3A2398002A2D67 /* Support */,
 				3ED0894B2E460717002F09CB /* Elements */,
 				3EADE7872E3A5424002A2D67 /* Network */,
 				3EADE77A2E3A23A0002A2D67 /* View */,
 				3EADE77B2E3A23AD002A2D67 /* ViewModels */,
-				3E31C8CF2E4C87E300527C76 /* resp.swift */,
 			);
 			path = "Dr. Torsunov";
 			sourceTree = "<group>";
@@ -418,6 +431,7 @@
 				3E8599E52E452D8900FA1FAB /* ActivityDetailView.swift */,
 				3E7045692E4A1BD1005EDE48 /* InspectorView.swift */,
 				3E7045772E4A232D005EDE48 /* ChatView.swift */,
+				3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */,
 			);
 			path = CalendarSubView;
 			sourceTree = "<group>";
@@ -444,6 +458,61 @@
 				3E8599BD2E44C9C600FA1FAB /* User */,
 			);
 			path = Elements;
+			sourceTree = "<group>";
+		};
+		3EE5367A2E4DFC630016D879 /* Mocks */ = {
+			isa = PBXGroup;
+			children = (
+				3EE536792E4DFC630016D879 /* BLEMockService.swift */,
+			);
+			path = Mocks;
+			sourceTree = "<group>";
+		};
+		3EE5367E2E4DFC630016D879 /* BLE */ = {
+			isa = PBXGroup;
+			children = (
+				3EE5367A2E4DFC630016D879 /* Mocks */,
+				3EE5367B2E4DFC630016D879 /* BLEManager.swift */,
+				3EE5367C2E4DFC630016D879 /* BLEUUIDs.swift */,
+				3EE5367D2E4DFC630016D879 /* BLEViewModel.swift */,
+			);
+			path = BLE;
+			sourceTree = "<group>";
+		};
+		3EE536822E4DFC630016D879 /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				3EE5367F2E4DFC630016D879 /* ApiRoutes+InsertData.swift */,
+				3EE536802E4DFC630016D879 /* BLEUploadRepository.swift */,
+				3EE536812E4DFC630016D879 /* HTTPClient+RawJSON.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		3EE536842E4DFC630016D879 /* BLE */ = {
+			isa = PBXGroup;
+			children = (
+				3EE536832E4DFC630016D879 /* BLEScanView.swift */,
+			);
+			path = BLE;
+			sourceTree = "<group>";
+		};
+		3EE536852E4DFC630016D879 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				3EE536842E4DFC630016D879 /* BLE */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		3EE536862E4DFC630016D879 /* BLE_Starter */ = {
+			isa = PBXGroup;
+			children = (
+				3EE5367E2E4DFC630016D879 /* BLE */,
+				3EE536822E4DFC630016D879 /* Network */,
+				3EE536852E4DFC630016D879 /* Views */,
+			);
+			path = BLE_Starter;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -547,7 +616,6 @@
 				3EADE7772E3A2396002A2D67 /* Dr__TorsunovApp.swift in Sources */,
 				3E8599E22E44F31500FA1FAB /* ActivityRepositoryImpl.swift in Sources */,
 				3E7045612E4A1154005EDE48 /* StartScreen.swift in Sources */,
-				3E7045532E49F7C0005EDE48 /* ScheduledWorkout.swift in Sources */,
 				3E7045732E4A22B0005EDE48 /* AudioRecorder.swift in Sources */,
 				3E7045502E49F6FD005EDE48 /* Calendar.swift in Sources */,
 				3E31C8D22E4CA18A00527C76 /* Mod.swift in Sources */,
@@ -562,7 +630,6 @@
 				3E31C8CC2E4C816700527C76 /* WorkOutRep.swift in Sources */,
 				3E8599D02E44DFC500FA1FAB /* ProfilePhotoView.swift in Sources */,
 				3EADE7812E3A2A5C002A2D67 /* CalendarViewModel.swift in Sources */,
-				3E31C8D02E4C87E300527C76 /* resp.swift in Sources */,
 				3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */,
 				3EADE78B2E3A54A0002A2D67 /* WorkoutCellView.swift in Sources */,
 				3E7B17772E424F30001AF947 /* DataSectionView.swift in Sources */,
@@ -570,6 +637,7 @@
 				3E70455D2E4A06E8005EDE48 /* AppAuthState.swift in Sources */,
 				3E3D33C52E40BF8E009A5DCD /* PersonalView.swift in Sources */,
 				3ED089472E460168002F09CB /* ApiRoutes.swift in Sources */,
+				3EE536902E4E192D0016D879 /* DayItemsSheet.swift in Sources */,
 				3E7B177E2E42505C001AF947 /* ChronicAlertSheet.swift in Sources */,
 				3E8599BA2E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift in Sources */,
 				3E7B17752E424EFF001AF947 /* PhysicalDataViewModel.swift in Sources */,
@@ -584,6 +652,14 @@
 				3E7045592E4A04C1005EDE48 /* AppleSignInError.swift in Sources */,
 				3E7B17802E425077001AF947 /* PickerSheet.swift in Sources */,
 				3E8F8A592E43A28900CE00CB /* ImagePicker.swift in Sources */,
+				3EE536872E4DFC630016D879 /* BLEViewModel.swift in Sources */,
+				3EE536882E4DFC630016D879 /* BLEMockService.swift in Sources */,
+				3EE536892E4DFC630016D879 /* HTTPClient+RawJSON.swift in Sources */,
+				3EE5368A2E4DFC630016D879 /* BLEManager.swift in Sources */,
+				3EE5368B2E4DFC630016D879 /* ApiRoutes+InsertData.swift in Sources */,
+				3EE5368C2E4DFC630016D879 /* BLEScanView.swift in Sources */,
+				3EE5368D2E4DFC630016D879 /* BLEUploadRepository.swift in Sources */,
+				3EE5368E2E4DFC630016D879 /* BLEUUIDs.swift in Sources */,
 				3E8F8A502E43646000CE00CB /* EditFieldSheet.swift in Sources */,
 				3E7B17732E424595001AF947 /* PhysicalDataView.swift in Sources */,
 			);

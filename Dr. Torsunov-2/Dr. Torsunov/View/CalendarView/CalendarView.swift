@@ -1,11 +1,19 @@
-
+import SwiftUI
+import Combine
 
 import SwiftUI
 import Combine
 
+// Обёртка для Date, чтобы использовать в sheet(item:)
+struct IdentifiableDate: Identifiable, Equatable {
+    let id = UUID()
+    let date: Date
+}
+
 struct CalendarView: View {
     @StateObject private var viewModel = CalendarViewModel()
     @AppStorage("user_role") private var storedRoleRaw = PersonalViewModel.Role.user.rawValue
+    @State private var selectedDay: IdentifiableDate? = nil
 
     private var currentRole: PersonalViewModel.Role {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
@@ -43,7 +51,9 @@ struct CalendarView: View {
             .background(Color.black.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { Task { await viewModel.refresh() } } label: {
+                    Button {
+                        Task { await viewModel.refresh() }
+                    } label: {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
@@ -59,7 +69,14 @@ struct CalendarView: View {
             guard viewModel.role == .inspector else { return }
             Task { await viewModel.refresh() }
         }
-
+        .sheet(item: $selectedDay) { identifiableDate in
+            DayItemsSheet(
+                date: identifiableDate.date,
+                items: viewModel.items(on: identifiableDate.date),
+                role: viewModel.role
+            )
+            .presentationDetents([.medium, .large])
+        }
     }
 
     // MARK: - Mode Picker
@@ -94,8 +111,10 @@ struct CalendarView: View {
             }
             .padding(.horizontal)
 
-            CalendarGridView(monthDates: viewModel.monthDates)
-                .padding(.vertical)
+            CalendarGridView(monthDates: viewModel.monthDates) { tappedDate in
+                selectedDay = IdentifiableDate(date: tappedDate)
+            }
+            .padding(.vertical)
         }
     }
 

@@ -1,6 +1,12 @@
-import Foundation
+
 
 import Foundation
+struct ScheduledWorkout: Codable, Identifiable {
+    let id: String
+    let date: String
+    let title: String
+}
+
 
 protocol CalendarRepository {
     func getCalendar(for email: String) async throws -> [ScheduledWorkout]
