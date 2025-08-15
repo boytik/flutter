@@ -7,31 +7,51 @@ private func formatMinutes(_ minutes: Int) -> String {
     f.locale = Locale.current
     f.unitOptions = .providedUnit
     f.unitStyle = .short
-
     let m = Measurement(value: Double(minutes), unit: UnitDuration.minutes)
     return f.string(from: m)
 }
 
-
 struct CalendarItemCellView: View {
     let item: CalendarItem
     let role: PersonalViewModel.Role
+    let thumbURL: URL?  // ← опциональная картинка
 
     var body: some View {
         HStack(spacing: 12) {
+            // слева — превью если есть, иначе иконка
+            if let u = thumbURL {
+                AsyncImage(url: u) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().scaledToFill()
+                    case .failure(_):
+                        Image(systemName: item.symbolName)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundColor(item.tintColor)
+                            .font(.system(size: 20, weight: .semibold))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    default:
+                        ProgressView()
+                    }
+                }
+                .frame(width: 44, height: 44)
+                .background(Color(.systemGray6).opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
                 Image(systemName: item.symbolName)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(item.tintColor)
                     .frame(width: 44, height: 44)
                     .background(item.tintColor.opacity(0.2))
                     .clipShape(Circle())
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
                     .font(.headline)
                     .foregroundColor(.white)
 
-                if let description = item.description {
+                if let description = item.description, !description.isEmpty {
                     Text(description)
                         .font(.subheadline)
                         .foregroundColor(.gray)
@@ -60,4 +80,3 @@ struct CalendarItemCellView: View {
         .cornerRadius(12)
     }
 }
-

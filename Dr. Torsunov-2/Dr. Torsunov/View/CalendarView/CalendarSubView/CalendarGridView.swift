@@ -11,56 +11,72 @@ struct CalendarGridView: View {
     // ISO-календарь (понедельник — первый)
     private var isoCal: Calendar {
         var c = Calendar(identifier: .iso8601)
-        c.locale = Locale.current
+        c.locale = .current
         c.firstWeekday = 2
         return c
     }
 
     // Строим расширенную сетку: пред. месяц + текущий + след. месяц
     private var gridDays: [GridDay] {
-        guard let anyDate = monthDates.first?.date else { return [] }
-
+        // Берём любую дату текущего месяца; если нет — fallback на сегодня
         let cal = isoCal
+        let anchor = monthDates.first?.date ?? Date()
 
         // 1) первый день текущего месяца
-        let firstOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: anyDate))!
+        let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: anchor))!
 
-        // 2) сколько пустых ячеек нужно перед «1»
-        let weekday = cal.component(.weekday, from: firstOfMonth) // 1..7
-        let leading = (weekday - cal.firstWeekday + 7) % 7
+        // 2) кол-во дней в текущем месяце
+        let daysInMonth = cal.range(of: .day, in: .month, for: startOfMonth)!.count
 
-        // 3) предыдущий месяц
-        let prevMonthStart = cal.date(byAdding: .month, value: -1, to: firstOfMonth)!
-        let prevStart = cal.date(from: cal.dateComponents([.year, .month], from: prevMonthStart))!
-        let prevRange = cal.range(of: .day, in: .month, for: prevStart)!
-        let prevLastDay = prevRange.count
+        // 3) сколько пустых ячеек перед «1»
+        let weekday = cal.component(.weekday, from: startOfMonth) // 1..7 в рамках isoCal
+        let leading = (weekday - cal.firstWeekday + 7) % 7       // 0..6
 
-        let prevDates: [Date] = (prevLastDay - leading + 1 ... prevLastDay).map { day in
-            cal.date(byAdding: .day, value: day - 1, to: prevStart)!
+        // 4) предыдущий месяц (безопасно формируем список дат)
+        let prevMonth = cal.date(byAdding: .month, value: -1, to: startOfMonth)!
+        let prevStart = cal.date(from: cal.dateComponents([.year, .month], from: prevMonth))!
+        let prevCount = cal.range(of: .day, in: .month, for: prevStart)!.count
+
+        let prevDates: [Date]
+        if leading == 0 {
+            prevDates = []
+        } else {
+            // последние `leading` дней предыдущего месяца
+            prevDates = (prevCount - leading + 1 ... prevCount).compactMap { day in
+                cal.date(byAdding: .day, value: day - 1, to: prevStart)
+            }
         }
 
-        // 4) текущий месяц — подложим точки из `monthDates`
-        let dotsByDay: [Date: [Color]] = Dictionary(uniqueKeysWithValues:
-            monthDates.map { (cal.startOfDay(for: $0.date), $0.dots) }
-        )
-        let currentDates = monthDates.map { cal.startOfDay(for: $0.date) }
-                                     .sorted()
+        // 5) текущий месяц
+        let currentDates: [Date] = (1 ... daysInMonth).compactMap { day in
+            cal.date(byAdding: .day, value: day - 1, to: startOfMonth)
+        }
 
-        // 5) добьём хвост до кратного 7 днями следующего месяца
-        let totalSoFar = leading + currentDates.count
+        // 6) сколько ячеек добить в конце, чтобы кратно 7
+        let totalSoFar = leading + daysInMonth
         let trailing = (7 - (totalSoFar % 7)) % 7
-        let nextMonthStart = cal.date(byAdding: .month, value: 1, to: firstOfMonth)!
-        let nextStart = cal.date(from: cal.dateComponents([.year, .month], from: nextMonthStart))!
-        let nextDates: [Date] = (0..<trailing).map { off in
-            cal.date(byAdding: .day, value: off, to: nextStart)!
+
+        // 7) следующий месяц
+        let nextMonth = cal.date(byAdding: .month, value: 1, to: startOfMonth)!
+        let nextStart = cal.date(from: cal.dateComponents([.year, .month], from: nextMonth))!
+        let nextDates: [Date] = (0..<trailing).compactMap { offset in
+            cal.date(byAdding: .day, value: offset, to: nextStart)
         }
 
-        // 6) Собираем итоговую ленту
-        let prevCells  = prevDates.map  { GridDay(date: $0, dots: [], isCurrentMonth: false) }
-        let currCells  = currentDates.map { d in GridDay(date: d, dots: dotsByDay[d] ?? [], isCurrentMonth: true) }
-        let nextCells  = nextDates.map  { GridDay(date: $0, dots: [], isCurrentMonth: false) }
+        // 8) точки для текущего месяца (по startOfDay)
+        let dotsByDay: [Date: [Color]] = Dictionary(uniqueKeysWithValues:
+            monthDates.map { let d = cal.startOfDay(for: $0.date); return (d, $0.dots) }
+        )
 
-        return prevCells + currCells + nextCells
+        func makeGridDay(_ date: Date, isCurrent: Bool) -> GridDay {
+            let key = cal.startOfDay(for: date)
+            let dots = isCurrent ? (dotsByDay[key] ?? []) : [] // чужим месяцам точки не рисуем
+            return GridDay(date: date, isCurrentMonth: isCurrent, dots: dots)
+        }
+
+        return prevDates.map { makeGridDay($0, isCurrent: false) }
+            + currentDates.map { makeGridDay($0, isCurrent: true) }
+            + nextDates.map { makeGridDay($0, isCurrent: false) }
     }
 
     var body: some View {
@@ -116,11 +132,11 @@ struct CalendarGridView: View {
 }
 
 // MARK: - Модель ячейки сетки
-private struct GridDay: Identifiable {
+struct GridDay: Identifiable {
     let id = UUID()
     let date: Date
-    let dots: [Color]
     let isCurrentMonth: Bool
+    let dots: [Color]
 }
 
 // MARK: - Helpers

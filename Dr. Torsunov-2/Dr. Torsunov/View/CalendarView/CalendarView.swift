@@ -1,19 +1,12 @@
 import SwiftUI
-import Combine
 
-import SwiftUI
-import Combine
-
-// Обёртка для Date, чтобы использовать в sheet(item:)
-struct IdentifiableDate: Identifiable, Equatable {
-    let id = UUID()
-    let date: Date
-}
+@inline(__always) private func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
 
 struct CalendarView: View {
     @StateObject private var viewModel = CalendarViewModel()
     @AppStorage("user_role") private var storedRoleRaw = PersonalViewModel.Role.user.rawValue
-    @State private var selectedDay: IdentifiableDate? = nil
+
+    @State private var selectedDay: IdentDate? = nil
 
     private var currentRole: PersonalViewModel.Role {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
@@ -25,9 +18,8 @@ struct CalendarView: View {
                 // Заголовок
                 HStack {
                     Text(currentRole == .user ? "Тренировки" : "Тренировки на проверку")
-                        .font(.title2)
+                        .font(.title2.weight(.bold))
                         .foregroundColor(.white)
-                        .fontWeight(.bold)
                     Spacer()
                 }
                 .padding(.horizontal)
@@ -41,6 +33,7 @@ struct CalendarView: View {
                         calendarSection
                         Spacer()
                     } else {
+                        historyHeader
                         historyGrid
                     }
                 } else {
@@ -51,17 +44,13 @@ struct CalendarView: View {
             .background(Color.black.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        Task { await viewModel.refresh() }
-                    } label: {
+                    Button { Task { await viewModel.refresh() } } label: {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
             }
         }
-        .task {
-            await viewModel.applyRole(currentRole)
-        }
+        .task { await viewModel.applyRole(currentRole) }
         .onChange(of: storedRoleRaw) { _, _ in
             Task { await viewModel.applyRole(currentRole) }
         }
@@ -69,11 +58,12 @@ struct CalendarView: View {
             guard viewModel.role == .inspector else { return }
             Task { await viewModel.refresh() }
         }
-        .sheet(item: $selectedDay) { identifiableDate in
+        .sheet(item: $selectedDay) { day in
             DayItemsSheet(
-                date: identifiableDate.date,
-                items: viewModel.items(on: identifiableDate.date),
-                role: viewModel.role
+                date: day.date,                      // или просто `day`, если у тебя Date
+                items: viewModel.items(on: day.date),
+                role: viewModel.role,
+                thumbURLProvider: { viewModel.thumbFor($0) }   // ✅ вот это важно
             )
             .presentationDetents([.medium, .large])
         }
@@ -111,14 +101,33 @@ struct CalendarView: View {
             }
             .padding(.horizontal)
 
-            CalendarGridView(monthDates: viewModel.monthDates) { tappedDate in
-                selectedDay = IdentifiableDate(date: tappedDate)
+            CalendarGridView(monthDates: viewModel.monthDates) { tapped in
+                selectedDay = IdentDate(tapped)
             }
             .padding(.vertical)
         }
     }
 
-    // MARK: - История (Workouts + Activities / Inspector lists)
+    // MARK: - История (header с фильтром)
+    private var historyHeader: some View {
+        HStack {
+            Text("История")
+                .font(.headline)
+                .foregroundColor(.white)
+            Spacer()
+            Picker("", selection: $viewModel.historyFilter) {
+                ForEach(CalendarViewModel.HistoryFilter.allCases, id: \.self) { f in
+                    Text(f.rawValue).tag(f)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 260)
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 6)
+    }
+
+    // MARK: - История (grid)
     private var historyGrid: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.flexible())], spacing: 12) {
@@ -132,7 +141,11 @@ struct CalendarView: View {
                             Text("Неизвестный тип").foregroundColor(.white)
                         }
                     } label: {
-                        CalendarItemCellView(item: item, role: viewModel.role)
+                        CalendarItemCellView(
+                            item: item,
+                            role: viewModel.role,
+                            thumbURL: viewModel.thumbFor(item) // ← мини-превью (если есть)
+                        )
                     }
                 }
             }
@@ -140,4 +153,11 @@ struct CalendarView: View {
         }
         .scrollContentBackground(.hidden)
     }
+}
+
+// Упаковка Date в Identifiable для .sheet(item:)
+struct IdentDate: Identifiable, Hashable {
+    let id = UUID()
+    let date: Date
+    init(_ d: Date) { self.date = d }
 }

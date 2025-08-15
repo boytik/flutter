@@ -5,6 +5,22 @@ struct DayItemsSheet: View {
     let items: [CalendarItem]
     let role: PersonalViewModel.Role
 
+    /// Даёт URL мини-превью для элемента истории (активности).
+    /// По умолчанию — ничего (чтобы в превью/тестах не требовать VM).
+    private let thumbURLProvider: (CalendarItem) -> URL?
+
+    init(
+        date: Date,
+        items: [CalendarItem],
+        role: PersonalViewModel.Role,
+        thumbURLProvider: @escaping (CalendarItem) -> URL? = { _ in nil }
+    ) {
+        self.date = date
+        self.items = items
+        self.role = role
+        self.thumbURLProvider = thumbURLProvider
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -18,7 +34,12 @@ struct DayItemsSheet: View {
                             Text("Неизвестный тип").foregroundColor(.gray)
                         }
                     } label: {
-                        CalendarItemCellView(item: item, role: role)
+                        // ✅ передаём мини-превью
+                        CalendarItemCellView(
+                            item: item,
+                            role: role,
+                            thumbURL: thumbURLProvider(item)
+                        )
                     }
                 }
             }
@@ -34,3 +55,4 @@ struct DayItemsSheet: View {
         return f.string(from: date)
     }
 }
+

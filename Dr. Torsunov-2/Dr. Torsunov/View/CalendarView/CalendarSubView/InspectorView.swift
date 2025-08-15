@@ -55,7 +55,8 @@ private struct ToCheckRow: View {
                 .imageScale(.large)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(activity.name).font(.headline)
+                Text(activity.name ?? "Activity")              // ← фикс
+                    .font(.headline)
                 Text(dateText(activity.createdAt))
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -76,7 +77,8 @@ private struct FullCheckRow: View {
                 .imageScale(.large)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(activity.name).font(.headline)
+                Text(activity.name ?? "Activity")              // ← фикс
+                    .font(.headline)
                 Text(dateText(activity.createdAt))
                     .font(.caption)
                     .foregroundColor(.secondary)

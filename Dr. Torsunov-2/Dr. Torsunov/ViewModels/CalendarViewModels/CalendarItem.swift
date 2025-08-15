@@ -1,4 +1,3 @@
-
 import Foundation
 import SwiftUI
 
@@ -23,7 +22,7 @@ enum CalendarItem: Identifiable, Codable, Equatable {
     var name: String {
         switch self {
         case .workout(let w): return w.name
-        case .activity(let a): return a.name
+        case .activity(let a): return a.name ?? "Activity"     // <-- фикс
         }
     }
 

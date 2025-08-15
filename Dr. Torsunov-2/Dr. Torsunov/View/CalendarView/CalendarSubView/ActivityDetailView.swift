@@ -1,4 +1,3 @@
-
 import SwiftUI
 import UIKit
 
@@ -65,7 +64,7 @@ struct ActivityDetailView: View {
                 .clipShape(Circle())
 
             VStack(alignment: .leading) {
-                Text(activity.name)
+                Text(activity.name ?? "Activity")             // <-- фикс: безопасное имя
                     .font(.headline)
                     .foregroundColor(.white)
 
@@ -185,5 +184,3 @@ struct ActivityDetailView: View {
         }
     }
 }
-
-

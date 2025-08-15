@@ -7,9 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3E31C8CC2E4C816700527C76 /* WorkOutRep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8CB2E4C816700527C76 /* WorkOutRep.swift */; };
 		3E31C8CE2E4C876700527C76 /* WorkoutDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */; };
-		3E31C8D22E4CA18A00527C76 /* Mod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8D12E4CA18A00527C76 /* Mod.swift */; };
 		3E3BAF062E3B6C1A0013DE9B /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */; };
 		3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */; };
 		3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */; };
@@ -84,9 +82,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		3E31C8CB2E4C816700527C76 /* WorkOutRep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkOutRep.swift; sourceTree = "<group>"; };
 		3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailViewModel.swift; sourceTree = "<group>"; };
-		3E31C8D12E4CA18A00527C76 /* Mod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mod.swift; sourceTree = "<group>"; };
 		3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingView.swift; sourceTree = "<group>"; };
 		3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGridView.swift; sourceTree = "<group>"; };
 		3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
@@ -327,7 +323,6 @@
 			isa = PBXGroup;
 			children = (
 				3E8599D82E44E9B500FA1FAB /* WorkoutRepositoryImpl.swift */,
-				3E31C8CB2E4C816700527C76 /* WorkOutRep.swift */,
 			);
 			path = WorkOut;
 			sourceTree = "<group>";
@@ -336,7 +331,6 @@
 			isa = PBXGroup;
 			children = (
 				3E8599E12E44F31500FA1FAB /* ActivityRepositoryImpl.swift */,
-				3E31C8D12E4CA18A00527C76 /* Mod.swift */,
 			);
 			path = Activitys;
 			sourceTree = "<group>";
@@ -618,7 +612,6 @@
 				3E7045612E4A1154005EDE48 /* StartScreen.swift in Sources */,
 				3E7045732E4A22B0005EDE48 /* AudioRecorder.swift in Sources */,
 				3E7045502E49F6FD005EDE48 /* Calendar.swift in Sources */,
-				3E31C8D22E4CA18A00527C76 /* Mod.swift in Sources */,
 				3E7045682E4A1BA7005EDE48 /* InspectorViewModel.swift in Sources */,
 				3E8599CE2E44DF2300FA1FAB /* FileManager.swift in Sources */,
 				3E8599D92E44E9B500FA1FAB /* WorkoutRepositoryImpl.swift in Sources */,
@@ -627,7 +620,6 @@
 				3E7045572E4A009D005EDE48 /* ActivityViewModel.swift in Sources */,
 				3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */,
 				3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */,
-				3E31C8CC2E4C816700527C76 /* WorkOutRep.swift in Sources */,
 				3E8599D02E44DFC500FA1FAB /* ProfilePhotoView.swift in Sources */,
 				3EADE7812E3A2A5C002A2D67 /* CalendarViewModel.swift in Sources */,
 				3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */,
