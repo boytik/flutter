@@ -23,11 +23,18 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
     let userEmail: String?
     let activityType: String?
     let date: String?               // "yyyy-MM-dd" или "yyyy-MM-dd HH:mm:ss"
+
+    // то, что нужно для карточки будущей тренировки
     let durationMinutes: Int?
     let durationHours: Int?
     let description: String?
     let dayOfWeek: String?
     let type: String?
+    let breakDuration: Int?
+    let breaks: Int?
+    let layers: Int?
+    let swimLayers: [Int]?
+    let protocolName: String?       // backend key: "protocol"
 
     var id: String { workoutUuid ?? UUID().uuidString }
 
@@ -41,6 +48,11 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
         case description
         case dayOfWeek         = "day_of_week"
         case type
+        case breakDuration     = "break_duration"
+        case breaks
+        case layers
+        case swimLayers        = "swim_layers"
+        case protocolName      = "protocol"
     }
 }
 
@@ -48,6 +60,9 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
 protocol WorkoutPlannerRepository {
     /// Получить план за месяц (yyyy-MM)
     func getPlannerCalendar(filterMonth: String) async throws -> [ScheduledWorkoutDTO]
+
+    /// Получить план на конкретный день
+    func getPlannerDay(_ date: Date) async throws -> [ScheduledWorkoutDTO]
 }
 
 enum WorkoutsPlannerError: LocalizedError {
@@ -69,12 +84,30 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
         let startStr = Self.fmtDayUTC.string(from: start)
         let endStr   = Self.fmtDayUTC.string(from: end)
 
-        // Основной рабочий маршрут → запасной
+        // 1) диапазон дат → 2) фильтр по месяцу
         let candidates: [(label: String, url: URL)] = [
             ("range_path", ApiRoutes.Workouts.calendarRange(email: email, startDate: startStr, endDate: endStr)),
             ("month_path", ApiRoutes.Workouts.calendarMonth(email: email, month: filterMonth))
         ]
+        return try await requestFirstNonEmpty(candidates)
+    }
 
+    func getPlannerDay(_ date: Date) async throws -> [ScheduledWorkoutDTO] {
+        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
+            throw WorkoutsPlannerError.noEmail
+        }
+        let ymd = Self.fmtDayUTC.string(from: date)
+
+        // 1) filter_date=yyyy-MM-dd → 2) range(yyyy-MM-dd .. yyyy-MM-dd)
+        let candidates: [(label: String, url: URL)] = [
+            ("day_filter", ApiRoutes.Workouts.calendarDay(email: email, date: ymd)),
+            ("day_range",  ApiRoutes.Workouts.calendarRange(email: email, startDate: ymd, endDate: ymd))
+        ]
+        return try await requestFirstNonEmpty(candidates)
+    }
+
+    // MARK: - Common request helper
+    private func requestFirstNonEmpty(_ candidates: [(label: String, url: URL)]) async throws -> [ScheduledWorkoutDTO] {
         var firstSuccessfulEmpty: [ScheduledWorkoutDTO]? = nil
         var lastError: Error = WorkoutsPlannerError.noEmail
 
@@ -82,24 +115,19 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
             do {
                 let res: [ScheduledWorkoutDTO] = try await client.request([ScheduledWorkoutDTO].self, url: url)
                 print("🛰️ planner \(label) -> \(url.absoluteString) items=\(res.count)")
-                if !res.isEmpty { return res }               // нашли непустой ответ — возвращаем
-                if firstSuccessfulEmpty == nil { firstSuccessfulEmpty = res } // запомним первый пустой, если потом тоже пусто
+                if !res.isEmpty { return res }
+                if firstSuccessfulEmpty == nil { firstSuccessfulEmpty = res }
             } catch NetworkError.server(let code, _) where (400...599).contains(code) {
-                // серверная ошибка — пробуем следующий маршрут
                 print("↩️ \(label) HTTP \(code) \(url.absoluteString)")
                 lastError = NetworkError.server(status: code, data: nil)
                 continue
             } catch {
-                // сетевая/другая ошибка — пробуем следующий
                 print("↩️ \(label) error: \(error.localizedDescription)")
                 lastError = error
                 continue
             }
         }
-
-        // Все маршруты сработали, но вернули пусто — возвращаем пустой массив
         if let empty = firstSuccessfulEmpty { return empty }
-        // Все маршруты упали — пробрасываем последнюю ошибку
         throw lastError
     }
 

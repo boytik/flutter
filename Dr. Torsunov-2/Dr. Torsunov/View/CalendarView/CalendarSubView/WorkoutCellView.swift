@@ -1,5 +1,6 @@
 import SwiftUI
 
+
 @inline(__always) private func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
 
 private func formatMinutes(_ minutes: Int) -> String {

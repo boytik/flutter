@@ -36,37 +36,33 @@ enum ApiRoutes {
         static func by(id: String) -> URL     { url("workouts/\(id)") }
         static var upload: URL                { url("workouts") }
 
-        // ВАЖНО: строим путь по сегментам, email передаём НЕ закодированным
-        // URLComponents/appendingPathComponent сам закодирует '@' -> %40 ровно один раз
+        // email в path — кодируется РОВНО один раз (URL.appendPathComponent)
         static func calendarMonth(email: String, month: String) -> URL {
-            url(["workout_calendar", email], query: ["filter_date": month])
+            url(["workout_calendar", email], query: ["filter_date": month]) // yyyy-MM
+        }
+
+        static func calendarDay(email: String, date: String) -> URL {
+            url(["workout_calendar", email], query: ["filter_date": date])  // yyyy-MM-dd
         }
 
         static func calendarRange(email: String, startDate: String, endDate: String) -> URL {
             url(["workout_calendar", email], query: ["start_date": startDate, "end_date": endDate])
         }
 
-        // запасной (на вашем dev — 404, но оставим)
+        // запасной (на dev может быть 404 — оставим)
         static func calendarRangeByQuery(email: String, startDate: String, endDate: String) -> URL {
             url("workout_calendar", query: ["email": email, "start_date": startDate, "end_date": endDate])
         }
 
         static func metadata(workoutKey: String, email: String) -> URL {
-            url("metadata", query: [
-                "workout_key": workoutKey,
-                "email": email
-            ])
+            url("metadata", query: ["workout_key": workoutKey, "email": email])
         }
 
         static func metrics(workoutKey: String, email: String) -> URL {
-            url("get_diagram_data", query: [
-                "workout_key": workoutKey,
-                "email": email
-            ])
+            url("get_diagram_data", query: ["workout_key": workoutKey, "email": email])
         }
 
-        // Оставляем для совместимости, но БОЛЬШЕ НЕ ИСПОЛЬЗУЕМ его в календарных методах,
-        // чтобы не получить %2540 из-за повторного кодирования.
+        // Оставлено для совместимости (не использовать в календарных методах)
         fileprivate static func encEmailForPath(_ email: String) -> String {
             let raw = email.removingPercentEncoding ?? email
             var allowed = CharacterSet.alphanumerics
@@ -121,7 +117,6 @@ enum ApiRoutes {
 extension ApiRoutes {
     enum Users {
         private static func enc(_ email: String) -> String {
-            // Здесь допускаем '@' — исторически так использовалось
             let raw = email.removingPercentEncoding ?? email
             var allowed = CharacterSet.alphanumerics
             allowed.insert(charactersIn: "._-+@")
@@ -143,7 +138,7 @@ extension ApiRoutes {
 
 // MARK: - Helpers
 private extension ApiRoutes {
-    /// Старый удобный хелпер (ОСТАВЛЯЕМ для коротких путей без уже закодированных знаков `%`)
+    /// Старый удобный хелпер (для коротких путей)
     static func url(_ path: String, query: [String: String]? = nil) -> URL {
         var url = APIEnv.baseURL.appendingPathComponent(path)
         if let query, !query.isEmpty, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
@@ -153,12 +148,10 @@ private extension ApiRoutes {
         return url
     }
 
-    /// Новый безопасный хелпер: путь по СЕГМЕНТАМ → исключает повторное кодирование `%`
+    /// Новый безопасный хелпер: путь по сегментам → исключает повторное кодирование `%`
     static func url(_ segments: [String], query: [String: String]? = nil) -> URL {
         var url = APIEnv.baseURL
-        for seg in segments {
-            url.appendPathComponent(seg) // корректно кодирует '@' -> %40 один раз
-        }
+        for seg in segments { url.appendPathComponent(seg) }
         if let query, !query.isEmpty, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
             comps.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
             url = comps.url ?? url

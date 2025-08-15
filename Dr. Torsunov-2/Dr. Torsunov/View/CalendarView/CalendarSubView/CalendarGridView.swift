@@ -18,7 +18,6 @@ struct CalendarGridView: View {
 
     // Строим расширенную сетку: пред. месяц + текущий + след. месяц
     private var gridDays: [GridDay] {
-        // Берём любую дату текущего месяца; если нет — fallback на сегодня
         let cal = isoCal
         let anchor = monthDates.first?.date ?? Date()
 
@@ -52,7 +51,7 @@ struct CalendarGridView: View {
             cal.date(byAdding: .day, value: day - 1, to: startOfMonth)
         }
 
-        // 6) сколько ячеек добить в конце, чтобы кратно 7
+        // 6) добиваем до кратности 7 (чтобы сетка была ровной)
         let totalSoFar = leading + daysInMonth
         let trailing = (7 - (totalSoFar % 7)) % 7
 
@@ -81,7 +80,7 @@ struct CalendarGridView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            // Пн…Вс (всегда понедельник первым)
+            // Пн…Вс (всегда понедельник первым) — белые и жирные
             HStack {
                 ForEach(localizedWeekdaysISO(), id: \.self) { s in
                     Text(s.uppercased())
@@ -94,6 +93,8 @@ struct CalendarGridView: View {
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(gridDays) { cell in
                     let isToday = Calendar.current.isDateInToday(cell.date)
+                    let startOfToday = isoCal.startOfDay(for: Date())
+                    let isPast = isoCal.startOfDay(for: cell.date) < startOfToday
 
                     Button {
                         onDayTap?(cell.date)
@@ -115,7 +116,7 @@ struct CalendarGridView: View {
                         }
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(Color(.systemGray6).opacity(0.12))
+                        .background(bgColor(isCurrentMonth: cell.isCurrentMonth, isToday: isToday, isPast: isPast))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(isToday ? Color.green : Color.clear, lineWidth: 2)
@@ -129,6 +130,14 @@ struct CalendarGridView: View {
         }
         .padding(.horizontal)
     }
+
+    private func bgColor(isCurrentMonth: Bool, isToday: Bool, isPast: Bool) -> Color {
+        // На чёрном фоне: прошлое темнее, будущее светлее, «сегодня» чуть ярче
+        if !isCurrentMonth { return Color(.systemGray6).opacity(0.06) }
+        if isToday        { return Color(.systemGray6).opacity(0.22) }
+        if isPast         { return Color(.systemGray6).opacity(0.12) }
+        return Color(.systemGray6).opacity(0.16)
+    }
 }
 
 // MARK: - Модель ячейки сетки
@@ -141,7 +150,7 @@ struct GridDay: Identifiable {
 
 // MARK: - Helpers
 
-/// Локализованные заголовки недель Пн…Вс
+/// Локализованные заголовки недель Пн…Вс (сохраняет твою локализацию)
 private func localizedWeekdaysISO() -> [String] {
     var cal = Calendar(identifier: .iso8601)
     cal.locale = Locale.current
@@ -165,4 +174,3 @@ private func localizedWeekdaysISO() -> [String] {
         return base.map { $0.capitalized }
     }
 }
-

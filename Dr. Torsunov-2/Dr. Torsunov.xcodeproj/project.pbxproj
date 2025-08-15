@@ -45,8 +45,6 @@
 		3E8599B82E44C4B400FA1FAB /* AuthenticationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599B72E44C4B400FA1FAB /* AuthenticationRepository.swift */; };
 		3E8599BA2E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599B92E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift */; };
 		3E8599C52E44CA2B00FA1FAB /* UserRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599C42E44CA2B00FA1FAB /* UserRepositoryImpl.swift */; };
-		3E8599C72E44D4B800FA1FAB /* PhysicalDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599C62E44D4B800FA1FAB /* PhysicalDataModel.swift */; };
-		3E8599C92E44D4CB00FA1FAB /* PhysicalDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599C82E44D4CB00FA1FAB /* PhysicalDataRepository.swift */; };
 		3E8599CB2E44D4DC00FA1FAB /* PhysicalDataRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599CA2E44D4DC00FA1FAB /* PhysicalDataRepositoryImpl.swift */; };
 		3E8599CE2E44DF2300FA1FAB /* FileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599CD2E44DF2300FA1FAB /* FileManager.swift */; };
 		3E8599D02E44DFC500FA1FAB /* ProfilePhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599CF2E44DFC500FA1FAB /* ProfilePhotoView.swift */; };
@@ -124,8 +122,6 @@
 		3E8599B72E44C4B400FA1FAB /* AuthenticationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationRepository.swift; sourceTree = "<group>"; };
 		3E8599B92E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationRepositoryImpl.swift; sourceTree = "<group>"; };
 		3E8599C42E44CA2B00FA1FAB /* UserRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserRepositoryImpl.swift; sourceTree = "<group>"; };
-		3E8599C62E44D4B800FA1FAB /* PhysicalDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicalDataModel.swift; sourceTree = "<group>"; };
-		3E8599C82E44D4CB00FA1FAB /* PhysicalDataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicalDataRepository.swift; sourceTree = "<group>"; };
 		3E8599CA2E44D4DC00FA1FAB /* PhysicalDataRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicalDataRepositoryImpl.swift; sourceTree = "<group>"; };
 		3E8599CD2E44DF2300FA1FAB /* FileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManager.swift; sourceTree = "<group>"; };
 		3E8599CF2E44DFC500FA1FAB /* ProfilePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePhotoView.swift; sourceTree = "<group>"; };
@@ -231,6 +227,7 @@
 		3E7045742E4A22E7005EDE48 /* CalendarViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
 				3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
 				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
@@ -312,8 +309,6 @@
 		3E8599CC2E44D4E800FA1FAB /* Physical */ = {
 			isa = PBXGroup;
 			children = (
-				3E8599C62E44D4B800FA1FAB /* PhysicalDataModel.swift */,
-				3E8599C82E44D4CB00FA1FAB /* PhysicalDataRepository.swift */,
 				3E8599CA2E44D4DC00FA1FAB /* PhysicalDataRepositoryImpl.swift */,
 			);
 			path = Physical;
@@ -341,7 +336,6 @@
 				3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */,
 				3E8F8A522E436F9F00CE00CB /* PersonalViewModel.swift */,
 				3E7B17742E424EFF001AF947 /* PhysicalDataViewModel.swift */,
-				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
 			);
 			path = ProfileViewModels;
 			sourceTree = "<group>";
@@ -420,9 +414,9 @@
 			children = (
 				3EADE78A2E3A54A0002A2D67 /* WorkoutCellView.swift */,
 				3E8F8A562E438EEB00CE00CB /* WorkoutDetailView.swift */,
+				3E8599E52E452D8900FA1FAB /* ActivityDetailView.swift */,
 				3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */,
 				3E8F8A582E43A28900CE00CB /* ImagePicker.swift */,
-				3E8599E52E452D8900FA1FAB /* ActivityDetailView.swift */,
 				3E7045692E4A1BD1005EDE48 /* InspectorView.swift */,
 				3E7045772E4A232D005EDE48 /* ChatView.swift */,
 				3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */,
@@ -633,12 +627,10 @@
 				3E7B177E2E42505C001AF947 /* ChronicAlertSheet.swift in Sources */,
 				3E8599BA2E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift in Sources */,
 				3E7B17752E424EFF001AF947 /* PhysicalDataViewModel.swift in Sources */,
-				3E8599C92E44D4CB00FA1FAB /* PhysicalDataRepository.swift in Sources */,
 				3E7045712E4A2295005EDE48 /* ChatRepositoryImpl.swift in Sources */,
 				3E7045652E4A1780005EDE48 /* Unauthorized.swift in Sources */,
 				3E70455F2E4A112F005EDE48 /* AuthLandingView.swift in Sources */,
 				3E3BAF062E3B6C1A0013DE9B /* TrainingView.swift in Sources */,
-				3E8599C72E44D4B800FA1FAB /* PhysicalDataModel.swift in Sources */,
 				3ED0894A2E460683002F09CB /* HTTPClient.swift in Sources */,
 				3E8F8A552E4371F200CE00CB /* ExtensionView.swift in Sources */,
 				3E7045592E4A04C1005EDE48 /* AppleSignInError.swift in Sources */,

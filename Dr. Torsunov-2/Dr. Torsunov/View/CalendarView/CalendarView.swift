@@ -6,7 +6,8 @@ struct CalendarView: View {
     @StateObject private var viewModel = CalendarViewModel()
     @AppStorage("user_role") private var storedRoleRaw = PersonalViewModel.Role.user.rawValue
 
-    @State private var selectedDay: IdentDate? = nil
+    @State private var selectedDay: IdentDate?
+    @State private var refreshToken: Int = 0
 
     private var currentRole: PersonalViewModel.Role {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
@@ -15,7 +16,6 @@ struct CalendarView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Заголовок
                 HStack {
                     Text(currentRole == .user ? "Тренировки" : "Тренировки на проверку")
                         .font(.title2.weight(.bold))
@@ -42,30 +42,32 @@ struct CalendarView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { Task { await viewModel.refresh() } } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
+            .navigationBarItems(trailing:
+                Button(action: { refreshToken &+= 1 }) {
+                    Image(systemName: "arrow.clockwise")
                 }
-            }
+            )
         }
-        .task { await viewModel.applyRole(currentRole) }
-        .onChange(of: storedRoleRaw) { _, _ in
-            Task { await viewModel.applyRole(currentRole) }
+        .task(id: storedRoleRaw) {
+            await viewModel.applyRole(currentRole)
+        }
+        .task(id: refreshToken) {
+            await viewModel.refresh()
         }
         .onReceive(NotificationCenter.default.publisher(for: .workoutApproved)) { _ in
             guard viewModel.role == .inspector else { return }
-            Task { await viewModel.refresh() }
+            refreshToken &+= 1
         }
         .sheet(item: $selectedDay) { day in
             DayItemsSheet(
-                date: day.date,                      // или просто `day`, если у тебя Date
+                date: day.date,
                 items: viewModel.items(on: day.date),
                 role: viewModel.role,
-                thumbURLProvider: { viewModel.thumbFor($0) }   // ✅ вот это важно
+                thumbProvider: { item in viewModel.thumbFor(item) }
             )
             .presentationDetents([.medium, .large])
+            .presentationCornerRadius(24)
+            .presentationBackground(.black)
         }
     }
 
@@ -86,8 +88,7 @@ struct CalendarView: View {
         VStack(spacing: 0) {
             HStack {
                 Button(action: { viewModel.previousMonth() }) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.white)
+                    Image(systemName: "chevron.left").foregroundColor(.white)
                 }
                 Spacer()
                 Text(viewModel.currentMonth)
@@ -95,13 +96,14 @@ struct CalendarView: View {
                     .font(.headline)
                 Spacer()
                 Button(action: { viewModel.nextMonth() }) {
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.white)
+                    Image(systemName: "chevron.right").foregroundColor(.white)
                 }
             }
             .padding(.horizontal)
 
             CalendarGridView(monthDates: viewModel.monthDates) { tapped in
+                // Шит показываем только для роли User
+                guard currentRole == .user else { return }
                 selectedDay = IdentDate(tapped)
             }
             .padding(.vertical)
@@ -144,7 +146,7 @@ struct CalendarView: View {
                         CalendarItemCellView(
                             item: item,
                             role: viewModel.role,
-                            thumbURL: viewModel.thumbFor(item) // ← мини-превью (если есть)
+                            thumbURL: viewModel.thumbFor(item)
                         )
                     }
                 }
@@ -155,7 +157,6 @@ struct CalendarView: View {
     }
 }
 
-// Упаковка Date в Identifiable для .sheet(item:)
 struct IdentDate: Identifiable, Hashable {
     let id = UUID()
     let date: Date
