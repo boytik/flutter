@@ -52,6 +52,12 @@ struct CalendarItemCellView: View {
                     .font(.headline)
                     .foregroundColor(.white)
 
+                if role == .inspector, let email = item.email, !email.isEmpty {
+                    Text(email)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
                 if let description = item.description, !description.isEmpty {
                     Text(description)
                         .font(.subheadline)

@@ -14,50 +14,19 @@ struct CalendarView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                HStack {
-                    Text(currentRole == .user ? "Тренировки" : "Тренировки на проверку")
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(.white)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-
-                if currentRole == .user {
-                    modePicker
-                        .padding(.vertical)
-
-                    if viewModel.pickerMode == .calendar {
-                        calendarSection
-                        Spacer()
-                    } else {
-                        historyHeader
-                        historyGrid
-                    }
-                } else {
-                    historyGrid
+        Group {
+            if #available(iOS 16.0, *) {
+                NavigationStack { contentView }
+                    .toolbar(.hidden, for: .navigationBar)
+            } else {
+                NavigationView { contentView
+                        .navigationBarTitle("")
+                        .navigationBarHidden(true)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black.ignoresSafeArea())
-            .navigationBarItems(trailing:
-                Button(action: { refreshToken &+= 1 }) {
-                    Image(systemName: "arrow.clockwise")
-                }
-            )
         }
-        .task(id: storedRoleRaw) {
-            await viewModel.applyRole(currentRole)
-        }
-        .task(id: refreshToken) {
-            await viewModel.refresh()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .workoutApproved)) { _ in
-            guard viewModel.role == .inspector else { return }
-            refreshToken &+= 1
-        }
+        .task(id: storedRoleRaw) { await viewModel.reload(role: currentRole) }
+        .task(id: refreshToken) { await viewModel.reload(role: currentRole) }
         .sheet(item: $selectedDay) { day in
             DayItemsSheet(
                 date: day.date,
@@ -69,6 +38,44 @@ struct CalendarView: View {
             .presentationCornerRadius(24)
             .presentationBackground(.black)
         }
+    }
+
+    // MARK: - Content
+    private var contentView: some View {
+        VStack(spacing: 16) {
+            // header
+            HStack {
+                Text(currentRole == .user ? "Тренировки" : "Тренировки на проверку")
+                    .font(.title2.weight(.bold))
+                    .foregroundColor(.white)
+                Spacer()
+                Button(action: { refreshToken &+= 1 }) {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundColor(.white)
+                        .font(.system(size: 17, weight: .semibold))
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 4)
+            .padding(.bottom, 8)
+
+            if currentRole == .user {
+                modePicker
+                    .padding(.vertical)
+
+                if viewModel.pickerMode == .calendar {
+                    calendarSection
+                    Spacer()
+                } else {
+                    historyHeader        // ⬅️ показываем ОДИН раз
+                    historyGridUser      // ⬅️ список истории для пользователя
+                }
+            } else {
+                historyGridInspector   // ⬅️ фильтры и список для инспектора
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.ignoresSafeArea())
     }
 
     // MARK: - Mode Picker
@@ -102,15 +109,13 @@ struct CalendarView: View {
             .padding(.horizontal)
 
             CalendarGridView(monthDates: viewModel.monthDates) { tapped in
-                // Шит показываем только для роли User
-                guard currentRole == .user else { return }
                 selectedDay = IdentDate(tapped)
             }
             .padding(.vertical)
         }
     }
 
-    // MARK: - История (header с фильтром)
+    // MARK: - История: заголовок только для User
     private var historyHeader: some View {
         HStack {
             Text("История")
@@ -129,8 +134,8 @@ struct CalendarView: View {
         .padding(.bottom, 6)
     }
 
-    // MARK: - История (grid)
-    private var historyGrid: some View {
+    // MARK: - История (User)
+    private var historyGridUser: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.flexible())], spacing: 12) {
                 ForEach(Array(viewModel.filteredItems.enumerated()), id: \.1.id) { _, item in
@@ -154,6 +159,73 @@ struct CalendarView: View {
             .padding()
         }
         .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - История (Inspector)
+    private var historyGridInspector: some View {
+        ScrollView {
+            LazyVStack(pinnedViews: [.sectionHeaders]) {
+                Section {
+                    LazyVGrid(columns: [GridItem(.flexible())], spacing: 12) {
+                        ForEach(Array(viewModel.filteredItems.enumerated()), id: \.1.id) { _, item in
+                            NavigationLink {
+                                if item.asWorkout != nil {
+                                    WorkoutDetailView(item: item, role: viewModel.role)
+                                } else if let activity = item.asActivity {
+                                    ActivityDetailView(activity: activity, role: viewModel.role)
+                                } else {
+                                    Text("Неизвестный тип").foregroundColor(.white)
+                                }
+                            } label: {
+                                CalendarItemCellView(
+                                    item: item,
+                                    role: viewModel.role,
+                                    thumbURL: viewModel.thumbFor(item)
+                                )
+                            }
+                        }
+                    }
+                } header: {
+                    filterBar
+                        .background(Color.black.opacity(0.98))
+                }
+            }
+            .padding()
+        }
+        .scrollContentBackground(.hidden)
+    }
+
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Chip(text: "Все", selected: viewModel.inspectorTypeFilter == nil) {
+                    viewModel.setInspectorFilter(nil)
+                }
+                ForEach(viewModel.inspectorTypes, id: \.self) { t in
+                    Chip(text: t, selected: viewModel.inspectorTypeFilter == t) {
+                        viewModel.setInspectorFilter(t)
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
+    }
+
+    private struct Chip: View {
+        let text: String
+        let selected: Bool
+        let action: () -> Void
+        var body: some View {
+            Button(action: action) {
+                Text(text)
+                    .font(.subheadline)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(selected ? Color.white.opacity(0.18) : Color.white.opacity(0.08))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
     }
 }
 

@@ -1,6 +1,5 @@
 import Foundation
 
-
 protocol InspectorRepository {
     func getActivitiesForCheck() async throws -> [Activity]
     func getActivitiesFullCheck() async throws -> [Activity]
@@ -42,7 +41,18 @@ final class InspectorRepositoryImpl: InspectorRepository {
             description: dto.comment,
             isCompleted: false,
             createdAt: dto.startedAt,
-            updatedAt: nil
+            updatedAt: nil,
+            userEmail: dto.emailFromPhotoPath   // ← email берём отсюда
         )
+    }
+}
+
+// ОСТАВЛЯЕМ экстеншен ТОЛЬКО ЗДЕСЬ
+private extension ActivityForCheckDTO {
+    /// Вытаскиваем email из пути `photo_before` (…/email/.../photo_before.jpg)
+    var emailFromPhotoPath: String? {
+        guard let s = photoBefore, !s.isEmpty else { return nil }
+        let parts = s.split(separator: "/")
+        return parts.count >= 3 ? String(parts[parts.count - 3]) : nil
     }
 }

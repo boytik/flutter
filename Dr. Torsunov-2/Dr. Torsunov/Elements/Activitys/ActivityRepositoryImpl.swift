@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-// MARK: - Public model
+// MARK: - Public model used across the app
 struct Activity: Identifiable, Codable, Equatable {
     var id: String
     var name: String?
@@ -9,9 +9,10 @@ struct Activity: Identifiable, Codable, Equatable {
     var isCompleted: Bool
     var createdAt: Date?
     var updatedAt: Date?
+    var userEmail: String?
 }
 
-// MARK: - DTO для /list_workouts_for_check (+ full)
+// MARK: - DTO used by inspector endpoints (/for_check, /full_check)
 struct ActivityForCheckDTO: Decodable {
     let workoutKey: String?
     let workoutActivityType: String?
@@ -20,97 +21,57 @@ struct ActivityForCheckDTO: Decodable {
     let comment: String?
     let photoAfter: String?
     let photoBefore: String?
+
     let activityGraph: String?
     let heartRateGraph: String?
     let map: String?
 
-    let avg_humidity: JSONValue?
-    let avg_temp:     JSONValue?
-    let distance:     JSONValue?
-    let duration:     JSONValue?
-    let list_positions: JSONValue?
-    let maxLayer:     JSONValue?
-    let maxSubLayer:  JSONValue?
-
     enum CodingKeys: String, CodingKey {
-        case activityGraph, avg_humidity, avg_temp, comment
-        case distance, duration, heartRateGraph, list_positions, map
-        case maxLayer, maxSubLayer, photoAfter, photoBefore
-        case workoutActivityType, workoutKey, workoutStartDate, minStartTime
+        case workoutKey
+        case workoutActivityType
+        case workoutStartDate
+        case minStartTime
+        case comment
+
+        case photoAfter  = "photo_after"
+        case photoBefore = "photo_before"
+
+        case activityGraph = "activity_graph"
+        case heartRateGraph
+        case map
+
+        // сервер может прислать кучу лишних полей — игнорируем:
+        case avg_humidity, avg_temp, distance, duration, list_positions
+        case maxLayer, maxSubLayer
         case currentLayerChecked, currentsubLayerChecked
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        workoutKey           = try c.decodeIfPresent(String.self, forKey: .workoutKey)
-        workoutActivityType  = try c.decodeIfPresent(String.self, forKey: .workoutActivityType)
-        workoutStartDate     = try c.decodeIfPresent(String.self, forKey: .workoutStartDate)
-        minStartTime         = try c.decodeIfPresent(String.self, forKey: .minStartTime)
-        comment              = try c.decodeIfPresent(String.self, forKey: .comment)
-        photoAfter           = try c.decodeIfPresent(String.self, forKey: .photoAfter)
-        photoBefore          = try c.decodeIfPresent(String.self, forKey: .photoBefore)
-        activityGraph        = try c.decodeIfPresent(String.self, forKey: .activityGraph)
-        heartRateGraph       = try c.decodeIfPresent(String.self, forKey: .heartRateGraph)
-        map                  = try c.decodeIfPresent(String.self, forKey: .map)
-
-        avg_humidity         = try c.decodeIfPresent(JSONValue.self, forKey: .avg_humidity)
-        avg_temp             = try c.decodeIfPresent(JSONValue.self, forKey: .avg_temp)
-        distance             = try c.decodeIfPresent(JSONValue.self, forKey: .distance)
-        duration             = try c.decodeIfPresent(JSONValue.self, forKey: .duration)
-        list_positions       = try c.decodeIfPresent(JSONValue.self, forKey: .list_positions)
-        maxLayer             = try c.decodeIfPresent(JSONValue.self, forKey: .maxLayer)
-        maxSubLayer          = try c.decodeIfPresent(JSONValue.self, forKey: .maxSubLayer)
-
-        _ = try? c.decodeIfPresent(String.self, forKey: .currentLayerChecked)
-        _ = try? c.decodeIfPresent(String.self, forKey: .currentsubLayerChecked)
+        workoutKey          = try c.decodeIfPresent(String.self, forKey: .workoutKey)
+        workoutActivityType = try c.decodeIfPresent(String.self, forKey: .workoutActivityType)
+        workoutStartDate    = try c.decodeIfPresent(String.self, forKey: .workoutStartDate)
+        minStartTime        = try c.decodeIfPresent(String.self, forKey: .minStartTime)
+        comment             = try c.decodeIfPresent(String.self, forKey: .comment)
+        photoAfter          = try c.decodeIfPresent(String.self, forKey: .photoAfter)
+        photoBefore         = try c.decodeIfPresent(String.self, forKey: .photoBefore)
+        activityGraph       = try c.decodeIfPresent(String.self, forKey: .activityGraph)
+        heartRateGraph      = try c.decodeIfPresent(String.self, forKey: .heartRateGraph)
+        map                 = try c.decodeIfPresent(String.self, forKey: .map)
+        // все остальные ключи намеренно игнорируем
     }
 
     var startedAt: Date? {
         for raw in [workoutStartDate, minStartTime] {
-            if let s = raw, let d = Self.parseDate(s) { return d }
-        }
-        return nil
-    }
-
-    private static func parseDate(_ s: String) -> Date? {
-        let fmts = ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd"]
-        let df = DateFormatter()
-        df.locale = .init(identifier: "en_US_POSIX")
-        df.timeZone = .current
-        for f in fmts {
-            df.dateFormat = f
-            if let d = df.date(from: s) { return d }
+            if let s = raw, let d = ActivityRepositoryImpl.parseDateSmart(s) { return d }
         }
         return nil
     }
 }
 
-// MARK: - DTO под /list_workouts
-private struct ActivityFeedDTO: Decodable {
-    let workoutKey: String?
-    let workoutActivityType: String?
-    let workoutStartDate: String?
-
-    enum CodingKeys: String, CodingKey {
-        case workoutKey, workoutActivityType, workoutStartDate
-    }
-
-    var startDate: Date? {
-        Self.df.date(from: workoutStartDate ?? "")
-    }
-
-    private static let df: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = .init(identifier: "en_US_POSIX")
-        f.timeZone = .current
-        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return f
-    }()
-}
-
-// MARK: - Protocol
+// MARK: - Repository API
 protocol ActivityRepository {
-    func fetchAll() async throws -> [Activity]        // история (completed)
+    func fetchAll() async throws -> [Activity]
     func upload(activity: Activity) async throws
     func submit(activityId: String,
                 comment: String?,
@@ -118,17 +79,20 @@ protocol ActivityRepository {
                 afterImage: UIImage?) async throws
 }
 
-// MARK: - Impl
+// MARK: - Implementation
 final class ActivityRepositoryImpl: ActivityRepository {
     private let client = HTTPClient.shared
 
+    // ---- Public API
+
+    /// Возвращает всю историю завершённых активностей пользователя.
+    /// Понимает разные формы ответа: `[HistoryV2]`, `{ "data": [HistoryV1] }`, либо `[HistoryV1]`.
     func fetchAll() async throws -> [Activity] {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
-            print("⚠️ ActivityRepo: no email → empty")
             return []
         }
 
-        // Как во Flutter: lastDate = сегодня - 5 лет (забрать весь срез истории)
+        // Берём большой срез истории
         let fiveYearsAgo = Calendar.current.date(byAdding: .year, value: -5, to: Date())!
         let dfDay = DateFormatter()
         dfDay.locale = .init(identifier: "en_US_POSIX")
@@ -137,27 +101,28 @@ final class ActivityRepositoryImpl: ActivityRepository {
         let lastDate = dfDay.string(from: fiveYearsAgo)
 
         let url = ApiRoutes.Activities.listWorkouts(email: email, lastDate: lastDate)
-        print("🛰️ GET history:", url.absoluteString)
 
-        do {
-            let dtos: [ActivityFeedDTO] = try await client.request([ActivityFeedDTO].self, url: url)
-            let items = dtos.map {
-                Activity(
-                    id: $0.workoutKey ?? UUID().uuidString,
-                    name: $0.workoutActivityType,
-                    description: nil,
-                    isCompleted: true,
-                    createdAt: $0.startDate,
-                    updatedAt: nil
-                )
-            }
-            let sorted = items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
-            print("✅ history /list_workouts items=\(sorted.count)")
-            return sorted
-        } catch {
-            print("↩️ /list_workouts error:", error.localizedDescription)
-            return []
+        // V2: плоский массив
+        if let v2: [HistoryV2] = try? await client.request([HistoryV2].self, url: url) {
+            return v2.map { $0.asActivity(email: email) }
+                     .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
         }
+
+        // V1: обёртка { data: [...] }
+        if let wrapped: HistoryWrappedV1 = try? await client.request(HistoryWrappedV1.self, url: url) {
+            return wrapped.data.map { $0.asActivity(email: email) }
+                               .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        }
+
+        // V1 без обёртки
+        if let v1: [HistoryV1] = try? await client.request([HistoryV1].self, url: url) {
+            return v1.map { $0.asActivity(email: email) }
+                     .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        }
+
+        throw NSError(domain: "ActivityRepositoryImpl",
+                      code: -1,
+                      userInfo: [NSLocalizedDescriptionKey: "Не удалось декодировать ответ /list_workouts"])
     }
 
     func upload(activity: Activity) async throws {
@@ -188,6 +153,79 @@ final class ActivityRepositoryImpl: ActivityRepository {
             url: ApiRoutes.Activities.legacy_submit(id: activityId),
             fields: fields,
             parts: parts
+        )
+    }
+
+    // ---- Private helpers
+
+    /// Универсальный парсер дат под все варианты, встречавшиеся в проекте.
+    static func parseDateSmart(_ s: String) -> Date? {
+        for f in Self.dateParsers {
+            if let d = f.date(from: s) { return d }
+        }
+        return nil
+    }
+
+    private static let dateParsers: [DateFormatter] = {
+        let make: (String) -> DateFormatter = { fmt in
+            let f = DateFormatter()
+            f.locale = .init(identifier: "en_US_POSIX")
+            f.timeZone = .current
+            f.dateFormat = fmt
+            return f
+        }
+        // ISO: 2024-05-13T18:08:27+0300
+        // Space: 2024-05-13 18:08:27
+        // Date only: 2024-05-13
+        return [
+            make("yyyy-MM-dd'T'HH:mm:ssZ"),
+            make("yyyy-MM-dd HH:mm:ss"),
+            make("yyyy-MM-dd")
+        ]
+    }()
+}
+
+// MARK: - Server response shapes we need to support
+
+/// Старый вариант: { "data": [ {id,name,description,created_at} ] }
+private struct HistoryWrappedV1: Decodable {
+    let data: [HistoryV1]
+}
+
+private struct HistoryV1: Decodable {
+    let id: String
+    let name: String
+    let description: String?
+    let created_at: String
+
+    func asActivity(email: String) -> Activity {
+        Activity(
+            id: id,
+            name: name,
+            description: description,
+            isCompleted: true,
+            createdAt: ActivityRepositoryImpl.parseDateSmart(created_at),
+            updatedAt: nil,
+            userEmail: email
+        )
+    }
+}
+
+/// Текущий вариант: [ { workoutKey, workoutActivityType, workoutStartDate } ]
+private struct HistoryV2: Decodable {
+    let workoutKey: String
+    let workoutActivityType: String
+    let workoutStartDate: String
+
+    func asActivity(email: String) -> Activity {
+        Activity(
+            id: workoutKey,
+            name: workoutActivityType,
+            description: nil,
+            isCompleted: true,
+            createdAt: ActivityRepositoryImpl.parseDateSmart(workoutStartDate),
+            updatedAt: nil,
+            userEmail: email
         )
     }
 }

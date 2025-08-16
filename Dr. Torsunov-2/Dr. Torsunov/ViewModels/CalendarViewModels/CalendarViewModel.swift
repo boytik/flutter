@@ -29,63 +29,58 @@ final class ActivityThumbsRepositoryImpl: ActivityThumbsRepository {
         let url = ApiRoutes.Workouts.metadata(workoutKey: workoutKey, email: email)
         let meta: MetadataDTO = try await client.request(MetadataDTO.self, url: url)
 
-        // приоритет: photo_after → photo_before → activity_graph → heartRateGraph → map
+        // приоритет как в старой реализации
         let candidates = [meta.photoAfter, meta.photoBefore, meta.activityGraph, meta.heartRateGraph, meta.map]
         for s in candidates {
-            if let u = makeURL(s) { return u }
+            if let s, !s.isEmpty {
+                if let u = URL(string: s), u.scheme != nil { return u }
+                if s.hasPrefix("/") { return URL(string: s, relativeTo: APIEnv.baseURL) }
+            }
         }
-        return nil
-    }
-
-    private func makeURL(_ s: String?) -> URL? {
-        guard let s, !s.isEmpty else { return nil }
-        if let u = URL(string: s), u.scheme != nil { return u }
-        if s.hasPrefix("/") { return URL(string: s, relativeTo: APIEnv.baseURL) }
         return nil
     }
 }
 
-// MARK: - ViewModel
+// -------------------------------------------------------------
+
+import Foundation
+import SwiftUI
+
+// …(ActivityThumbsRepository и его реализация — без изменений)…
+
 @MainActor
 final class CalendarViewModel: ObservableObject {
 
-    enum PickersModes: String, CaseIterable {
-        case calendar = "Календарь"
-        case history  = "История"
-    }
-    enum HistoryFilter: String, CaseIterable {
-        case completed = "Завершённые" // завершённые за ТЕКУЩИЙ месяц
-        case all       = "Все"          // все завершённые за ВСЁ время
-    }
+    enum PickersModes: String, CaseIterable { case calendar = "Календарь"; case history = "История" }
+    enum HistoryFilter: String, CaseIterable { case completed = "Завершённые"; case all = "Все" }
 
     @Published var role: PersonalViewModel.Role = .user
     @Published var pickerMode: PickersModes = .calendar
-    @Published var historyFilter: HistoryFilter = .completed {
-        didSet { rebuildHistory() }
-    }
+    // стартуем с "Все", чтобы не было пустого экрана, если в текущем месяце нет завершённых
+    @Published var historyFilter: HistoryFilter = .all { didSet { rebuildHistory() } }
 
-    // Календарь
     @Published var monthDates: [WorkoutDay] = []
     @Published var currentMonthDate: Date = Date()
     @Published var byDay: [Date: [CalendarItem]] = [:]
 
-    // История (для списка)
     @Published var filteredItems: [CalendarItem] = []
 
-    // Кэши
-    private var monthPlanned: [Workout] = []     // план в выбранном месяце
-    private var monthActivities: [Activity] = [] // завершённые в выбранном месяце
-    private var allActivities: [Activity] = []   // вся история завершённых (из /list_workouts)
+    private var monthPlanned: [Workout] = []
+    private var monthActivities: [Activity] = []
+    private var allActivities: [Activity] = []
     private var inspectorActivities: [Activity] = []
-
-    // thumbs для истории (по id активности)
     @Published var thumbs: [String: URL] = [:]
 
-    // Репозитории
     private let workoutPlannerRepo: WorkoutPlannerRepository
     private let inspectorRepo: InspectorRepository
     private let activitiesRepo: ActivityRepository
     private let thumbsRepo: ActivityThumbsRepository
+
+    @Published var inspectorTypeFilter: String? = nil
+    var inspectorTypes: [String] {
+        let set = Set(inspectorActivities.compactMap { normalizedType($0.name) })
+        return Array(set).sorted()
+    }
 
     init(workoutPlannerRepo: WorkoutPlannerRepository = WorkoutPlannerRepositoryImpl(),
          inspectorRepo: InspectorRepository = InspectorRepositoryImpl(),
@@ -97,25 +92,16 @@ final class CalendarViewModel: ObservableObject {
         self.thumbsRepo = thumbsRepo
     }
 
-    // MARK: Lifecycle
-    func applyRole(_ role: PersonalViewModel.Role) async {
+    func reload(role: PersonalViewModel.Role) async {
         self.role = role
-        await refresh()
-    }
-
-    func refresh() async {
         switch role {
-        case .user:
-            await loadCalendarForMonth(currentMonthDate)
-        case .inspector:
-            await loadInspector()
+        case .user:      await loadCalendarForMonth(currentMonthDate)
+        case .inspector: await loadInspector()
         }
     }
 
-    // Header
     var currentMonth: String {
-        let f = DateFormatter()
-        f.locale = Locale.current
+        let f = DateFormatter(); f.locale = Locale.current
         f.setLocalizedDateFormatFromTemplate("LLLL yyyy")
         return f.string(from: currentMonthDate).capitalized
     }
@@ -123,16 +109,25 @@ final class CalendarViewModel: ObservableObject {
     func previousMonth() {
         guard let d = Calendar.current.date(byAdding: .month, value: -1, to: currentMonthDate) else { return }
         currentMonthDate = d
-        Task { await refresh() }
+        Task { await loadCalendarForMonth(d) }
     }
 
     func nextMonth() {
         guard let d = Calendar.current.date(byAdding: .month, value: 1, to: currentMonthDate) else { return }
         currentMonthDate = d
-        Task { await refresh() }
+        Task { await loadCalendarForMonth(d) }
     }
 
-    // MARK: Loading — USER
+    func items(on date: Date) -> [CalendarItem] {
+        byDay[Calendar.current.startOfDay(for: date)] ?? []
+    }
+
+    func thumbFor(_ item: CalendarItem) -> URL? {
+        if case let .activity(a) = item { return thumbs[a.id] }
+        return nil
+    }
+
+    // MARK: USER
     private func loadCalendarForMonth(_ monthDate: Date) async {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
             monthPlanned = []; monthActivities = []; allActivities = []
@@ -145,11 +140,10 @@ final class CalendarViewModel: ObservableObject {
         let cal = Calendar.current
 
         do {
-            // 1) План на месяц (по Flutter-подходу — по месяцу)
+            // План месяца
             let plannerDTOs = try await workoutPlannerRepo.getPlannerCalendar(filterMonth: yyyyMM)
             let planned: [Workout] = plannerDTOs.compactMap { dto in
                 guard let date = Self.parseDate(dto.date) else { return nil }
-                // ограничим текущим месяцем
                 guard date >= cal.startOfDay(for: startD),
                       date <= cal.date(bySettingHour: 23, minute: 59, second: 59, of: endD)! else { return nil }
                 let minutes = (dto.durationHours ?? 0) * 60 + (dto.durationMinutes ?? 0)
@@ -164,11 +158,10 @@ final class CalendarViewModel: ObservableObject {
             }
             self.monthPlanned = planned
 
-            // 2) История завершённых: вся история (до сегодня) из /list_workouts
+            // История завершённых
             let allActs = try await activitiesRepo.fetchAll()
             self.allActivities = allActs
 
-            // …и версия, отфильтрованная в границах месяца:
             let monthActs = allActs.filter { a in
                 guard let dt = a.createdAt else { return false }
                 return dt >= cal.startOfDay(for: startD) &&
@@ -176,25 +169,28 @@ final class CalendarViewModel: ObservableObject {
             }
             self.monthActivities = monthActs
 
-            // 3) Контент по дням для шита
-            let workoutItems: [CalendarItem]  = planned.map { .workout($0) }
-            let activityItems: [CalendarItem] = monthActs.map { .activity($0) }
+            // Контент по дням
+            let workoutItems  = planned.map { CalendarItem.workout($0) }
+            let activityItems = monthActs.map { CalendarItem.activity($0) }
             self.byDay = Dictionary(grouping: (workoutItems + activityItems)) {
                 cal.startOfDay(for: $0.date)
             }
 
-            // 4) точки на сетке
-            self.monthDates = buildMarkers(for: monthDate,
-                                           planned: planned,
-                                           done: monthActs)
+            // Маркеры на сетку
+            self.monthDates = buildMarkers(for: monthDate, planned: planned, done: monthActs)
 
-            // 5) история с учётом фильтра:
+            // История
             rebuildHistory()
 
-            // 6) мини-превью для верхней части списка
+            // Fallback: если «Завершённые» пусто — переключаем на «Все»
+            if filteredItems.isEmpty, historyFilter == .completed, !allActivities.isEmpty {
+                historyFilter = .all
+                rebuildHistory()
+            }
+
+            // Предзагрузка превью
             await prefetchThumbs(for: filteredItems.prefix(24))
 
-            print("✅ Planner (month): \(planned.count), month activities: \(monthActs.count), all activities: \(allActs.count)")
         } catch {
             print("Calendar load error:", error.localizedDescription)
             monthPlanned = []; monthActivities = []; allActivities = []
@@ -202,37 +198,23 @@ final class CalendarViewModel: ObservableObject {
         }
     }
 
-    // Перестраиваем список «История» под выбранный фильтр
     private func rebuildHistory() {
         switch historyFilter {
         case .completed:
-            // завершённые ТОЛЬКО за текущий месяц
-            let activityItems = monthActivities.map { CalendarItem.activity($0) }
-            filteredItems = activityItems.sorted { $0.date > $1.date }
-
+            filteredItems = monthActivities.map { .activity($0) }.sorted { $0.date > $1.date }
         case .all:
-            // все завершённые за ВСЁ время (как в оригинальном приложении)
-            let allItems = allActivities.map { CalendarItem.activity($0) }
-            filteredItems = allItems.sorted { $0.date > $1.date }
+            filteredItems = allActivities.map { .activity($0) }.sorted { $0.date > $1.date }
         }
-    }
-
-    // Мини-превью (для активностей)
-    func thumbFor(_ item: CalendarItem) -> URL? {
-        if case let .activity(a) = item { return thumbs[a.id] }
-        return nil
     }
 
     private func prefetchThumbs<S: Sequence>(for items: S) async where S.Element == CalendarItem {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else { return }
         var new: [String: URL] = [:]
-
         await withTaskGroup(of: (String, URL?).self) { group in
             for item in items {
-                guard case let .activity(a) = item else { continue }
-                if thumbs[a.id] != nil { continue } // уже есть
-                group.addTask {
-                    let u = try? await self.thumbsRepo.fetchThumbURL(workoutKey: a.id, email: email)
+                guard case let .activity(a) = item, thumbs[a.id] == nil else { continue }
+                group.addTask { [thumbsRepo] in
+                    let u = try? await thumbsRepo.fetchThumbURL(workoutKey: a.id, email: email)
                     return (a.id, u)
                 }
             }
@@ -240,10 +222,10 @@ final class CalendarViewModel: ObservableObject {
                 if let url { new[id] = url }
             }
         }
-        if !new.isEmpty { self.thumbs.merge(new) { old, _ in old } }
+        if !new.isEmpty { thumbs.merge(new) { old, _ in old } }
     }
 
-    // MARK: Loading — INSPECTOR
+    // MARK: INSPECTOR (без изменений по сути)
     private func loadInspector() async {
         do {
             async let a: [Activity] = inspectorRepo.getActivitiesForCheck()
@@ -255,13 +237,9 @@ final class CalendarViewModel: ObservableObject {
             let all = Array(uniq.values)
 
             inspectorActivities = all
-            filteredItems = all
-                .map { CalendarItem.activity($0) }
-                .sorted { $0.date > $1.date }
+            applyInspectorFilter()
 
             monthDates = buildMarkers(for: currentMonthDate, planned: [], done: all)
-
-            print("✅ Inspector activities loaded: \(all.count)")
         } catch {
             print("Inspector load error:", error.localizedDescription)
             await loadInspectorActivitiesFallback()
@@ -272,10 +250,7 @@ final class CalendarViewModel: ObservableObject {
         do {
             let acts = try await activitiesRepo.fetchAll()
             inspectorActivities = acts
-            filteredItems = acts
-                .map { CalendarItem.activity($0) }
-                .sorted { $0.date > $1.date }
-
+            applyInspectorFilter()
             monthDates = buildMarkers(for: currentMonthDate, planned: [], done: acts)
         } catch {
             inspectorActivities = []
@@ -284,21 +259,24 @@ final class CalendarViewModel: ObservableObject {
         }
     }
 
-    // MARK: Markers
-    private static func color(for activityName: String) -> Color {
-        switch activityName.lowercased() {
-        case "yoga", "йога": return .purple
-        case "walking/running", "walking", "running", "run", "walk", "ходьба", "бег": return .yellow
-        case "water", "swim", "pool", "вода", "плавание": return .cyan
-        case "sauna", "сауна": return .pink
-        case "fasting", "пост": return .green
-        default: return .blue
-        }
+    func setInspectorFilter(_ type: String?) { inspectorTypeFilter = type; applyInspectorFilter() }
+    private func applyInspectorFilter() {
+        var base = inspectorActivities
+        if let t = inspectorTypeFilter { base = base.filter { normalizedType($0.name) == t } }
+        filteredItems = base.map { .activity($0) }.sorted { $0.date > $1.date }
+    }
+    private func normalizedType(_ raw: String?) -> String? {
+        guard let s = raw?.lowercased() else { return nil }
+        if s.contains("yoga") || s.contains("йога") { return "Йога" }
+        if s.contains("water") || s.contains("вода") || s.contains("swim") { return "Вода" }
+        if s.contains("walk") || s.contains("run") || s.contains("ход") || s.contains("бег") { return "Бег/Ходьба" }
+        if s.contains("sauna") || s.contains("баня") { return "Баня" }
+        if s.contains("fast")  || s.contains("пост") { return "Пост" }
+        return nil
     }
 
-    private func buildMarkers(for monthDate: Date,
-                              planned: [Workout],
-                              done: [Activity]) -> [WorkoutDay] {
+    // MARK: Маркеры/даты
+    private func buildMarkers(for monthDate: Date, planned: [Workout], done: [Activity]) -> [WorkoutDay] {
         var cal = Calendar(identifier: .iso8601)
         cal.firstWeekday = 2
 
@@ -325,48 +303,45 @@ final class CalendarViewModel: ObservableObject {
         }
     }
 
-    func items(on day: Date) -> [CalendarItem] {
-        let d = Calendar.current.startOfDay(for: day)
-        return byDay[d] ?? []
+    private static func color(for name: String) -> Color {
+        let s = name.lowercased()
+        if s.contains("yoga") || s.contains("йога") { return .purple }
+        if s.contains("walk") || s.contains("run") || s.contains("ход") || s.contains("бег") { return .orange }
+        if s.contains("water") || s.contains("вода") || s.contains("swim") { return .blue }
+        if s.contains("sauna") || s.contains("баня") { return .red }
+        if s.contains("fast") || s.contains("пост") { return .yellow }
+        return .green
     }
 
-    // MARK: Helpers
     private func monthRangeDates(_ monthDate: Date) -> (Date, Date) {
-        var cal = Calendar(identifier: .iso8601)
-        cal.firstWeekday = 2
+        var cal = Calendar(identifier: .iso8601); cal.firstWeekday = 2
         let start = cal.date(from: cal.dateComponents([.year, .month], from: monthDate))!
         let end = cal.date(byAdding: DateComponents(month: 1, day: -1), to: start)!
         return (start, end)
     }
 
     private static let yyyyMM: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = .init(identifier: "en_US_POSIX")
-        f.timeZone = .init(secondsFromGMT: 0)
-        f.dateFormat = "yyyy-MM"
-        return f
+        let f = DateFormatter(); f.locale = .init(identifier: "en_US_POSIX")
+        f.timeZone = .init(secondsFromGMT: 0); f.dateFormat = "yyyy-MM"; return f
     }()
 
     private static func parseDate(_ s: String?) -> Date? {
-        guard let s, !s.isEmpty else { return nil }
-        if let d = dfDateTime.date(from: s) { return d }
-        if let d = dfDate.date(from: s)     { return d }
-        return ISO8601DateFormatter().date(from: s)
+        guard let s = s, !s.isEmpty else { return nil }
+        if let d = dfDateTimeISO.date(from: s) { return d }
+        if let d = dfDateTimeSpace.date(from: s) { return d }
+        if let d = dfDate.date(from: s) { return d }
+        return nil
     }
-
-    private static let dfDateTime: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = .init(identifier: "en_US_POSIX")
-        f.timeZone = .current
-        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return f
+    private static let dfDateTimeISO: DateFormatter = {
+        let f = DateFormatter(); f.locale = .init(identifier: "en_US_POSIX")
+        f.timeZone = .current; f.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"; return f
     }()
-
+    private static let dfDateTimeSpace: DateFormatter = {
+        let f = DateFormatter(); f.locale = .init(identifier: "en_US_POSIX")
+        f.timeZone = .current; f.dateFormat = "yyyy-MM-dd HH:mm:ss"; return f
+    }()
     private static let dfDate: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = .init(identifier: "en_US_POSIX")
-        f.timeZone = .current
-        f.dateFormat = "yyyy-MM-dd"
-        return f
+        let f = DateFormatter(); f.locale = .init(identifier: "en_US_POSIX")
+        f.timeZone = .current; f.dateFormat = "yyyy-MM-dd"; return f
     }()
 }
