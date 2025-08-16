@@ -4,6 +4,13 @@ protocol InspectorRepository {
     func getActivitiesForCheck() async throws -> [Activity]
     func getActivitiesFullCheck() async throws -> [Activity]
     func checkWorkout(id: String) async throws
+
+    // уже был у нас для отправки слоёв — оставляю на месте
+    func sendLayers(workoutId: String,
+                    email: String,
+                    level: Int,
+                    sublevel: Int,
+                    comment: String) async throws
 }
 
 final class InspectorRepositoryImpl: InspectorRepository {
@@ -34,6 +41,23 @@ final class InspectorRepositoryImpl: InspectorRepository {
         )
     }
 
+    func sendLayers(workoutId: String,
+                    email: String,
+                    level: Int,
+                    sublevel: Int,
+                    comment: String) async throws {
+        var comps = URLComponents(url: ApiRoutes.Inspector.checkWorkout, resolvingAgainstBaseURL: false)!
+        comps.queryItems = [
+            .init(name: "workoutId", value: workoutId),
+            .init(name: "email", value: email),
+            .init(name: "currentLayerChecked", value: String(level)),
+            .init(name: "currentsubLayerChecked", value: String(sublevel)),
+            .init(name: "comment", value: comment)
+        ]
+        try await client.requestVoid(url: comps.url!, method: .POST)
+    }
+
+    // MARK: - map
     private func mapToActivity(_ dto: ActivityForCheckDTO) -> Activity {
         Activity(
             id: dto.workoutKey ?? UUID().uuidString,
@@ -42,17 +66,33 @@ final class InspectorRepositoryImpl: InspectorRepository {
             isCompleted: false,
             createdAt: dto.startedAt,
             updatedAt: nil,
-            userEmail: dto.emailFromPhotoPath   // ← email берём отсюда
+            userEmail: dto.emailFromAnyAvailablePath // ⬅️ здесь берём email
         )
     }
 }
 
-// ОСТАВЛЯЕМ экстеншен ТОЛЬКО ЗДЕСЬ
+// MARK: - Email из любого поля-пути (надёжнее)
 private extension ActivityForCheckDTO {
-    /// Вытаскиваем email из пути `photo_before` (…/email/.../photo_before.jpg)
-    var emailFromPhotoPath: String? {
-        guard let s = photoBefore, !s.isEmpty else { return nil }
-        let parts = s.split(separator: "/")
-        return parts.count >= 3 ? String(parts[parts.count - 3]) : nil
+    var emailFromAnyAvailablePath: String? {
+        for candidate in [photoBefore, photoAfter, activityGraph, heartRateGraph, map] {
+            if let e = Self.extractEmail(fromPath: candidate) { return e }
+        }
+        return nil
+    }
+
+    static func extractEmail(fromPath s: String?) -> String? {
+        guard let s = s, !s.isEmpty else { return nil }
+        // Абсолютный/относительный — всё равно разбираем по "/"
+        // Пробуем через URL, если не выйдет — вручную
+        let comps1: [String]
+        if let u = URL(string: s), !u.path.isEmpty {
+            comps1 = u.pathComponents
+        } else {
+            comps1 = s.split(separator: "/").map(String.init)
+        }
+        let comps = comps1.filter { $0 != "/" && !$0.isEmpty }
+        // Во Флаттере достают "третью папку с конца"
+        guard comps.count >= 3 else { return nil }
+        return comps[comps.count - 3]
     }
 }

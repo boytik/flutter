@@ -8,9 +8,10 @@ struct ActivityDetailView: View {
     let activity: Activity
     let role: PersonalViewModel.Role
 
-    enum Tab: String, CaseIterable { case charts = "Графики", review = "На проверку" }
+    enum Tab: String, Hashable { case charts, photos, review }
     @State private var tab: Tab = .charts
 
+    // USER: загрузка фото/коммента
     @State private var comment = ""
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
@@ -19,15 +20,19 @@ struct ActivityDetailView: View {
     @State private var isSubmitting = false
     @State private var submissionSuccess: Bool?
 
+    // Графики
     @StateObject private var vm: WorkoutDetailViewModel
     @State private var syncEnabled = false
 
     init(activity: Activity, role: PersonalViewModel.Role) {
         self.activity = activity
         self.role = role
-        let key = ActivityDetailView.extractWorkoutKey(from: activity) ?? ""
+        let key = ActivityDetailView.extractWorkoutKey(from: activity) ?? activity.id
         _vm = StateObject(wrappedValue: WorkoutDetailViewModel(workoutID: key))
     }
+
+    private var availableTabs: [Tab] { role == .inspector ? [.charts, .photos] : [.charts, .review] }
+    private func tabTitle(_ t: Tab) -> String { t == .charts ? "Графики" : (t == .photos ? "Фото" : "На проверку") }
 
     var body: some View {
         ScrollView {
@@ -35,27 +40,31 @@ struct ActivityDetailView: View {
                 headerSection
 
                 Picker("", selection: $tab) {
-                    Text(Tab.charts.rawValue).tag(Tab.charts)
-                    if role == .user { Text(Tab.review.rawValue).tag(Tab.review) }
+                    ForEach(availableTabs, id: \.self) { Text(tabTitle($0)).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .tint(.green)
 
-                if tab == .charts {
+                switch tab {
+                case .charts:
                     chartsSection
-                } else {
+                case .photos:
+                    InspectorPhotosTab(activity: activity) // переработанная вкладка
+                case .review:
                     photosSection
                     commentSection
                     submitButton
                 }
 
-                if let success = submissionSuccess {
+                if let success = submissionSuccess, role != .inspector {
                     Text(success ? L("submit_success") : L("submit_error"))
                         .foregroundColor(success ? .green : .red)
                         .padding(.top, 6)
                 }
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.top, 12)
+            .padding(.bottom, 24) // запас снизу для прокрутки
         }
         .background(Color.black.ignoresSafeArea())
         .sheet(isPresented: $showBeforePicker) { ImagePicker(image: $beforeImage) }
@@ -67,28 +76,22 @@ struct ActivityDetailView: View {
 
     // MARK: Header
     private var headerSection: some View {
-        HStack {
-            Text("✅")
-                .font(.title)
-                .frame(width: 44, height: 44)
-                .background(Color.green.opacity(0.2))
-                .clipShape(Circle())
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.green.opacity(0.2))
+                Text("✅").font(.title2)
+            }
+            .frame(width: 44, height: 44)
 
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(activity.name ?? "Activity")
                     .font(.headline)
                     .foregroundColor(.white)
 
-                if let description = activity.description {
-                    Text(description)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-
                 if let date = activity.createdAt {
                     Text(date.formatted(date: .long, time: .shortened))
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white.opacity(0.7))
                 }
             }
             Spacer()
@@ -119,8 +122,7 @@ struct ActivityDetailView: View {
                         let count = min(tx.count, hr.count)
                         Chart {
                             ForEach(0..<count, id: \.self) { i in
-                                AreaMark(x: .value("t", tx[i]), y: .value("bpm", hr[i]))
-                                    .opacity(0.15)
+                                AreaMark(x: .value("t", tx[i]), y: .value("bpm", hr[i])).opacity(0.15)
                                 LineMark(x: .value("t", tx[i]), y: .value("bpm", hr[i]))
                             }
                         }
@@ -130,8 +132,7 @@ struct ActivityDetailView: View {
                     } else {
                         Chart {
                             ForEach(hr.indices, id: \.self) { i in
-                                AreaMark(x: .value("i", Double(i)), y: .value("bpm", hr[i]))
-                                    .opacity(0.15)
+                                AreaMark(x: .value("i", Double(i)), y: .value("bpm", hr[i])).opacity(0.15)
                                 LineMark(x: .value("i", Double(i)), y: .value("bpm", hr[i]))
                             }
                         }
@@ -164,8 +165,7 @@ struct ActivityDetailView: View {
                         let count = min(tx.count, wt.count)
                         Chart {
                             ForEach(0..<count, id: \.self) { i in
-                                AreaMark(x: .value("t", tx[i]), y: .value("°C", wt[i]))
-                                    .opacity(0.15)
+                                AreaMark(x: .value("t", tx[i]), y: .value("°C", wt[i])).opacity(0.15)
                                 LineMark(x: .value("t", tx[i]), y: .value("°C", wt[i]))
                             }
                         }
@@ -175,8 +175,7 @@ struct ActivityDetailView: View {
                     } else {
                         Chart {
                             ForEach(wt.indices, id: \.self) { i in
-                                AreaMark(x: .value("i", Double(i)), y: .value("°C", wt[i]))
-                                    .opacity(0.15)
+                                AreaMark(x: .value("i", Double(i)), y: .value("°C", wt[i])).opacity(0.15)
                                 LineMark(x: .value("i", Double(i)), y: .value("°C", wt[i]))
                             }
                         }
@@ -201,7 +200,7 @@ struct ActivityDetailView: View {
         }
     }
 
-    // MARK: Photos + Comment + Submit
+    // MARK: USER (как и раньше)
     private var photosSection: some View {
         VStack(spacing: 14) {
             uploadSection(title: L("photo_before"), image: $beforeImage, showPicker: $showBeforePicker)
@@ -216,11 +215,11 @@ struct ActivityDetailView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color(.systemGray6).opacity(0.2))
-                        .frame(height: 150)
+                        .frame(height: 160)
                     if let img = image.wrappedValue {
                         Image(uiImage: img)
                             .resizable().scaledToFill()
-                            .frame(height: 150)
+                            .frame(height: 160)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {
                         Image(systemName: "photo.on.rectangle.angled")
@@ -290,5 +289,194 @@ struct ActivityDetailView: View {
             if isCandidate, let s = child.value as? String, !s.isEmpty { return s }
         }
         return nil
+    }
+}
+
+// MARK: - Вкладка «Фото» для инспектора
+private struct InspectorPhotosTab: View {
+    let activity: Activity
+    var mediaRepo: WorkoutMediaRepository = WorkoutMediaRepositoryImpl()
+    var inspectorRepo: InspectorRepository = InspectorRepositoryImpl()
+
+    @State private var beforeURL: URL?
+    @State private var afterURL: URL?
+    @State private var existingLayer: Int?
+    @State private var existingSub: Int?
+    @State private var textComment: String = ""
+    @State private var level: Int = 0
+    @State private var sublevel: Int = 0
+    @State private var isSending = false
+    @State private var loadError: String?
+
+    var body: some View {
+        VStack(spacing: 18) {
+            // Фото
+            HStack(spacing: 16) {
+                photoBox(title: "Фото ДО тренировки", url: beforeURL)
+                photoBox(title: "Фото ПОСЛЕ тренировки", url: afterURL)
+            }
+            .frame(height: 220)
+
+            // Слои/подслои
+            if let l = existingLayer, let s = existingSub {
+                HStack {
+                    Text("Слой: \(l)")
+                    Spacer(minLength: 12)
+                    Text("Подслой: \(s)")
+                    Spacer()
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Выберите слой")
+                        .foregroundColor(.white.opacity(0.9))
+                        .fontWeight(.semibold)
+                    HStack(spacing: 12) {
+                        picker(title: "Слой", range: 0...10, selection: $level)
+                        picker(title: "Подслой", range: 0...6, selection: $sublevel)
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+
+            // Комментарий
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Введите комментарий")
+                    .foregroundColor(.white.opacity(0.8))
+                TextEditor(text: $textComment)
+                    .scrollContentBackground(.hidden)
+                    .padding(10)
+                    .frame(minHeight: 160)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .foregroundColor(.white)
+            }
+
+            if let err = loadError {
+                Text(err).foregroundColor(.red).font(.footnote)
+            }
+
+            // запас места под «плавающую» кнопку
+            Spacer(minLength: 80)
+        }
+        .onAppear { Task { await loadMedia() } }
+        .safeAreaInset(edge: .bottom) { sendBar } // фиксированная кнопка над таббаром
+    }
+
+    // Нижняя панель с кнопкой
+    private var sendBar: some View {
+        HStack {
+            Button(action: send) {
+                HStack {
+                    if isSending { ProgressView().tint(.black) }
+                    Text("Отправить").fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity).padding(.vertical, 14)
+                .background(Color.green)
+                .foregroundColor(.black)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .disabled(isSending || (existingLayer != nil))
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+        .background(.ultraThinMaterial) // лёгкая подложка над таббаром
+    }
+
+    // MARK: Data
+    private func loadMedia() async {
+        let email = activity.userEmail ?? ""
+        do {
+            let m = try await mediaRepo.fetch(workoutId: activity.id, email: email)
+            await MainActor.run {
+                beforeURL = m.before
+                afterURL  = m.after
+                existingLayer = m.currentLayerChecked
+                existingSub   = m.currentSubLayerChecked
+                textComment   = m.comment ?? ""
+            }
+        } catch {
+            await MainActor.run { loadError = "Ошибка загрузки фото: \(error.localizedDescription)" }
+        }
+    }
+
+    private func send() {
+        Task {
+            guard !isSending else { return }
+            await MainActor.run { isSending = true }
+            let email = activity.userEmail ?? ""
+            do {
+                try await inspectorRepo.sendLayers(
+                    workoutId: activity.id,
+                    email: email,
+                    level: level,
+                    sublevel: sublevel,
+                    comment: textComment
+                )
+                await MainActor.run {
+                    existingLayer = level
+                    existingSub   = sublevel
+                    isSending = false
+                }
+            } catch {
+                await MainActor.run {
+                    isSending = false
+                    loadError = "Не удалось отправить данные: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: UI helpers
+    @ViewBuilder
+    private func photoBox(title: String, url: URL?) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline).foregroundColor(.white.opacity(0.9))
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.white.opacity(0.06))
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
+
+                if let url {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty: ProgressView().tint(.white)
+                        case .success(let img): img.resizable().scaledToFill()
+                        case .failure: Image(systemName: "photo").resizable().scaledToFit().padding(24)
+                        @unknown default: EmptyView()
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                } else {
+                    Image(systemName: "photo")
+                        .resizable().scaledToFit().padding(24)
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func picker(title: String, range: ClosedRange<Int>, selection: Binding<Int>) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .foregroundColor(.white.opacity(0.9))
+            Picker(title, selection: selection) {
+                ForEach(Array(range), id: \.self) { v in
+                    Text("\(v)").tag(v)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(.white)
+            .frame(width: 120)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
     }
 }
