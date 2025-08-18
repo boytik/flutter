@@ -418,7 +418,6 @@ private struct PlannedInfo {
         return "—"
     }
 
-    // Вложенный DTO, чтобы не конфликтовать с другими типами проекта
     struct DTO: Decodable {
         let workoutUuid: String?
         let date: String?

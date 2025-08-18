@@ -158,7 +158,7 @@ final class HTTPClient {
         let data: Data
     }
 
-    @discardableResult
+    
     func uploadMultipart(
         url: URL,
         fields: [String: String],

@@ -3,7 +3,7 @@ import Foundation
 
 extension HTTPClient {
 
-    @discardableResult
+    
     func postRawJSON(_ url: URL, rawJSONString: String) async throws {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"

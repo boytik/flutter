@@ -13,6 +13,8 @@
 		3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */; };
 		3E3D33C52E40BF8E009A5DCD /* PersonalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3D33C42E40BF8E009A5DCD /* PersonalView.swift */; };
 		3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */; };
+		3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */; };
+		3E56032F2E534E8600C401DB /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032E2E534E8600C401DB /* CoreDataStack.swift */; };
 		3E70454D2E49F6D2005EDE48 /* Inspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454C2E49F6D2005EDE48 /* Inspector.swift */; };
 		3E7045502E49F6FD005EDE48 /* Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454F2E49F6FD005EDE48 /* Calendar.swift */; };
 		3E7045572E4A009D005EDE48 /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */; };
@@ -89,6 +91,8 @@
 		3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
 		3E3D33C42E40BF8E009A5DCD /* PersonalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalView.swift; sourceTree = "<group>"; };
 		3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " TokenStorage.swift"; sourceTree = "<group>"; };
+		3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPCacheStore.swift; sourceTree = "<group>"; };
+		3E56032E2E534E8600C401DB /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		3E70454C2E49F6D2005EDE48 /* Inspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Inspector.swift; sourceTree = "<group>"; };
 		3E70454F2E49F6FD005EDE48 /* Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calendar.swift; sourceTree = "<group>"; };
 		3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
@@ -233,8 +237,8 @@
 		3E7045742E4A22E7005EDE48 /* CalendarViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
 				3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */,
+				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
 				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
 			);
@@ -438,6 +442,8 @@
 				3ED089462E460168002F09CB /* ApiRoutes.swift */,
 				3ED089492E460683002F09CB /* HTTPClient.swift */,
 				3EE502BE2E50CF3000BBE86F /* URL+QuerySwap.swift */,
+				3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */,
+				3E56032E2E534E8600C401DB /* CoreDataStack.swift */,
 			);
 			path = Network;
 			sourceTree = "<group>";
@@ -647,6 +653,7 @@
 				3E8F8A552E4371F200CE00CB /* ExtensionView.swift in Sources */,
 				3E7045592E4A04C1005EDE48 /* AppleSignInError.swift in Sources */,
 				3E7B17802E425077001AF947 /* PickerSheet.swift in Sources */,
+				3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */,
 				3E8F8A592E43A28900CE00CB /* ImagePicker.swift in Sources */,
 				3EE536872E4DFC630016D879 /* BLEViewModel.swift in Sources */,
 				3EE536882E4DFC630016D879 /* BLEMockService.swift in Sources */,
@@ -654,6 +661,7 @@
 				3EE5368A2E4DFC630016D879 /* BLEManager.swift in Sources */,
 				3EE5368B2E4DFC630016D879 /* ApiRoutes+InsertData.swift in Sources */,
 				3EE5368C2E4DFC630016D879 /* BLEScanView.swift in Sources */,
+				3E56032F2E534E8600C401DB /* CoreDataStack.swift in Sources */,
 				3EE5368D2E4DFC630016D879 /* BLEUploadRepository.swift in Sources */,
 				3EE5368E2E4DFC630016D879 /* BLEUUIDs.swift in Sources */,
 				3E8F8A502E43646000CE00CB /* EditFieldSheet.swift in Sources */,

@@ -10,6 +10,12 @@ final class InspectorViewModel: ObservableObject {
     private let repo: InspectorRepository
     private let fallbackActivities: ActivityRepository
 
+    // оффлайн
+    private let ns = "inspector"
+    private let kvKeyA = "toCheck"
+    private let kvKeyB = "fullCheck"
+    private let kvTTL: TimeInterval = 60 * 2 // 2 минуты
+
     init(
         repo: InspectorRepository = InspectorRepositoryImpl(),
         fallbackActivities: ActivityRepository = ActivityRepositoryImpl()
@@ -21,16 +27,28 @@ final class InspectorViewModel: ObservableObject {
     func load() async {
         isLoading = true
         errorMessage = nil
+
+        // оффлайн мгновенно
+        if let a: [Activity] = try? KVStore.shared.get([Activity].self, namespace: ns, key: kvKeyA) {
+            toCheck = a; print("📦 KV HIT \(ns)/\(kvKeyA) (\(a.count))")
+        }
+        if let b: [Activity] = try? KVStore.shared.get([Activity].self, namespace: ns, key: kvKeyB) {
+            fullCheck = b; print("📦 KV HIT \(ns)/\(kvKeyB) (\(b.count))")
+        }
+
         defer { isLoading = false }
 
         do {
-            async let a: [Activity] = repo.getActivitiesForCheck()
-            async let b: [Activity] = repo.getActivitiesFullCheck()
-            let (listA, listB) = try await (a, b)
+            async let aAsync: [Activity] = repo.getActivitiesForCheck()
+            async let bAsync: [Activity] = repo.getActivitiesFullCheck()
+            let (listA, listB) = try await (aAsync, bAsync)
 
-            // Разводим дубли по id: всё, что есть в toCheck, из fullCheck убираем
             toCheck = listA
             fullCheck = listB.filter { bItem in !listA.contains(where: { $0.id == bItem.id }) }
+
+            try? KVStore.shared.put(toCheck, namespace: ns, key: kvKeyA, ttl: kvTTL)
+            try? KVStore.shared.put(fullCheck, namespace: ns, key: kvKeyB, ttl: kvTTL)
+            print("💾 KV SAVE \(ns)/\(kvKeyA) \(toCheck.count); \(ns)/\(kvKeyB) \(fullCheck.count)")
 
         } catch {
             // Фолбэк: если инспекторские списки недоступны — подгружаем историю активностей
@@ -64,4 +82,3 @@ final class InspectorViewModel: ObservableObject {
         return unique.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
 }
-

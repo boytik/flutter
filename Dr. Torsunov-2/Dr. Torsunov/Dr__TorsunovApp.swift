@@ -25,7 +25,7 @@ struct Dr__TorsunovApp: App {
             .onReceive(NotificationCenter.default.publisher(for: .didReceiveDeepLink)) { note in
                 guard let link = note.object as? DeepLink else { return }
                 switch link {
-                case .workout(let id):
+                case .workout(_):
                     // открыть экран тренировки с id
                     break
                 case .activities:
