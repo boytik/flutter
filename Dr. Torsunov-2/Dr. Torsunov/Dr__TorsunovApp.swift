@@ -17,7 +17,6 @@ struct Dr__TorsunovApp: App {
               if auth.isLoggedIn || auth.isDemo {
                 TapBarView()
               } else {
-//                TapBarView()
                   StartScreen()
               }
             }
@@ -26,13 +25,10 @@ struct Dr__TorsunovApp: App {
                 guard let link = note.object as? DeepLink else { return }
                 switch link {
                 case .workout(_):
-                    // открыть экран тренировки с id
                     break
                 case .activities:
-                    // открыть экран активностей
                     break
                 case .profile:
-                    // открыть профиль
                     break
                 case .unknown:
                     break
