@@ -100,7 +100,6 @@ final class KVStore {
     private let ctx: NSManagedObjectContext
     private init() { ctx = CoreDataStack.shared.context }
 
-    /// Сохранить объект
     func put<T: Codable>(_ value: T, namespace: String, key: String, ttl: TimeInterval = 0) throws {
         let data = try JSONEncoder().encode(value)
         let now = Date()
@@ -121,7 +120,6 @@ final class KVStore {
         try ctx.save()
     }
 
-    /// Прочитать объект (nil если нет или просрочен)
     func get<T: Codable>(_ type: T.Type, namespace: String, key: String) throws -> T? {
         let req = KVEntry.fetchRequest(namespace: namespace, key: key)
         guard let obj = try ctx.fetch(req).first else { return nil }
@@ -132,7 +130,6 @@ final class KVStore {
         return try JSONDecoder().decode(T.self, from: obj.payload)
     }
 
-    /// Удалить значение
     func delete(namespace: String, key: String) throws {
         let req = KVEntry.fetchRequest(namespace: namespace, key: key)
         if let obj = try ctx.fetch(req).first {
@@ -141,7 +138,6 @@ final class KVStore {
         }
     }
 
-    /// Очистить namespace
     func clear(namespace: String) throws {
         let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: "KVEntry")
         fetch.predicate = NSPredicate(format: "namespace == %@", namespace)

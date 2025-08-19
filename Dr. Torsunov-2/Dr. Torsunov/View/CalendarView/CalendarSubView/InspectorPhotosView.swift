@@ -17,14 +17,12 @@ struct InspectorPhotosView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Фото
             HStack(spacing: 16) {
                 photoBox(title: "Фото ДО тренировки", url: beforeURL)
                 photoBox(title: "Фото ПОСЛЕ тренировки", url: afterURL)
             }
             .frame(height: 180)
 
-            // Селекторы слоя / подслоя или инфо о выставленных значениях
             if let l = existingLayer, let s = existingSub {
                 HStack {
                     Text("Слой: \(l)")
@@ -46,7 +44,6 @@ struct InspectorPhotosView: View {
                 .padding(.horizontal)
             }
 
-            // Комментарий
             VStack(alignment: .leading, spacing: 8) {
                 Text("Введите комментарий")
                     .foregroundColor(.white.opacity(0.8))
@@ -60,7 +57,6 @@ struct InspectorPhotosView: View {
             }
             .padding(.horizontal)
 
-            // Отправить
             Button(action: send) {
                 HStack {
                     if isSending { ProgressView().tint(.black) }
@@ -175,8 +171,7 @@ struct InspectorPhotosView: View {
             }
         }
     }
-
-    // как во Flutter — пытаемся достать email из пути фото (если уже успели загрузить медиа)
+    
     private func emailFromPathGuess() -> String? {
         for u in [beforeURL, afterURL] {
             if let url = u {

@@ -191,7 +191,6 @@ private struct PersonalViewModals: View {
 
     var body: some View {
         EmptyView()
-            // Редактирование полей
             .sheet(item: $viewModel.editingField) { field in
                 switch field {
                 case .name:
@@ -213,15 +212,12 @@ private struct PersonalViewModals: View {
                     }
                 }
             }
-            // Физические данные
             .sheet(isPresented: $viewModel.showPhysicalDataSheet) {
                 PhysicalDataView(viewModel: viewModel.physicalDataVM)
             }
-            // Пикер изображения (аватар)
             .sheet(isPresented: $viewModel.showImagePicker) {
                 ImagePicker(image: $viewModel.selectedImage)
             }
-            // Выбор роли
             .confirmationDialog(
                 L("change_role"),
                 isPresented: $viewModel.showRolePicker,
@@ -234,7 +230,6 @@ private struct PersonalViewModals: View {
                 }
                 Button(L("cancel"), role: .cancel) {}
             }
-            // Логаут
             .alert(L("logout_title"), isPresented: $viewModel.showLogoutAlert) {
                 Button(L("cancel"), role: .cancel) {}
                 Button(L("logout_button"), role: .destructive) {
@@ -246,7 +241,6 @@ private struct PersonalViewModals: View {
             } message: {
                 Text(viewModel.email)
             }
-            // Другие действия
             .confirmationDialog(
                 L("actions_title"),
                 isPresented: $viewModel.showOtherActions,

@@ -40,7 +40,6 @@ struct ActivityForCheckDTO: Decodable {
         case heartRateGraph
         case map
 
-        // сервер может прислать кучу лишних полей — игнорируем:
         case avg_humidity, avg_temp, distance, duration, list_positions
         case maxLayer, maxSubLayer
         case currentLayerChecked, currentsubLayerChecked
@@ -58,7 +57,6 @@ struct ActivityForCheckDTO: Decodable {
         activityGraph       = try c.decodeIfPresent(String.self, forKey: .activityGraph)
         heartRateGraph      = try c.decodeIfPresent(String.self, forKey: .heartRateGraph)
         map                 = try c.decodeIfPresent(String.self, forKey: .map)
-        // все остальные ключи намеренно игнорируем
     }
 
     var startedAt: Date? {
@@ -82,17 +80,11 @@ protocol ActivityRepository {
 // MARK: - Implementation
 final class ActivityRepositoryImpl: ActivityRepository {
     private let client = HTTPClient.shared
-
-    // ---- Public API
-
-    /// Возвращает всю историю завершённых активностей пользователя.
-    /// Понимает разные формы ответа: `[HistoryV2]`, `{ "data": [HistoryV1] }`, либо `[HistoryV1]`.
     func fetchAll() async throws -> [Activity] {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
             return []
         }
 
-        // Берём большой срез истории
         let fiveYearsAgo = Calendar.current.date(byAdding: .year, value: -5, to: Date())!
         let dfDay = DateFormatter()
         dfDay.locale = .init(identifier: "en_US_POSIX")
@@ -102,19 +94,16 @@ final class ActivityRepositoryImpl: ActivityRepository {
 
         let url = ApiRoutes.Activities.listWorkouts(email: email, lastDate: lastDate)
 
-        // V2: плоский массив
         if let v2: [HistoryV2] = try? await client.request([HistoryV2].self, url: url) {
             return v2.map { $0.asActivity(email: email) }
                      .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
         }
 
-        // V1: обёртка { data: [...] }
         if let wrapped: HistoryWrappedV1 = try? await client.request(HistoryWrappedV1.self, url: url) {
             return wrapped.data.map { $0.asActivity(email: email) }
                                .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
         }
 
-        // V1 без обёртки
         if let v1: [HistoryV1] = try? await client.request([HistoryV1].self, url: url) {
             return v1.map { $0.asActivity(email: email) }
                      .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
@@ -156,9 +145,6 @@ final class ActivityRepositoryImpl: ActivityRepository {
         )
     }
 
-    // ---- Private helpers
-
-    /// Универсальный парсер дат под все варианты, встречавшиеся в проекте.
     static func parseDateSmart(_ s: String) -> Date? {
         for f in Self.dateParsers {
             if let d = f.date(from: s) { return d }
@@ -174,9 +160,6 @@ final class ActivityRepositoryImpl: ActivityRepository {
             f.dateFormat = fmt
             return f
         }
-        // ISO: 2024-05-13T18:08:27+0300
-        // Space: 2024-05-13 18:08:27
-        // Date only: 2024-05-13
         return [
             make("yyyy-MM-dd'T'HH:mm:ssZ"),
             make("yyyy-MM-dd HH:mm:ss"),
@@ -187,7 +170,6 @@ final class ActivityRepositoryImpl: ActivityRepository {
 
 // MARK: - Server response shapes we need to support
 
-/// Старый вариант: { "data": [ {id,name,description,created_at} ] }
 private struct HistoryWrappedV1: Decodable {
     let data: [HistoryV1]
 }
@@ -211,7 +193,6 @@ private struct HistoryV1: Decodable {
     }
 }
 
-/// Текущий вариант: [ { workoutKey, workoutActivityType, workoutStartDate } ]
 private struct HistoryV2: Decodable {
     let workoutKey: String
     let workoutActivityType: String

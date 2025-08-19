@@ -12,9 +12,7 @@ struct CalendarItemCellView: View {
     }
     private var email: String? {
         guard role == .inspector else { return nil }
-        // основной источник — из модели Activity
         if let e = item.asActivity?.userEmail, !e.isEmpty { return e }
-        // фолбэк: попробуем выдернуть из URL миниатюры, если есть
         if let u = thumbURL {
             let comps = u.pathComponents.filter { $0 != "/" && !$0.isEmpty }
             if comps.count >= 3 { return comps[comps.count - 3] }
@@ -53,15 +51,12 @@ struct CalendarItemCellView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Icon
             ZStack {
                 Circle().fill(glyph.color.opacity(0.18)).frame(width: 54, height: 54)
                 Image(systemName: glyph.system)
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(glyph.color)
             }
-
-            // Title + (email for inspector)
             VStack(alignment: .leading, spacing: 6) {
                 Text(displayName)
                     .font(.headline)
@@ -84,7 +79,6 @@ struct CalendarItemCellView: View {
 
             Spacer()
 
-            // Date / time
             VStack(alignment: .trailing, spacing: 4) {
                 Text(dateText.0)
                     .font(.subheadline)

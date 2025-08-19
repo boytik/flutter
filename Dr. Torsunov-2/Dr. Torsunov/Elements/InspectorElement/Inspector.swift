@@ -4,8 +4,6 @@ protocol InspectorRepository {
     func getActivitiesForCheck() async throws -> [Activity]
     func getActivitiesFullCheck() async throws -> [Activity]
     func checkWorkout(id: String) async throws
-
-    // уже был у нас для отправки слоёв — оставляю на месте
     func sendLayers(workoutId: String,
                     email: String,
                     level: Int,
@@ -66,7 +64,7 @@ final class InspectorRepositoryImpl: InspectorRepository {
             isCompleted: false,
             createdAt: dto.startedAt,
             updatedAt: nil,
-            userEmail: dto.emailFromAnyAvailablePath // ⬅️ здесь берём email
+            userEmail: dto.emailFromAnyAvailablePath
         )
     }
 }
@@ -82,8 +80,6 @@ private extension ActivityForCheckDTO {
 
     static func extractEmail(fromPath s: String?) -> String? {
         guard let s = s, !s.isEmpty else { return nil }
-        // Абсолютный/относительный — всё равно разбираем по "/"
-        // Пробуем через URL, если не выйдет — вручную
         let comps1: [String]
         if let u = URL(string: s), !u.path.isEmpty {
             comps1 = u.pathComponents
@@ -91,7 +87,6 @@ private extension ActivityForCheckDTO {
             comps1 = s.split(separator: "/").map(String.init)
         }
         let comps = comps1.filter { $0 != "/" && !$0.isEmpty }
-        // Во Флаттере достают "третью папку с конца"
         guard comps.count >= 3 else { return nil }
         return comps[comps.count - 3]
     }

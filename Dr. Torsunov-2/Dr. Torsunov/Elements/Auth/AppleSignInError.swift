@@ -12,7 +12,7 @@ final class AppleSignIn: NSObject {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
             self.continuation = continuation
             let req = ASAuthorizationAppleIDProvider().createRequest()
-            req.requestedScopes = [.fullName, .email] // если не нужны — можно убрать
+            req.requestedScopes = [.fullName, .email]
 
             let controller = ASAuthorizationController(authorizationRequests: [req])
             controller.delegate = self
@@ -42,7 +42,6 @@ extension AppleSignIn: ASAuthorizationControllerDelegate {
 
 extension AppleSignIn: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        // максимально безопасно: главное окно приложения
         return UIApplication.shared.connectedScenes
             .compactMap { ($0 as? UIWindowScene)?.keyWindow }
             .first ?? ASPresentationAnchor()

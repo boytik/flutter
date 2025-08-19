@@ -1,7 +1,6 @@
 
 import Foundation
 
-// Совместимые модели с твоим кодом
 struct AuthTokens: Decodable {
     let accessToken: String
     let refreshToken: String?

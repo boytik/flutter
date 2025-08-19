@@ -15,7 +15,6 @@ protocol WorkoutMediaRepository {
 final class WorkoutMediaRepositoryImpl: WorkoutMediaRepository {
     private let client = HTTPClient.shared
 
-    // сервер шлёт то camelCase, то snake_case -> понимаем оба варианта
     private struct DTO: Decodable {
         let activityGraph: String?
         let heartRateGraph: String?
@@ -54,11 +53,9 @@ final class WorkoutMediaRepositoryImpl: WorkoutMediaRepository {
     }
 
     func fetch(workoutId: String, email: String) async throws -> WorkoutMedia {
-        // базовый URL из ваших ApiRoutes
         let urlKey  = ApiRoutes.Workouts.metadata(workoutKey: workoutId, email: email)
         let urlId   = urlKey.replacingQueryParam("workout_key", with: "workoutId", value: workoutId)
 
-        // сначала пробуем workoutId (по логам — он отдаёт 200), при ошибке — старый ключ
         let endpoint: URL
         let dto: DTO
         do {
@@ -69,7 +66,6 @@ final class WorkoutMediaRepositoryImpl: WorkoutMediaRepository {
             endpoint = urlKey
         }
 
-        // строим origin "https://host"
         let comps = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
         let origin = URL(string: "\(comps?.scheme ?? "https")://\(comps?.host ?? "")")!
 
@@ -88,17 +84,13 @@ final class WorkoutMediaRepositoryImpl: WorkoutMediaRepository {
         )
     }
 
-    /// Делает абсолютный URL из того, что пришло от сервера.
-    /// - "http(s)://…" -> как есть
-    /// - "/static/…"   -> приклеиваем к домену API
-    /// - "/var/storebox/static/…" -> обрезаем до "/static/…" и приклеиваем
     private func absoluteMediaURL(_ raw: String?, origin: URL) -> URL? {
         guard let s = raw, !s.isEmpty else { return nil }
-        if let u = URL(string: s), u.scheme != nil { return u } // уже абсолютный
+        if let u = URL(string: s), u.scheme != nil { return u } 
 
         var path = s
         if let r = s.range(of: "/static/") {
-            path = String(s[r.lowerBound...]) // оставляем с "/static/…"
+            path = String(s[r.lowerBound...])
         }
         var comps = URLComponents(url: origin, resolvingAgainstBaseURL: false)!
         comps.path = path.hasPrefix("/") ? path : "/" + path

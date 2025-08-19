@@ -4,7 +4,7 @@ import SwiftUI
 
 struct PhysicalDataView: View {
     @Environment(\.dismiss) var dismiss
-    @ObservedObject var viewModel: PhysicalDataViewModel  // 🔹 теперь получаем из PersonalViewModel
+    @ObservedObject var viewModel: PhysicalDataViewModel
 
     var body: some View {
         NavigationView {
@@ -39,7 +39,7 @@ struct PhysicalDataView: View {
                         Button("Сохранить") {
                             Task {
                                 await viewModel.saveChanges()
-                                dismiss() // 🔹 Закрытие после сохранения
+                                dismiss()
                             }
                         }
                         .foregroundColor(.pink)

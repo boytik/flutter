@@ -40,10 +40,9 @@ final class PersonalViewModel: ObservableObject {
     let physicalDataVM: PhysicalDataViewModel
     let userRepository: UserRepository
 
-    // KVStore
     private let ns = "user_profile"
     private let kvKeyUser = "user_self"
-    private let kvTTLUser: TimeInterval = 60 * 60 // 1 час
+    private let kvTTLUser: TimeInterval = 60 * 60
 
     enum EditingField: Identifiable {
         case name
@@ -67,18 +66,15 @@ final class PersonalViewModel: ObservableObject {
 
     // MARK: - Data
     func loadUser() async {
-        // 0) оффлайн — подхватываем мгновенно
         if let cached: User = try? KVStore.shared.get(User.self, namespace: self.ns, key: self.kvKeyUser) {
             self.email = cached.email
             self.name  = cached.name ?? ""
             self.applyRoleFallback(fromServerString: cached.role)
             self.log.debug("[KV] HIT \(self.ns)/\(self.kvKeyUser)")
         } else if self.email.isEmpty, let local = TokenStorage.shared.currentEmail() {
-            // хотя бы email, если вообще пусто
             self.email = local
         }
 
-        // 1) сеть
         do {
             let remote = try await self.userRepository.getUser()
             let snapshot = self.mapToUser(remote)
@@ -86,10 +82,8 @@ final class PersonalViewModel: ObservableObject {
             self.name  = snapshot.name ?? ""
             self.applyRoleFallback(fromServerString: snapshot.role)
 
-            // синхронизируем роль в UserDefaults (используется в других экранах)
             UserDefaults.standard.set(self.role.rawValue, forKey: "user_role")
 
-            // оффлайн-снапшот
             try? KVStore.shared.put(snapshot, namespace: self.ns, key: self.kvKeyUser, ttl: self.kvTTLUser)
             self.log.debug("[KV] SAVE \(self.ns)/\(self.kvKeyUser)")
         } catch {
@@ -99,10 +93,8 @@ final class PersonalViewModel: ObservableObject {
 
     /// Маппер «что бы ни вернул репозиторий» → наш лёгкий `User`
     private func mapToUser(_ anyUser: Any) -> User {
-        // если это уже наш User
         if let u = anyUser as? User { return u }
 
-        // пробуем через Mirror вытащить известные поля
         let m = Mirror(reflecting: anyUser)
         var email: String = self.email
         var name: String? = self.name
@@ -124,13 +116,11 @@ final class PersonalViewModel: ObservableObject {
     }
 
     private func applyRoleFallback(fromServerString serverRole: String?) {
-        // 1) локально сохранённая роль — приоритет
         if let saved = UserDefaults.standard.string(forKey: "user_role"),
            let savedRole = Role(rawValue: saved) {
             self.role = savedRole
             return
         }
-        // 2) если сервер присылает роль — подхватим
         if let r = serverRole?.lowercased(), r == "inspector" {
             self.role = .inspector
         } else {
@@ -147,7 +137,6 @@ final class PersonalViewModel: ObservableObject {
             self.name  = newName
             self.editingField = nil
 
-            // обновим оффлайн-снапшот пользователя
             var cached = (try? KVStore.shared.get(User.self, namespace: self.ns, key: self.kvKeyUser))
                          ?? User(email: newEmail, name: newName, role: self.role.rawValue, avatarImageBase64: nil)
             cached.email = newEmail
@@ -159,25 +148,21 @@ final class PersonalViewModel: ObservableObject {
         }
     }
 
-    /// Локально переключаем роль (для UI).
     func updateRole(to newRole: Role) async {
         self.role = newRole
         UserDefaults.standard.set(newRole.rawValue, forKey: "user_role")
         self.log.info("[Role] switched locally to \(newRole.rawValue, privacy: .public)")
-        // сервер не поддерживает — не шлём PATCH
     }
 
     // MARK: - Session
     func logout() {
         TokenStorage.shared.clear()
         self.log.info("[Session] logout")
-        // можно почистить и оффлайн
         try? KVStore.shared.delete(namespace: self.ns, key: self.kvKeyUser)
         self.log.info("[KV] DELETE \(self.ns)/\(self.kvKeyUser)")
     }
 
     func deleteAccount() {
-        // Заглушка. Добавим API, когда появится.
         self.log.info("[Account] delete (stub)")
     }
 
@@ -225,9 +210,9 @@ private struct PatchRolePayload: Encodable {
 
     static func bodies(for role: PersonalViewModel.Role) -> [PatchRolePayload] {
         var arr: [PatchRolePayload] = []
-        for s in role.serverStrings { arr.append(.init(role: s)) }       // role
-        for s in role.serverStrings { arr.append(.init(user_type: s)) }  // user_type
-        arr.append(.init(is_inspector: role.isInspector))                 // is_inspector
+        for s in role.serverStrings { arr.append(.init(role: s)) }
+        for s in role.serverStrings { arr.append(.init(user_type: s)) }
+        arr.append(.init(is_inspector: role.isInspector))            
         return arr
     }
 }

@@ -8,7 +8,6 @@ struct CalendarGridView: View {
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 7)
 
-    // ISO-календарь (понедельник — первый)
     private var isoCal: Calendar {
         var c = Calendar(identifier: .iso8601)
         c.locale = .current
@@ -16,22 +15,17 @@ struct CalendarGridView: View {
         return c
     }
 
-    // Строим расширенную сетку: пред. месяц + текущий + след. месяц
     private var gridDays: [GridDay] {
         let cal = isoCal
         let anchor = monthDates.first?.date ?? Date()
 
-        // 1) первый день текущего месяца
         let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: anchor))!
 
-        // 2) кол-во дней в текущем месяце
         let daysInMonth = cal.range(of: .day, in: .month, for: startOfMonth)!.count
 
-        // 3) сколько пустых ячеек перед «1»
-        let weekday = cal.component(.weekday, from: startOfMonth) // 1..7 в рамках isoCal
-        let leading = (weekday - cal.firstWeekday + 7) % 7       // 0..6
+        let weekday = cal.component(.weekday, from: startOfMonth)
+        let leading = (weekday - cal.firstWeekday + 7) % 7
 
-        // 4) предыдущий месяц (безопасно формируем список дат)
         let prevMonth = cal.date(byAdding: .month, value: -1, to: startOfMonth)!
         let prevStart = cal.date(from: cal.dateComponents([.year, .month], from: prevMonth))!
         let prevCount = cal.range(of: .day, in: .month, for: prevStart)!.count
@@ -40,36 +34,28 @@ struct CalendarGridView: View {
         if leading == 0 {
             prevDates = []
         } else {
-            // последние `leading` дней предыдущего месяца
             prevDates = (prevCount - leading + 1 ... prevCount).compactMap { day in
                 cal.date(byAdding: .day, value: day - 1, to: prevStart)
             }
         }
-
-        // 5) текущий месяц
         let currentDates: [Date] = (1 ... daysInMonth).compactMap { day in
             cal.date(byAdding: .day, value: day - 1, to: startOfMonth)
         }
-
-        // 6) добиваем до кратности 7 (чтобы сетка была ровной)
         let totalSoFar = leading + daysInMonth
         let trailing = (7 - (totalSoFar % 7)) % 7
 
-        // 7) следующий месяц
         let nextMonth = cal.date(byAdding: .month, value: 1, to: startOfMonth)!
         let nextStart = cal.date(from: cal.dateComponents([.year, .month], from: nextMonth))!
         let nextDates: [Date] = (0..<trailing).compactMap { offset in
             cal.date(byAdding: .day, value: offset, to: nextStart)
         }
-
-        // 8) точки для текущего месяца (по startOfDay)
         let dotsByDay: [Date: [Color]] = Dictionary(uniqueKeysWithValues:
             monthDates.map { let d = cal.startOfDay(for: $0.date); return (d, $0.dots) }
         )
 
         func makeGridDay(_ date: Date, isCurrent: Bool) -> GridDay {
             let key = cal.startOfDay(for: date)
-            let dots = isCurrent ? (dotsByDay[key] ?? []) : [] // чужим месяцам точки не рисуем
+            let dots = isCurrent ? (dotsByDay[key] ?? []) : []
             return GridDay(date: date, isCurrentMonth: isCurrent, dots: dots)
         }
 
@@ -80,7 +66,6 @@ struct CalendarGridView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            // Пн…Вс (всегда понедельник первым) — белые и жирные
             HStack {
                 ForEach(localizedWeekdaysISO(), id: \.self) { s in
                     Text(s.uppercased())
@@ -104,7 +89,6 @@ struct CalendarGridView: View {
                                 .font(.headline)
                                 .foregroundColor(cell.isCurrentMonth ? .white : .white.opacity(0.45))
 
-                            // до 6 маркеров-капсул
                             HStack(spacing: 4) {
                                 ForEach(Array(cell.dots.prefix(6)).indices, id: \.self) { idx in
                                     Capsule()
@@ -132,7 +116,6 @@ struct CalendarGridView: View {
     }
 
     private func bgColor(isCurrentMonth: Bool, isToday: Bool, isPast: Bool) -> Color {
-        // На чёрном фоне: прошлое темнее, будущее светлее, «сегодня» чуть ярче
         if !isCurrentMonth { return Color(.systemGray6).opacity(0.06) }
         if isToday        { return Color(.systemGray6).opacity(0.22) }
         if isPast         { return Color(.systemGray6).opacity(0.12) }
@@ -150,11 +133,10 @@ struct GridDay: Identifiable {
 
 // MARK: - Helpers
 
-/// Локализованные заголовки недель Пн…Вс (сохраняет твою локализацию)
 private func localizedWeekdaysISO() -> [String] {
     var cal = Calendar(identifier: .iso8601)
     cal.locale = Locale.current
-    cal.firstWeekday = 2 // Monday
+    cal.firstWeekday = 2 
 
     let df = DateFormatter()
     df.locale = cal.locale

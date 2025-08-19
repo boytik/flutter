@@ -35,13 +35,11 @@ private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
 final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
     private let client = HTTPClient.shared
 
-    // Основная загрузка с «тихими» fallback’ами
     func load() async throws -> PhysicalData {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
             throw PhysicalRepoError.noEmail
         }
 
-        // 1) «плановые» эндпоинты (пока 404/500) — вдруг оживут
         let primary: [URL] = [
             ApiRoutes.Users.physical(email: email),
             ApiRoutes.Users.physicalByQuery(email: email)
@@ -59,7 +57,6 @@ final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
             }
         }
 
-        // 2) Фолбэк: /users/<email> (или /short) → маппинг в PhysicalData
         struct ServerUserRaw: Decodable {
             let userEmail: String?
             let name: String?
@@ -71,7 +68,7 @@ final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
             let bad_habits: Int?
             let chronic_diseases: Int?
             let list_of_diseases: String?
-            let starting_date: String? // "2025-01-13 20:00:00"
+            let starting_date: String?
         }
 
         func parseDate(_ s: String?) -> Date? {
@@ -117,7 +114,6 @@ final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
         }
     }
 
-    // Сохранение — пробуем несколько путей, логируем кратко
     func save(data: PhysicalData) async throws {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
             throw PhysicalRepoError.noEmail
@@ -145,7 +141,6 @@ final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
         throw lastError
     }
 
-    // Загрузка аватара (multipart), без лишних логов
     func uploadAvatar(_ image: UIImage) async throws {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
             throw PhysicalRepoError.noEmail

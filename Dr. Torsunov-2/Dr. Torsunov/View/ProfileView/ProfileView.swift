@@ -38,7 +38,6 @@ struct ProfileView: View {
                     .padding(.horizontal)
                     .padding(.top, 50)
 
-                    // Контент
                     VStack(spacing: 0) {
                         Divider().background(Color.gray.opacity(0.5))
 
@@ -76,16 +75,13 @@ struct ProfileView: View {
                 .animation(.spring(response: 0.5, dampingFraction: 0.8), value: showContent)
             }
 
-            // Фото с кнопкой редактирования
             VStack {
                 Spacer().frame(height: 40)
                 ZStack(alignment: .bottomTrailing) {
-                    // фон
                     Circle()
                         .fill(Color.gray.opacity(0.3))
                         .frame(width: 100, height: 100)
 
-                    // сам аватар
                     if let img = viewModel.avatar {
                         Image(uiImage: img)
                             .resizable()

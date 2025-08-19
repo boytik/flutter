@@ -15,7 +15,7 @@ final class ActivityViewModel: ObservableObject {
 
     private let ns = "activities"
     private let kvKeyAll = "all"
-    private let kvTTL: TimeInterval = 60 * 10   // 10 минут
+    private let kvTTL: TimeInterval = 60 * 10
 
     init(repository: ActivityRepository = ActivityRepositoryImpl()) {
         self.repository = repository

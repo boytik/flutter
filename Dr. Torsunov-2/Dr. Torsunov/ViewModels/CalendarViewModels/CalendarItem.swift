@@ -12,7 +12,6 @@ enum CalendarItem: Identifiable, Codable, Equatable {
         }
     }
 
-    // Универсально достаём дату:
     var date: Date {
         switch self {
         case .workout(let w):
@@ -55,7 +54,6 @@ enum CalendarItem: Identifiable, Codable, Equatable {
         }
     }
 
-    // Удобства для ячеек
     var asWorkout: Workout?  { if case let .workout(w) = self { return w } else { return nil } }
     var asActivity: Activity? { if case let .activity(a) = self { return a } else { return nil } }
     var email: String? { if case let .activity(a) = self { return a.userEmail } else { return nil } }
@@ -75,7 +73,6 @@ enum CalendarItem: Identifiable, Codable, Equatable {
 
     // MARK: - Универсальный извлекатель даты из Workout
     private static func extractDate(from workout: Workout) -> Date? {
-        // 1) попробуем прямые поля типа Date через отражение
         let mirror = Mirror(reflecting: workout)
         for child in mirror.children {
             guard let label = child.label?.lowercased() else { continue }
@@ -84,7 +81,6 @@ enum CalendarItem: Identifiable, Codable, Equatable {
                 return d
             }
         }
-        // 2) попробуем строки, которые выглядят как дата
         for child in mirror.children {
             guard let label = child.label?.lowercased() else { continue }
             if (label.contains("date") || label.contains("time")),
@@ -97,8 +93,6 @@ enum CalendarItem: Identifiable, Codable, Equatable {
         }
         return nil
     }
-
-    // Форматтеры для возможных строковых дат
     private static let iso8601Full: DateFormatter = {
         let f = DateFormatter()
         f.locale = .init(identifier: "en_US_POSIX")

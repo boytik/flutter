@@ -36,20 +36,18 @@ enum ApiRoutes {
         static func by(id: String) -> URL     { url("workouts/\(id)") }
         static var upload: URL                { url("workouts") }
 
-        // email в path — кодируется РОВНО один раз (URL.appendPathComponent)
         static func calendarMonth(email: String, month: String) -> URL {
-            url(["workout_calendar", email], query: ["filter_date": month]) // yyyy-MM
+            url(["workout_calendar", email], query: ["filter_date": month])
         }
 
         static func calendarDay(email: String, date: String) -> URL {
-            url(["workout_calendar", email], query: ["filter_date": date])  // yyyy-MM-dd
+            url(["workout_calendar", email], query: ["filter_date": date])
         }
 
         static func calendarRange(email: String, startDate: String, endDate: String) -> URL {
             url(["workout_calendar", email], query: ["start_date": startDate, "end_date": endDate])
         }
 
-        // запасной (на dev может быть 404 — оставим)
         static func calendarRangeByQuery(email: String, startDate: String, endDate: String) -> URL {
             url("workout_calendar", query: ["email": email, "start_date": startDate, "end_date": endDate])
         }
@@ -62,7 +60,6 @@ enum ApiRoutes {
             url("get_diagram_data", query: ["workout_key": workoutKey, "email": email])
         }
 
-        // Оставлено для совместимости (не использовать в календарных методах)
         fileprivate static func encEmailForPath(_ email: String) -> String {
             let raw = email.removingPercentEncoding ?? email
             var allowed = CharacterSet.alphanumerics
@@ -78,7 +75,6 @@ enum ApiRoutes {
         static var forCheck: URL  { url("list_workouts_for_check") }
         static var fullCheck: URL { url("list_workouts_for_check_full") }
 
-        // legacy
         static var legacy_list: URL                  { url("activities") }
         static func legacy_by(id: String) -> URL     { url("activities/\(id)") }
         static func legacy_submit(id: String) -> URL { url("activities/\(id)/submit") }
@@ -130,7 +126,6 @@ extension ApiRoutes {
         static func physical(email: String) -> URL    { url("users/\(enc(email))/physical") }
         static func avatar(email: String) -> URL      { url("users/\(enc(email))/avatar") }
 
-        // Query-варианты (если понадобятся)
         static func byQuery(email: String) -> URL         { url("user",          query: ["email": email]) }
         static func physicalByQuery(email: String) -> URL { url("user/physical", query: ["email": email]) }
     }

@@ -10,7 +10,6 @@ private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
 
 @MainActor
 final class PhysicalDataViewModel: ObservableObject {
-    // UI state
     @Published var startDate = Date()
     @Published var age = 40
     @Published var gender = "Male"
@@ -28,10 +27,9 @@ final class PhysicalDataViewModel: ObservableObject {
     private var originalData = PhysicalData()
     private let repository: PhysicalDataRepository
 
-    // KVStore (offline)
     private let ns = "physical_data"
     private let kvKey = "self"
-    private let kvTTL: TimeInterval = 60 * 60 * 24 // 24 часа
+    private let kvTTL: TimeInterval = 60 * 60 * 24
 
     private var currentData: PhysicalData {
         PhysicalData(
@@ -80,7 +78,6 @@ final class PhysicalDataViewModel: ObservableObject {
     }
 
     func load() async {
-        // 1) оффлайн — подхватываем мгновенно
         if let cached: PhysicalData = try? KVStore.shared.get(PhysicalData.self,
                                                               namespace: self.ns,
                                                               key: self.kvKey) {
@@ -89,7 +86,6 @@ final class PhysicalDataViewModel: ObservableObject {
             log.debug("[KV] HIT \(self.ns)/\(self.kvKey)")
         }
 
-        // 2) сеть
         do {
             let data = try await self.repository.load()
             self.apply(data: data)
@@ -115,7 +111,6 @@ final class PhysicalDataViewModel: ObservableObject {
         self.chronicDescription = data.chronicDescription ?? self.chronicDescription
     }
 
-    // Debug helper (ручная очистка оффлайна)
     func clearOffline() {
         try? KVStore.shared.delete(namespace: self.ns, key: self.kvKey)
         log.info("[KV] DELETE \(self.ns)/\(self.kvKey)")

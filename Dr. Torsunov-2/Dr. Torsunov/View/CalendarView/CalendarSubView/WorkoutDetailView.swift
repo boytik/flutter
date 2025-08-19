@@ -47,14 +47,12 @@ struct WorkoutDetailView: View {
                 header
 
                 if isFuture {
-                    // ---- БУДУЩАЯ ТРЕНИРОВКА ----
                     if plannedIsLoading {
                         ProgressView().tint(.white)
                     } else {
                         plannedCard
                     }
                 } else {
-                    // ---- ПРОШЕДШАЯ (ИСТОРИЯ) ----
                     Picker("", selection: $tab) {
                         Text(Tab.charts.rawValue).tag(Tab.charts)
                         if role == .user { Text(Tab.review.rawValue).tag(Tab.review) }
@@ -73,7 +71,7 @@ struct WorkoutDetailView: View {
             if isFuture {
                 await loadPlannedInfo()
             } else {
-                await vm.load() // тянет /metadata и /get_diagram_data (с фолбэком)
+                await vm.load()
             }
         }
         .sheet(isPresented: $showBeforePicker) { ImagePicker(image: $beforeImage) }
@@ -101,8 +99,6 @@ struct WorkoutDetailView: View {
     private var chartsSection: some View {
         VStack(alignment: .leading, spacing: 18) {
             if vm.isLoading { ProgressView().tint(.white) }
-
-            // краткая ошибка, если была (например, Server error (500) для /metadata)
             if let err = vm.errorMessage, !err.isEmpty {
                 Text(err).font(.footnote).foregroundColor(.gray)
             }
@@ -131,7 +127,6 @@ struct WorkoutDetailView: View {
                         }
                         .frame(height: 220)
                     } else {
-                        // фолбэк: ось X — индекс
                         Chart {
                             ForEach(hr.indices, id: \.self) { i in
                                 LineMark(
@@ -158,7 +153,6 @@ struct WorkoutDetailView: View {
                 }
             }
 
-            // 2) Температура воды
             VStack(alignment: .leading, spacing: 10) {
                 Text("Диаграмма температуры воды")
                     .font(.headline).foregroundColor(.white)
@@ -318,9 +312,7 @@ struct WorkoutDetailView: View {
         let ymd = Self.ymd(item.date)
         let url = ApiRoutes.Workouts.calendarDay(email: email, date: ymd)
         do {
-            // локальный DTO, чтобы не конфликтовать с другими типами
             let arr = try await HTTPClient.shared.request([PlannedInfo.DTO].self, url: url)
-            // сначала пробуем сопоставить по workout_uuid
             let dto = arr.first(where: { $0.workoutUuid == workout?.id })
                 ?? arr.first(where: { ($0.date ?? "").hasPrefix(ymd) })
             self.planned = dto.map(PlannedInfo.init(dto:))
@@ -337,7 +329,6 @@ struct WorkoutDetailView: View {
         return f.string(from: d)
     }
 
-    // Представление карточки запланированной тренировки
     private var plannedCard: some View {
         VStack(spacing: 12) {
             HStack {

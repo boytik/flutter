@@ -26,10 +26,6 @@ struct SignInView: View {
             } else {
                 SignInWithAppleButton()
             }
-
-            // Опционально — оставить вход по паролю как запасной
-            // Button("Войти по паролю") { ... }
-
             Spacer()
         }
         .padding()
@@ -67,10 +63,10 @@ struct SignInWithAppleButtonRepresentable: UIViewRepresentable {
     let action: () -> Void
 
     func makeUIView(context: Context) -> ASAuthorizationAppleIDButton {
-        let btn = ASAuthorizationAppleIDButton(type: .signIn, style: .black) // <- вместо .whiteOnBlack
+        let btn = ASAuthorizationAppleIDButton(type: .signIn, style: .black) 
         btn.addTarget(context.coordinator,
                       action: #selector(Coordinator.tap),
-                      for: UIControl.Event.touchUpInside)                     // <- явный UIControl.Event
+                      for: UIControl.Event.touchUpInside)
         return btn
     }
 

@@ -11,7 +11,6 @@ struct ActivityDetailView: View {
     enum Tab: String, Hashable { case charts, photos, review }
     @State private var tab: Tab = .charts
 
-    // USER: загрузка фото/коммента
     @State private var comment = ""
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
@@ -20,7 +19,6 @@ struct ActivityDetailView: View {
     @State private var isSubmitting = false
     @State private var submissionSuccess: Bool?
 
-    // Графики
     @StateObject private var vm: WorkoutDetailViewModel
     @State private var syncEnabled = false
 
@@ -49,7 +47,7 @@ struct ActivityDetailView: View {
                 case .charts:
                     chartsSection
                 case .photos:
-                    InspectorPhotosTab(activity: activity) // переработанная вкладка
+                    InspectorPhotosTab(activity: activity)
                 case .review:
                     photosSection
                     commentSection
@@ -64,7 +62,7 @@ struct ActivityDetailView: View {
             }
             .padding(.horizontal)
             .padding(.top, 12)
-            .padding(.bottom, 24) // запас снизу для прокрутки
+            .padding(.bottom, 24)
         }
         .background(Color.black.ignoresSafeArea())
         .sheet(isPresented: $showBeforePicker) { ImagePicker(image: $beforeImage) }
@@ -155,7 +153,6 @@ struct ActivityDetailView: View {
                 }
             }
 
-            // Температура воды (если есть)
             VStack(alignment: .leading, spacing: 10) {
                 Text("Диаграмма температуры воды")
                     .font(.headline).foregroundColor(.white)
@@ -277,8 +274,6 @@ struct ActivityDetailView: View {
             }
         }
     }
-
-    // Достаём workoutKey из Activity
     private static func extractWorkoutKey(from activity: Activity) -> String? {
         let mirror = Mirror(reflecting: activity)
         for child in mirror.children {
@@ -310,14 +305,12 @@ private struct InspectorPhotosTab: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            // Фото
             HStack(spacing: 16) {
                 photoBox(title: "Фото ДО тренировки", url: beforeURL)
                 photoBox(title: "Фото ПОСЛЕ тренировки", url: afterURL)
             }
             .frame(height: 220)
 
-            // Слои/подслои
             if let l = existingLayer, let s = existingSub {
                 HStack {
                     Text("Слой: \(l)")
@@ -340,7 +333,6 @@ private struct InspectorPhotosTab: View {
                 }
             }
 
-            // Комментарий
             VStack(alignment: .leading, spacing: 8) {
                 Text("Введите комментарий")
                     .foregroundColor(.white.opacity(0.8))
@@ -357,14 +349,12 @@ private struct InspectorPhotosTab: View {
                 Text(err).foregroundColor(.red).font(.footnote)
             }
 
-            // запас места под «плавающую» кнопку
             Spacer(minLength: 80)
         }
         .onAppear { Task { await loadMedia() } }
-        .safeAreaInset(edge: .bottom) { sendBar } // фиксированная кнопка над таббаром
+        .safeAreaInset(edge: .bottom) { sendBar }
     }
 
-    // Нижняя панель с кнопкой
     private var sendBar: some View {
         HStack {
             Button(action: send) {
@@ -382,7 +372,7 @@ private struct InspectorPhotosTab: View {
         .padding(.horizontal)
         .padding(.top, 8)
         .padding(.bottom, 8)
-        .background(.ultraThinMaterial) // лёгкая подложка над таббаром
+        .background(.ultraThinMaterial)
     }
 
     // MARK: Data

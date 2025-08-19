@@ -40,14 +40,12 @@ final class ProfileViewModel: ObservableObject {
     private func loadUserAndAvatarAsync() async {
         defer { self.isLoadingAvatar = false }
 
-        // 1) оффлайн
         if let cached: Data = try? KVStore.shared.get(Data.self, namespace: self.ns, key: self.kvKeyAvatar),
            let img = UIImage(data: cached) {
             self.avatar = img
             log.debug("[KV] HIT \(self.ns)/\(self.kvKeyAvatar) bytes=\(cached.count)")
         }
 
-        // 2) сеть
         do {
             let user = try await self.personalVM.userRepository.getUser()
             if let b64 = user.avatarImageBase64, !b64.isEmpty,

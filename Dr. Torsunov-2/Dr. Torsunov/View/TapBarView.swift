@@ -6,7 +6,6 @@ struct TapBarView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Workouts
             NavigationStack {
                 TrainingView()
                     .onAppear { openOtherAppOrStore() }
@@ -14,28 +13,24 @@ struct TapBarView: View {
             .tabItem { Label("tab_workouts", systemImage: "figure.run") }
             .tag(0)
 
-            // Calendar
             NavigationStack {
                 CalendarView()
             }
             .tabItem { Label("tab_calendar", systemImage: "calendar") }
             .tag(1)
 
-            // Chat
             NavigationStack {
                 ChatView(messages: [])
             }
             .tabItem { Label("tab_chat", systemImage: "bubble.left.and.bubble.right") }
             .tag(2)
 
-            // Profile
             NavigationStack {
                 ProfileView(viewModel: ProfileViewModel())
             }
             .tabItem { Label("tab_profile", systemImage: "person.circle") }
             .tag(3)
 
-            // NEW: Bluetooth tab
             NavigationStack {
                 BLEScanView()
                     .navigationTitle("Bluetooth")

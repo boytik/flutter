@@ -5,8 +5,6 @@ import SwiftUI
 struct ChatView: View {
     let messages: [ChatMessage]
     @State private var inputText = ""
-
-    /// Передай сюда свою логику, как определить «моё» сообщение.
     var isMine: (ChatMessage) -> Bool = { _ in false }
 
     var body: some View {

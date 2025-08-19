@@ -23,9 +23,8 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
     let workoutUuid: String?
     let userEmail: String?
     let activityType: String?
-    let date: String?               // "yyyy-MM-dd" или "yyyy-MM-dd HH:mm:ss"
+    let date: String?              
 
-    // полями ниже UI пользуется по месту
     let durationMinutes: Int?
     let durationHours: Int?
     let description: String?
@@ -35,7 +34,7 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
     let breaks: Int?
     let layers: Int?
     let swimLayers: [Int]?
-    let protocolName: String?       // backend key: "protocol"
+    let protocolName: String?
 
     var id: String { workoutUuid ?? UUID().uuidString }
 
@@ -84,12 +83,10 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
             throw WorkoutsPlannerError.noEmail
         }
 
-        // yyyy-MM → границы месяца (UTC) и строки yyyy-MM-dd
         let (start, end) = Self.monthBounds(from: filterMonth)
         let startStr = Self.fmtDayUTC.string(from: start)
         let endStr   = Self.fmtDayUTC.string(from: end)
 
-        // 1) диапазон дат → 2) фильтр по месяцу
         let candidates: [(label: String, url: URL)] = [
             ("range_path", ApiRoutes.Workouts.calendarRange(email: email, startDate: startStr, endDate: endStr)),
             ("month_path", ApiRoutes.Workouts.calendarMonth(email: email, month: filterMonth))
@@ -103,7 +100,6 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
         }
         let ymd = Self.fmtDayUTC.string(from: date)
 
-        // 1) filter_date=yyyy-MM-dd → 2) range(yyyy-MM-dd .. yyyy-MM-dd)
         let candidates: [(label: String, url: URL)] = [
             ("day_filter", ApiRoutes.Workouts.calendarDay(email: email, date: ymd)),
             ("day_range",  ApiRoutes.Workouts.calendarRange(email: email, startDate: ymd, endDate: ymd))
@@ -119,12 +115,10 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
         for (label, url) in candidates {
             do {
                 let res: [ScheduledWorkoutDTO] = try await client.request([ScheduledWorkoutDTO].self, url: url)
-                // только короткий лог: путь и количество
                 logPlanner.info("[planner] \(label) ok: \(res.count) items — \(url.absoluteString, privacy: .public)")
                 if !res.isEmpty { return res }
                 if firstSuccessfulEmpty == nil { firstSuccessfulEmpty = res }
             } catch NetworkError.server(let code, _) where (400...599).contains(code) {
-                // без тела ответа
                 logPlanner.error("[planner] \(label) HTTP \(code) — \(url.absoluteString, privacy: .public)")
                 lastError = NetworkError.server(status: code, data: nil)
                 continue

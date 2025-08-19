@@ -43,7 +43,6 @@ struct CalendarView: View {
     // MARK: - Content
     private var contentView: some View {
         VStack(spacing: 16) {
-            // header
             HStack {
                 Text(currentRole == .user ? "Тренировки" : "Тренировки на проверку")
                     .font(.title2.weight(.bold))
@@ -67,11 +66,11 @@ struct CalendarView: View {
                     calendarSection
                     Spacer()
                 } else {
-                    historyHeader        // ⬅️ показываем ОДИН раз
-                    historyGridUser      // ⬅️ список истории для пользователя
+                    historyHeader
+                    historyGridUser
                 }
             } else {
-                historyGridInspector   // ⬅️ фильтры и список для инспектора
+                historyGridInspector
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

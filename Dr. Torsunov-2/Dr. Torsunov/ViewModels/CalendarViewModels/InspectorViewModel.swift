@@ -11,13 +11,11 @@ final class InspectorViewModel: ObservableObject {
     private let repo: InspectorRepository
     private let fallbackActivities: ActivityRepository
 
-    // KVStore
     private let ns = "inspector"
     private let kvKeyA = "toCheck"
     private let kvKeyB = "fullCheck"
     private let kvTTL: TimeInterval = 60 * 2
 
-    // Logger
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
                              category: "InspectorVM")
 
@@ -59,7 +57,6 @@ final class InspectorViewModel: ObservableObject {
             try? KVStore.shared.put(self.fullCheck, namespace: self.ns, key: self.kvKeyB, ttl: self.kvTTL)
             log.debug("[KV] SAVE \(self.ns)/\(self.kvKeyA)=\(self.toCheck.count); \(self.ns)/\(self.kvKeyB)=\(self.fullCheck.count)")
         } catch {
-            // 3) фоллбек — показать историю обычных активностей, если инспекторские недоступны
             do {
                 let acts = try await self.fallbackActivities.fetchAll()
                 self.toCheck = acts

@@ -1,7 +1,6 @@
 
 import Foundation
 
-/// Локальная «авторизация как во Flutter»: без запроса на сервер
 final class AuthenticationRepositoryImpl {
     private let tokens = TokenStorage.shared
 
@@ -12,8 +11,6 @@ final class AuthenticationRepositoryImpl {
         return true
     }
 
-
-    /// Гостевой вход (если нужен)
     @discardableResult
     func loginDemo() async -> Bool {
         tokens.accessToken = "demo-token"

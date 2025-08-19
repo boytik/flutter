@@ -13,7 +13,6 @@ struct CacheJSONClient: CacheRequesting {
     func request<T: Codable>(_ url: URL, ttl: TimeInterval) async throws -> T {
         let key = HTTPCacheKey.make(url: url, method: "GET", headers: [:])
 
-        // cache → decode
         if let cached = HTTPCacheStore.shared.load(for: key),
            let decoded = try? JSONDecoder().decode(T.self, from: cached) {
             log.debug("[cache] HIT \(url.absoluteString, privacy: .public)")
@@ -22,10 +21,8 @@ struct CacheJSONClient: CacheRequesting {
             log.debug("[cache] MISS \(url.absoluteString, privacy: .public)")
         }
 
-        // network
         let value: T = try await HTTPClient.shared.request(url, method: .GET, headers: [:], body: nil)
 
-        //store
         if let data = try? JSONEncoder().encode(value) {
             HTTPCacheStore.shared.save(data, for: key, ttl: ttl)
             log.debug("[cache] STORE \(url.absoluteString, privacy: .public) — \(data.count) bytes, ttl=\(Int(ttl))s")
@@ -93,10 +90,8 @@ final class ActivityThumbsRepositoryImpl: ActivityThumbsRepository {
 
         let url = ApiRoutes.Workouts.metadata(workoutKey: workoutKey, email: email)
         do {
-            // короткий TTL, т.к. превью может обновляться
             let meta: MetadataDTO = try await client.request(url, ttl: 60)
 
-            // приоритет картинок как и раньше
             let candidates = [meta.photoAfter, meta.photoBefore, meta.activityGraph, meta.heartRateGraph, meta.map]
             for s in candidates {
                 guard let s, !s.isEmpty else { continue }
@@ -105,7 +100,6 @@ final class ActivityThumbsRepositoryImpl: ActivityThumbsRepository {
             }
             return nil
         } catch {
-            // подавляем только HTTP 500 на 5 минут
             if case let NetworkError.server(status, _) = error, status == 500 {
                 await Self.failCache.noteFailure(workoutKey)
                 return nil
@@ -123,7 +117,6 @@ final class CalendarViewModel: ObservableObject {
     enum PickersModes: String, CaseIterable { case calendar = "Календарь"; case history = "История" }
     enum HistoryFilter: String, CaseIterable { case completed = "Завершённые"; case all = "Все" }
 
-    // анти-дубль префетча и ограничение пачки
     private static let thumbsState = ThumbsPrefetchState()
     private let maxThumbsPrefetch = 12
 
@@ -211,7 +204,6 @@ final class CalendarViewModel: ObservableObject {
         let (startD, endD) = monthRangeDates(monthDate)
         let cal = Calendar.current
 
-        // оффлайн подсветка (без шума)
         if let cached: [Workout] = try? KVStore.shared.get([Workout].self, namespace: "calendar", key: "planner_\(yyyyMM)") {
             self.monthPlanned = cached
         }
@@ -222,7 +214,6 @@ final class CalendarViewModel: ObservableObject {
         do {
             log.info("[Calendar] Fetch planner & activities…")
 
-            // План месяца
             let plannerDTOs = try await workoutPlannerRepo.getPlannerCalendar(filterMonth: yyyyMM)
             let planned: [Workout] = plannerDTOs.compactMap { dto in
                 guard let date = Self.parseDate(dto.date) else { return nil }
@@ -239,12 +230,10 @@ final class CalendarViewModel: ObservableObject {
             self.monthPlanned = planned
             try? KVStore.shared.put(planned, namespace: "calendar", key: "planner_\(yyyyMM)", ttl: 60*60*24)
 
-            // История активностей
             let allActs = try await activitiesRepo.fetchAll()
             self.allActivities = allActs
             try? KVStore.shared.put(allActs, namespace: "calendar", key: "activities_all", ttl: 60*10)
 
-            // Фильтр по выбранному месяцу
             let monthActs = allActs.filter { a in
                 guard let dt = a.createdAt else { return false }
                 return dt >= cal.startOfDay(for: startD) &&
@@ -252,22 +241,18 @@ final class CalendarViewModel: ObservableObject {
             }
             self.monthActivities = monthActs
 
-            // Контент по дням
             let workoutItems  = planned.map { CalendarItem.workout($0) }
             let activityItems = monthActs.map { CalendarItem.activity($0) }
             self.byDay = Dictionary(grouping: (workoutItems + activityItems)) { cal.startOfDay(for: $0.date) }
 
-            // Маркеры на календарь
             self.monthDates = buildMarkers(for: monthDate, planned: planned, done: monthActs)
 
-            // История
             rebuildHistory()
             if filteredItems.isEmpty, historyFilter == .completed, !allActivities.isEmpty {
                 historyFilter = .all
                 rebuildHistory()
             }
 
-            // Префетч превью
             await prefetchThumbs(for: filteredItems.prefix(24))
 
             log.info("[Calendar] Loaded successfully")

@@ -58,7 +58,6 @@ enum JSONValue: Codable, Equatable {
 }
 
 // MARK: - Используем наш клиент поверх кэша
-// (Определение протокола/клиента у тебя уже есть в проекте. Здесь — просто используем.)
 @MainActor
 final class WorkoutDetailViewModel: ObservableObject {
     @Published var isLoading = false
@@ -67,23 +66,20 @@ final class WorkoutDetailViewModel: ObservableObject {
     @Published var metadata: [String: JSONValue] = [:]
     @Published var metrics:  [String: JSONValue] = [:]
 
-    private let client: CacheRequesting = CacheJSONClient()   // ⬅️ вместо CachedHTTPClient
+    private let client: CacheRequesting = CacheJSONClient()
     private let workoutID: String
 
-    // оффлайн-хранилище
     private let ns = "workout_detail"
     private var kvKeyMeta: String { "meta_\(workoutID)" }
     private var kvKeyMetr: String { "metr_\(workoutID)" }
 
-    // политики
-    private let httpTTLMeta: TimeInterval = 60 * 15   // 15 мин
-    private let httpTTLMetr: TimeInterval = 60 * 2    // 2 мин
-    private let kvTTLMeta: TimeInterval  = 60 * 60    // 1 час
-    private let kvTTLMetr: TimeInterval  = 60 * 10    // 10 мин
+    private let httpTTLMeta: TimeInterval = 60 * 15
+    private let httpTTLMetr: TimeInterval = 60 * 2
+    private let kvTTLMeta: TimeInterval  = 60 * 60
+    private let kvTTLMetr: TimeInterval  = 60 * 10
 
     init(workoutID: String) { self.workoutID = workoutID }
 
-    /// Загружает метаданные и метрики. Сообщает только о ключевых шагах процесса.
     func load() async {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
             errorMessage = "No email"
@@ -97,7 +93,6 @@ final class WorkoutDetailViewModel: ObservableObject {
 
         log.info("[Load] Start, workout=\(self.workoutID, privacy: .public)")
 
-        // 0) оффлайн — подхватываем мгновенно (без шума)
         if let m: [String: JSONValue] = try? KVStore.shared.get([String: JSONValue].self,
                                                                 namespace: ns, key: kvKeyMeta) {
             self.metadata = m
@@ -107,7 +102,6 @@ final class WorkoutDetailViewModel: ObservableObject {
             self.metrics = m
         }
 
-        // 1) URL’ы (primary + fallback на старые роуты)
         let metaPrimary   = ApiRoutes.Workouts.metadata(workoutKey: workoutID, email: email)
         let metrPrimary   = ApiRoutes.Workouts.metrics(workoutKey: workoutID, email: email)
         let metaFallback  = Self.altURL(path: "metadata",         query: ["workoutId": workoutID, "email": email])
@@ -115,7 +109,6 @@ final class WorkoutDetailViewModel: ObservableObject {
 
         var errs: [String] = []
 
-        // === META ===
         do {
             log.info("[META] Request primary…")
             let metaObj = try await fetchObject(url: metaPrimary, ttl: httpTTLMeta)
@@ -138,7 +131,6 @@ final class WorkoutDetailViewModel: ObservableObject {
             }
         }
 
-        // === METRICS ===
         do {
             log.info("[METRICS] Request primary…")
             let metrObj = try await fetchObject(url: metrPrimary, ttl: httpTTLMetr)
@@ -173,7 +165,6 @@ final class WorkoutDetailViewModel: ObservableObject {
     // MARK: helpers (network)
 
     private func fetchObject(url: URL, ttl: TimeInterval) async throws -> [String: JSONValue] {
-        // Пытаемся декодировать объект; если пришёл массив — оборачиваем как { "items": [...] }
         do {
             let obj: [String: JSONValue] = try await client.request(url, ttl: ttl)
             return obj
@@ -199,7 +190,6 @@ final class WorkoutDetailViewModel: ObservableObject {
         return url
     }
 
-    // Диагностические строки (не для графиков)
     var metadataLines: [(String, String)] {
         metadata.keys.sorted().compactMap { key in
             guard let v = metadata[key] else { return nil }

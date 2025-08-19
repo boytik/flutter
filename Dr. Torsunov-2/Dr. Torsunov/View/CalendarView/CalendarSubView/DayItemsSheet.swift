@@ -42,7 +42,6 @@ struct DayItemsSheet: View {
                 .navigationBarTitleDisplayMode(.inline)
             }
         }
-        // Тёмное оформление шита
         .preferredColorScheme(.dark)
         .tint(.green)
         .background(Color.black.ignoresSafeArea())
