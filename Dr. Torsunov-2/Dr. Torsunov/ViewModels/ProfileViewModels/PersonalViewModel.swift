@@ -2,12 +2,12 @@ import SwiftUI
 import Foundation
 import Combine
 import UIKit
+import OSLog
 
-// Лёгкая модель пользователя под наш UI и оффлайн-снапшот
 struct User: Codable, Equatable {
     var email: String
     var name: String?
-    var role: String?                 // "User" / "Inspector" / др.
+    var role: String?            
     var avatarImageBase64: String?
 }
 
@@ -22,6 +22,7 @@ final class PersonalViewModel: ObservableObject {
         var serverStrings: [String] { [rawValue, rawValue.lowercased(), rawValue.capitalized] }
     }
 
+    // MARK: - UI state
     @Published var email: String = ""
     @Published var name: String = ""
     @Published var role: Role = .user
@@ -50,50 +51,53 @@ final class PersonalViewModel: ObservableObject {
         var id: Int { hashValue }
     }
 
+    // MARK: - Logger
+    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
+                             category: "PersonalVM")
+
     init(userRepository: UserRepository = UserRepositoryImpl(),
          physicalDataVM: PhysicalDataViewModel) {
         self.userRepository = userRepository
         self.physicalDataVM = physicalDataVM
 
-        Task { await loadUser() }
+        Task { [weak self] in
+            await self?.loadUser()
+        }
     }
 
     // MARK: - Data
-    @MainActor
     func loadUser() async {
         // 0) оффлайн — подхватываем мгновенно
-        if let cached: User = try? KVStore.shared.get(User.self, namespace: ns, key: kvKeyUser) {
-            email = cached.email
-            name  = cached.name ?? ""
-            applyRoleFallback(fromServerString: cached.role)
-            print("📦 KV HIT \(ns)/\(kvKeyUser)")
-        } else if email.isEmpty, let local = TokenStorage.shared.currentEmail() {
+        if let cached: User = try? KVStore.shared.get(User.self, namespace: self.ns, key: self.kvKeyUser) {
+            self.email = cached.email
+            self.name  = cached.name ?? ""
+            self.applyRoleFallback(fromServerString: cached.role)
+            self.log.debug("[KV] HIT \(self.ns)/\(self.kvKeyUser)")
+        } else if self.email.isEmpty, let local = TokenStorage.shared.currentEmail() {
             // хотя бы email, если вообще пусто
-            email = local
+            self.email = local
         }
 
         // 1) сеть
         do {
-            // репозиторий может возвращать любую модель — маппим в наш User-снапшот
-            let remote = try await userRepository.getUser()
-            let snapshot = mapToUser(remote)
-            email = snapshot.email
-            name  = snapshot.name ?? ""
-            applyRoleFallback(fromServerString: snapshot.role)
+            let remote = try await self.userRepository.getUser()
+            let snapshot = self.mapToUser(remote)
+            self.email = snapshot.email
+            self.name  = snapshot.name ?? ""
+            self.applyRoleFallback(fromServerString: snapshot.role)
 
             // синхронизируем роль в UserDefaults (используется в других экранах)
             UserDefaults.standard.set(self.role.rawValue, forKey: "user_role")
 
             // оффлайн-снапшот
-            try? KVStore.shared.put(snapshot, namespace: ns, key: kvKeyUser, ttl: kvTTLUser)
-            print("💾 KV SAVE \(ns)/\(kvKeyUser)")
+            try? KVStore.shared.put(snapshot, namespace: self.ns, key: self.kvKeyUser, ttl: self.kvTTLUser)
+            self.log.debug("[KV] SAVE \(self.ns)/\(self.kvKeyUser)")
         } catch {
-            print("❌ loadUser error:", error.localizedDescription)
+            self.log.error("[LoadUser] failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
     /// Маппер «что бы ни вернул репозиторий» → наш лёгкий `User`
-    /// Попытка прочитать поля через KVC/Reflect — на случай, если тип не совпадает.
     private func mapToUser(_ anyUser: Any) -> User {
         // если это уже наш User
         if let u = anyUser as? User { return u }
@@ -135,23 +139,23 @@ final class PersonalViewModel: ObservableObject {
     }
 
     func saveChanges(for field: EditingField, with newValue: String) async {
-        let newEmail = (field == .email) ? newValue : email
-        let newName  = (field == .name)  ? newValue : name
+        let newEmail = (field == .email) ? newValue : self.email
+        let newName  = (field == .name)  ? newValue : self.name
         do {
-            try await userRepository.updateNameAndEmail(name: newName, email: newEmail)
-            email = newEmail
-            name  = newName
-            editingField = nil
+            try await self.userRepository.updateNameAndEmail(name: newName, email: newEmail)
+            self.email = newEmail
+            self.name  = newName
+            self.editingField = nil
 
             // обновим оффлайн-снапшот пользователя
-            var cached = (try? KVStore.shared.get(User.self, namespace: ns, key: kvKeyUser))
-                         ?? User(email: newEmail, name: newName, role: role.rawValue, avatarImageBase64: nil)
+            var cached = (try? KVStore.shared.get(User.self, namespace: self.ns, key: self.kvKeyUser))
+                         ?? User(email: newEmail, name: newName, role: self.role.rawValue, avatarImageBase64: nil)
             cached.email = newEmail
             cached.name  = newName
-            try? KVStore.shared.put(cached, namespace: ns, key: kvKeyUser, ttl: kvTTLUser)
-            print("💾 KV UPDATE \(ns)/\(kvKeyUser)")
+            try? KVStore.shared.put(cached, namespace: self.ns, key: self.kvKeyUser, ttl: self.kvTTLUser)
+            self.log.debug("[KV] UPDATE \(self.ns)/\(self.kvKeyUser)")
         } catch {
-            print("❌ updateNameAndEmail error:", error.localizedDescription)
+            self.log.error("[UpdateNameEmail] failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -159,21 +163,22 @@ final class PersonalViewModel: ObservableObject {
     func updateRole(to newRole: Role) async {
         self.role = newRole
         UserDefaults.standard.set(newRole.rawValue, forKey: "user_role")
-        print("🔁 Local role switched to \(newRole.rawValue)")
+        self.log.info("[Role] switched locally to \(newRole.rawValue, privacy: .public)")
         // сервер не поддерживает — не шлём PATCH
     }
 
     // MARK: - Session
     func logout() {
         TokenStorage.shared.clear()
-        print("Выход выполнен")
+        self.log.info("[Session] logout")
         // можно почистить и оффлайн
-        try? KVStore.shared.delete(namespace: ns, key: kvKeyUser)
+        try? KVStore.shared.delete(namespace: self.ns, key: self.kvKeyUser)
+        self.log.info("[KV] DELETE \(self.ns)/\(self.kvKeyUser)")
     }
 
     func deleteAccount() {
         // Заглушка. Добавим API, когда появится.
-        print("Аккаунт удалён (stub)")
+        self.log.info("[Account] delete (stub)")
     }
 
     // MARK: - Private: Best-effort PATCH (пока не используется)
@@ -185,10 +190,10 @@ final class PersonalViewModel: ObservableObject {
         for body in PatchRolePayload.bodies(for: role) {
             do {
                 try await client.requestVoid(url: url1, method: .PATCH, body: body)
-                print("✅ Role updated via /users/<email> with \(body.debugName)")
+                self.log.info("[Role] updated via /users/<email> with \(body.debugName, privacy: .public)")
                 return
             } catch {
-                print("↩️ role patch failed (\(body.debugName)): \(error.localizedDescription)")
+                self.log.error("[Role] patch failed (\(body.debugName, privacy: .public)): \(error.localizedDescription, privacy: .public)")
             }
         }
 
@@ -196,10 +201,10 @@ final class PersonalViewModel: ObservableObject {
         for body in PatchRolePayload.bodies(for: role) {
             do {
                 try await client.requestVoid(url: url2, method: .PATCH, body: body)
-                print("✅ Role updated via /user?email with \(body.debugName)")
+                self.log.info("[Role] updated via /user?email with \(body.debugName, privacy: .public)")
                 return
             } catch {
-                print("↩️ role patch (query) failed (\(body.debugName)): \(error.localizedDescription)")
+                self.log.error("[Role] patch (query) failed (\(body.debugName, privacy: .public)): \(error.localizedDescription, privacy: .public)")
             }
         }
     }

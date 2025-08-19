@@ -7,7 +7,6 @@ final class CoreDataStack {
     private init() {
         persistentContainer = NSPersistentContainer(name: "KVStore")
         if let description = persistentContainer.persistentStoreDescriptions.first {
-            // Храним в Library/Application Support
             description.url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
                 .first!.appendingPathComponent("KVStore.sqlite")
             try? FileManager.default.createDirectory(
@@ -34,7 +33,7 @@ final class KVEntry: NSManagedObject {
     @NSManaged var payload: Data
     @NSManaged var createdAt: Date
     @NSManaged var updatedAt: Date
-    @NSManaged var ttl: Double // seconds; 0 = infinite
+    @NSManaged var ttl: Double 
 }
 
 extension KVEntry {
@@ -87,7 +86,6 @@ private extension NSPersistentContainer {
 
         entity.properties = [fNamespace, fKey, fPayload, fCreatedAt, fUpdatedAt, fTTL]
 
-        // Уникальный индекс по (namespace, key)
         entity.uniquenessConstraints = [["namespace", "key"]]
 
         model.entities = [entity]

@@ -12,6 +12,7 @@
 		3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */; };
 		3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */; };
 		3E3D33C52E40BF8E009A5DCD /* PersonalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3D33C42E40BF8E009A5DCD /* PersonalView.swift */; };
+		3E44CE632E54776800DDE143 /* HTTPCacheKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E44CE622E54776800DDE143 /* HTTPCacheKey.swift */; };
 		3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */; };
 		3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */; };
 		3E56032F2E534E8600C401DB /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032E2E534E8600C401DB /* CoreDataStack.swift */; };
@@ -90,6 +91,7 @@
 		3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGridView.swift; sourceTree = "<group>"; };
 		3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
 		3E3D33C42E40BF8E009A5DCD /* PersonalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalView.swift; sourceTree = "<group>"; };
+		3E44CE622E54776800DDE143 /* HTTPCacheKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPCacheKey.swift; sourceTree = "<group>"; };
 		3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " TokenStorage.swift"; sourceTree = "<group>"; };
 		3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPCacheStore.swift; sourceTree = "<group>"; };
 		3E56032E2E534E8600C401DB /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
@@ -241,6 +243,8 @@
 				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
 				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
+				3E7045672E4A1BA7005EDE48 /* InspectorViewModel.swift */,
+				3E7045752E4A2317005EDE48 /* ChatViewModel.swift */,
 			);
 			path = CalendarViewModels;
 			sourceTree = "<group>";
@@ -414,8 +418,6 @@
 			children = (
 				3E7045742E4A22E7005EDE48 /* CalendarViewModels */,
 				3E8F8A512E436F4200CE00CB /* ProfileViewModels */,
-				3E7045672E4A1BA7005EDE48 /* InspectorViewModel.swift */,
-				3E7045752E4A2317005EDE48 /* ChatViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -444,6 +446,7 @@
 				3EE502BE2E50CF3000BBE86F /* URL+QuerySwap.swift */,
 				3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */,
 				3E56032E2E534E8600C401DB /* CoreDataStack.swift */,
+				3E44CE622E54776800DDE143 /* HTTPCacheKey.swift */,
 			);
 			path = Network;
 			sourceTree = "<group>";
@@ -641,6 +644,7 @@
 				3E3D33C52E40BF8E009A5DCD /* PersonalView.swift in Sources */,
 				3ED089472E460168002F09CB /* ApiRoutes.swift in Sources */,
 				3EE536902E4E192D0016D879 /* DayItemsSheet.swift in Sources */,
+				3E44CE632E54776800DDE143 /* HTTPCacheKey.swift in Sources */,
 				3E7B177E2E42505C001AF947 /* ChronicAlertSheet.swift in Sources */,
 				3E8599BA2E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift in Sources */,
 				3E7B17752E424EFF001AF947 /* PhysicalDataViewModel.swift in Sources */,

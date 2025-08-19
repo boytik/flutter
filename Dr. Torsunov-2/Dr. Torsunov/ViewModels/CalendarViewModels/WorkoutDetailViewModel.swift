@@ -1,7 +1,12 @@
 import Foundation
 import SwiftUI
+import OSLog
 
-// MARK: - Универсальный JSON-декодер
+// MARK: - Логгер для этого модуля
+private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
+                         category: "WorkoutDetail")
+
+// MARK: - Универсальный JSON-декодер (как было)
 enum JSONValue: Codable, Equatable {
     case string(String)
     case number(Double)
@@ -36,25 +41,24 @@ enum JSONValue: Codable, Equatable {
     var pretty: String {
         switch self {
         case .string(let s): return "\"\(s)\""
-        case .number(let n):
-            if n.rounded() == n { return String(Int(n)) }
-            return String(n)
-        case .bool(let b): return b ? "true" : "false"
-        case .null: return "null"
+        case .number(let n): return n.rounded() == n ? String(Int(n)) : String(n)
+        case .bool(let b):   return b ? "true" : "false"
+        case .null:          return "null"
         case .array(let arr):
-            if arr.isEmpty { return "[]" }
-            return "[ " + arr.map { $0.pretty }.joined(separator: ", ") + " ]"
+            return arr.isEmpty ? "[]" : "[ " + arr.map { $0.pretty }.joined(separator: ", ") + " ]"
         case .object(let obj):
             if obj.isEmpty { return "{}" }
-            let lines = obj.keys.sorted().map { key in
-                "• \(key): \(obj[key]!.pretty)"
+            let lines = obj.keys.sorted().compactMap { key -> String? in
+                guard let v = obj[key] else { return nil }
+                return "• \(key): \(v.pretty)"
             }
             return lines.joined(separator: "\n")
         }
     }
 }
 
-// MARK: - VM
+// MARK: - Используем наш клиент поверх кэша
+// (Определение протокола/клиента у тебя уже есть в проекте. Здесь — просто используем.)
 @MainActor
 final class WorkoutDetailViewModel: ObservableObject {
     @Published var isLoading = false
@@ -63,7 +67,7 @@ final class WorkoutDetailViewModel: ObservableObject {
     @Published var metadata: [String: JSONValue] = [:]
     @Published var metrics:  [String: JSONValue] = [:]
 
-    private let client = CachedHTTPClient.shared
+    private let client: CacheRequesting = CacheJSONClient()   // ⬅️ вместо CachedHTTPClient
     private let workoutID: String
 
     // оффлайн-хранилище
@@ -72,104 +76,104 @@ final class WorkoutDetailViewModel: ObservableObject {
     private var kvKeyMetr: String { "metr_\(workoutID)" }
 
     // политики
-    private let httpTTLMeta: TimeInterval = 60 * 15      // 15 мин
-    private let httpTTLMetr: TimeInterval = 60 * 2       // 2 мин
-    private let kvTTLMeta: TimeInterval  = 60 * 60       // 1 час (оффлайн)
-    private let kvTTLMetr: TimeInterval  = 60 * 10       // 10 мин (оффлайн)
+    private let httpTTLMeta: TimeInterval = 60 * 15   // 15 мин
+    private let httpTTLMetr: TimeInterval = 60 * 2    // 2 мин
+    private let kvTTLMeta: TimeInterval  = 60 * 60    // 1 час
+    private let kvTTLMetr: TimeInterval  = 60 * 10    // 10 мин
 
     init(workoutID: String) { self.workoutID = workoutID }
 
-    // Грузим /metadata и /get_diagram_data независимо + с фолбэком workoutId
-    // ЗАМЕНИТЕ целиком вашу load() на эту версию
+    /// Загружает метаданные и метрики. Сообщает только о ключевых шагах процесса.
     func load() async {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
             errorMessage = "No email"
+            log.error("[Load] Missing user email")
             return
         }
 
         isLoading = true
         errorMessage = nil
+        defer { isLoading = false }
 
-        // 0) оффлайн — подхватываем мгновенно
-        if let m: [String: JSONValue] = try? KVStore.shared.get([String: JSONValue].self, namespace: ns, key: kvKeyMeta) {
+        log.info("[Load] Start, workout=\(self.workoutID, privacy: .public)")
+
+        // 0) оффлайн — подхватываем мгновенно (без шума)
+        if let m: [String: JSONValue] = try? KVStore.shared.get([String: JSONValue].self,
+                                                                namespace: ns, key: kvKeyMeta) {
             self.metadata = m
-            print("📦 KV HIT \(ns)/\(kvKeyMeta)")
         }
-        if let m: [String: JSONValue] = try? KVStore.shared.get([String: JSONValue].self, namespace: ns, key: kvKeyMetr) {
+        if let m: [String: JSONValue] = try? KVStore.shared.get([String: JSONValue].self,
+                                                                namespace: ns, key: kvKeyMetr) {
             self.metrics = m
-            print("📦 KV HIT \(ns)/\(kvKeyMetr)")
         }
 
-        // 1) Основные URL + фолбэки
+        // 1) URL’ы (primary + fallback на старые роуты)
         let metaPrimary   = ApiRoutes.Workouts.metadata(workoutKey: workoutID, email: email)
-        let metrPrimary   = ApiRoutes.Workouts.metrics(workoutKey: workoutID, email: email) // проверь, что этот роут реально есть
-        let metaFallback  = Self.altURL(path: "metadata", query: ["workoutId": workoutID, "email": email])
+        let metrPrimary   = ApiRoutes.Workouts.metrics(workoutKey: workoutID, email: email)
+        let metaFallback  = Self.altURL(path: "metadata",         query: ["workoutId": workoutID, "email": email])
         let metrFallback  = Self.altURL(path: "get_diagram_data", query: ["workoutId": workoutID, "email": email])
 
-        print("""
-        🔎 WorkoutDetail load
-           meta primary:   \(metaPrimary.absoluteString)
-           meta fallback:  \(metaFallback.absoluteString)
-           metr primary:   \(metrPrimary.absoluteString)
-           metr fallback:  \(metrFallback.absoluteString)
-        """)
-
-        defer { isLoading = false }
         var errs: [String] = []
 
         // === META ===
         do {
-            print("🌐 META primary…")
+            log.info("[META] Request primary…")
             let metaObj = try await fetchObject(url: metaPrimary, ttl: httpTTLMeta)
             self.metadata = metaObj
             try? KVStore.shared.put(metaObj, namespace: ns, key: kvKeyMeta, ttl: kvTTLMeta)
-            print("✅ META primary OK  → 💾 KV SAVE \(ns)/\(kvKeyMeta)")
+            log.info("[META] OK (primary) → cached")
         } catch {
             let se = Self.shortError(error)
-            print("❌ META primary FAIL: \(se) → try fallback")
+            log.error("[META] Primary failed: \(se, privacy: .public) → fallback")
             do {
-                print("🌐 META fallback…")
+                log.info("[META] Request fallback…")
                 let metaObj = try await fetchObject(url: metaFallback, ttl: httpTTLMeta)
                 self.metadata = metaObj
                 try? KVStore.shared.put(metaObj, namespace: ns, key: kvKeyMeta, ttl: kvTTLMeta)
-                print("✅ META fallback OK → 💾 KV SAVE (fallback) \(ns)/\(kvKeyMeta)")
+                log.info("[META] OK (fallback) → cached")
             } catch {
                 let se2 = Self.shortError(error)
-                print("❌ META fallback FAIL: \(se2)")
+                log.error("[META] Fallback failed: \(se2, privacy: .public)")
                 errs.append("Meta: \(se) / \(se2)")
             }
         }
 
         // === METRICS ===
         do {
-            print("🌐 METRICS primary…")
+            log.info("[METRICS] Request primary…")
             let metrObj = try await fetchObject(url: metrPrimary, ttl: httpTTLMetr)
             self.metrics = metrObj
             try? KVStore.shared.put(metrObj, namespace: ns, key: kvKeyMetr, ttl: kvTTLMetr)
-            print("✅ METRICS primary OK → 💾 KV SAVE \(ns)/\(kvKeyMetr)")
+            log.info("[METRICS] OK (primary) → cached")
         } catch {
             let se = Self.shortError(error)
-            print("❌ METRICS primary FAIL: \(se) → try fallback")
+            log.error("[METRICS] Primary failed: \(se, privacy: .public) → fallback")
             do {
-                print("🌐 METRICS fallback…")
+                log.info("[METRICS] Request fallback…")
                 let metrObj = try await fetchObject(url: metrFallback, ttl: httpTTLMetr)
                 self.metrics = metrObj
                 try? KVStore.shared.put(metrObj, namespace: ns, key: kvKeyMetr, ttl: kvTTLMetr)
-                print("✅ METRICS fallback OK → 💾 KV SAVE (fallback) \(ns)/\(kvKeyMetr)")
+                log.info("[METRICS] OK (fallback) → cached")
             } catch {
                 let se2 = Self.shortError(error)
-                print("❌ METRICS fallback FAIL: \(se2)")
+                log.error("[METRICS] Fallback failed: \(se2, privacy: .public)")
                 errs.append("Metrics: \(se) / \(se2)")
             }
         }
 
-        if !errs.isEmpty { self.errorMessage = errs.joined(separator: " • ") }
+        if !errs.isEmpty {
+            let msg = errs.joined(separator: " • ")
+            self.errorMessage = msg
+            log.error("[Load] Completed with errors: \(msg, privacy: .public)")
+        } else {
+            log.info("[Load] Completed successfully")
+        }
     }
 
     // MARK: helpers (network)
 
     private func fetchObject(url: URL, ttl: TimeInterval) async throws -> [String: JSONValue] {
-        // Пытаемся декодировать объект; если пришёл массив — оборачиваем как {"items":[...]}
+        // Пытаемся декодировать объект; если пришёл массив — оборачиваем как { "items": [...] }
         do {
             let obj: [String: JSONValue] = try await client.request(url, ttl: ttl)
             return obj
@@ -197,14 +201,20 @@ final class WorkoutDetailViewModel: ObservableObject {
 
     // Диагностические строки (не для графиков)
     var metadataLines: [(String, String)] {
-        metadata.keys.sorted().map { ($0, metadata[$0]!.pretty) }
+        metadata.keys.sorted().compactMap { key in
+            guard let v = metadata[key] else { return nil }
+            return (key, v.pretty)
+        }
     }
     var metricsLines: [(String, String)] {
-        metrics.keys.sorted().map { ($0, metrics[$0]!.pretty) }
+        metrics.keys.sorted().compactMap { key in
+            guard let v = metrics[key] else { return nil }
+            return (key, v.pretty)
+        }
     }
 }
 
-// MARK: - Series helpers (без изменений по смыслу)
+// MARK: - Series helpers (как было)
 extension WorkoutDetailViewModel {
     func number(in value: JSONValue) -> Double? {
         switch value {
@@ -247,8 +257,7 @@ extension WorkoutDetailViewModel {
         let candidates = ["metricsData", "items", "data", "points"]
 
         for key in candidates {
-            if let val = metrics[key],
-               let arr = array(in: val) {
+            if let val = metrics[key], let arr = array(in: val) {
                 let objs = arr.compactMap { el -> [String: JSONValue]? in
                     if case let .object(o) = el { return o } else { return nil }
                 }
@@ -268,8 +277,10 @@ extension WorkoutDetailViewModel {
         pairedY(for: ["heart_rate","heartrate","heartrateavg","heartRate","pulse","bpm","hr"])
     }
     var waterTempSeries: [Double]? {
-        pairedY(for: ["water_temp","water_temperature","waterTemperature",
-                      "temperature_c","temperatureCelsius","temp_c","temp"])
+        pairedY(for: [
+            "water_temp","water_temperature","waterTemperature",
+            "temperature_c","temperatureCelsius","temp_c","temp"
+        ])
     }
     var speedSeries: [Double]? {
         pairedY(for: ["speed_kmh","speedKmh","speed","kmh"])
@@ -304,8 +315,9 @@ extension WorkoutDetailViewModel {
 
     var diagramImageURLs: [URL] {
         let candidates = metadata.values.compactMap { v -> URL? in
-            if case let .string(s) = v, (s.hasPrefix("http") || s.hasPrefix("https")),
-               let u = URL(string: s) { return u }
+            if case let .string(s) = v, (s.hasPrefix("http") || s.hasPrefix("https")), let u = URL(string: s) {
+                return u
+            }
             return nil
         }
         return Array(NSOrderedSet(array: candidates)).compactMap { $0 as? URL }

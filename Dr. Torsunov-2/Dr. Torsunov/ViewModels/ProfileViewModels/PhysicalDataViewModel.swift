@@ -1,9 +1,16 @@
 import SwiftUI
 import Foundation
 import Combine
+import OSLog
+import UIKit
+
+// MARK: - Логгер
+private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
+                         category: "PhysicalDataVM")
 
 @MainActor
 final class PhysicalDataViewModel: ObservableObject {
+    // UI state
     @Published var startDate = Date()
     @Published var age = 40
     @Published var gender = "Male"
@@ -21,12 +28,11 @@ final class PhysicalDataViewModel: ObservableObject {
     private var originalData = PhysicalData()
     private let repository: PhysicalDataRepository
 
-    // оффлайн
+    // KVStore (offline)
     private let ns = "physical_data"
     private let kvKey = "self"
     private let kvTTL: TimeInterval = 60 * 60 * 24 // 24 часа
 
-    // Снимок текущих значений для сравнения/сохранения
     private var currentData: PhysicalData {
         PhysicalData(
             startDate: startDate,
@@ -45,63 +51,74 @@ final class PhysicalDataViewModel: ObservableObject {
 
     init(repository: PhysicalDataRepository = PhysicalDataRepositoryImpl()) {
         self.repository = repository
-        Task { await load() }
+        Task { [weak self] in
+            await self?.load()
+        }
     }
 
+    // MARK: - Actions
+
     func uploadAvatar(_ image: UIImage) async {
-        do { try await repository.uploadAvatar(image) }
-        catch { print("❌ uploadAvatar error:", error.localizedDescription) }
+        do {
+            try await self.repository.uploadAvatar(image)
+            log.info("[Avatar] uploaded")
+        } catch {
+            log.error("[Avatar] upload failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func saveChanges() async {
-        let newData = currentData
+        let newData = self.currentData
         do {
-            try await repository.save(data: newData)
-            originalData = newData
-            try? KVStore.shared.put(newData, namespace: ns, key: kvKey, ttl: kvTTL)
-            print("💾 KV SAVE \(ns)/\(kvKey)")
+            try await self.repository.save(data: newData)
+            self.originalData = newData
+            try? KVStore.shared.put(newData, namespace: self.ns, key: self.kvKey, ttl: self.kvTTL)
+            log.debug("[KV] SAVE \(self.ns)/\(self.kvKey)")
         } catch {
-            print("❌ Failed to save physical data:", error)
+            log.error("[Save] failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
     func load() async {
-        // оффлайн — мгновенно
-        if let cached: PhysicalData = try? KVStore.shared.get(PhysicalData.self, namespace: ns, key: kvKey) {
-            apply(data: cached)
-            originalData = currentData
-            print("📦 KV HIT \(ns)/\(kvKey)")
+        // 1) оффлайн — подхватываем мгновенно
+        if let cached: PhysicalData = try? KVStore.shared.get(PhysicalData.self,
+                                                              namespace: self.ns,
+                                                              key: self.kvKey) {
+            self.apply(data: cached)
+            self.originalData = self.currentData
+            log.debug("[KV] HIT \(self.ns)/\(self.kvKey)")
         }
 
-        // сеть
+        // 2) сеть
         do {
-            let data = try await repository.load()
-            apply(data: data)
-
-            originalData = currentData
-            try? KVStore.shared.put(data, namespace: ns, key: kvKey, ttl: kvTTL)
-            print("💾 KV SAVE \(ns)/\(kvKey)")
+            let data = try await self.repository.load()
+            self.apply(data: data)
+            self.originalData = self.currentData
+            try? KVStore.shared.put(data, namespace: self.ns, key: self.kvKey, ttl: self.kvTTL)
+            log.debug("[KV] SAVE \(self.ns)/\(self.kvKey)")
         } catch {
-            print("❌ Failed to load physical data:", error)
+            log.error("[Load] failed: \(error.localizedDescription, privacy: .public)")
         }
     }
+
+    // MARK: - Helpers
 
     private func apply(data: PhysicalData) {
-        startDate         = data.startDate         ?? startDate
-        age               = data.age               ?? age
-        gender            = data.gender            ?? gender
-        height            = data.height            ?? height
-        weight            = data.weight            ?? weight
-        dailyRoutine      = data.dailyRoutine      ?? dailyRoutine
-        badHabits         = data.badHabits         ?? badHabits
-        chronicDiseases   = data.chronicDiseases   ?? chronicDiseases
-        chronicDescription = data.chronicDescription ?? chronicDescription
+        self.startDate         = data.startDate         ?? self.startDate
+        self.age               = data.age               ?? self.age
+        self.gender            = data.gender            ?? self.gender
+        self.height            = data.height            ?? self.height
+        self.weight            = data.weight            ?? self.weight
+        self.dailyRoutine      = data.dailyRoutine      ?? self.dailyRoutine
+        self.badHabits         = data.badHabits         ?? self.badHabits
+        self.chronicDiseases   = data.chronicDiseases   ?? self.chronicDiseases
+        self.chronicDescription = data.chronicDescription ?? self.chronicDescription
     }
 
-    // debug helpers
+    // Debug helper (ручная очистка оффлайна)
     func clearOffline() {
-        try? KVStore.shared.delete(namespace: ns, key: kvKey)
-        print("🧹 KV DELETE \(ns)/\(kvKey)")
+        try? KVStore.shared.delete(namespace: self.ns, key: self.kvKey)
+        log.info("[KV] DELETE \(self.ns)/\(self.kvKey)")
     }
 }
 
@@ -109,3 +126,4 @@ enum PickerType: Identifiable {
     case date, age, gender, height, weight
     var id: Self { self }
 }
+

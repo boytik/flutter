@@ -1,4 +1,9 @@
 import SwiftUI
+import OSLog
+
+// MARK: - Logger
+private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
+                         category: "ActivityViewModel")
 
 @MainActor
 final class ActivityViewModel: ObservableObject {
@@ -7,60 +12,55 @@ final class ActivityViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let repository: ActivityRepository
-    private let ns = "activities"                 // namespace для KVStore
-    private let kvKeyAll = "all"                  // ключ списка
-    private let kvTTL: TimeInterval = 60 * 10     // 10 минут для оффлайна
+
+    private let ns = "activities"
+    private let kvKeyAll = "all"
+    private let kvTTL: TimeInterval = 60 * 10   // 10 минут
 
     init(repository: ActivityRepository = ActivityRepositoryImpl()) {
         self.repository = repository
-        Task { await load() }
+        Task { [weak self] in
+            await self?.load()
+        }
     }
-
-    /// Загружает список активностей:
-    /// 1) пробует оффлайн из KVStore (если есть) — мгновенно обновляет UI
-    /// 2) параллельно тянет из сети (репозиторий внутри использует CachedHTTPClient)
-    /// 3) по приходу сети — сохраняет в KVStore и обновляет UI
     func load() async {
-        isLoading = true
-        errorMessage = nil
+        self.isLoading = true
+        self.errorMessage = nil
+        defer { self.isLoading = false }
 
-        // 1) оффлайн (если есть) — показываем сразу
-        if let cached: [Activity] = try? KVStore.shared.get([Activity].self, namespace: ns, key: kvKeyAll) {
-            print("📦 KVStore HIT \(ns)/\(kvKeyAll) (\(cached.count) записей)")
+        if let cached: [Activity] = try? KVStore.shared.get([Activity].self,
+                                                            namespace: self.ns,
+                                                            key: self.kvKeyAll) {
             self.activities = cached
+            log.debug("[KV] HIT \(self.ns)/\(self.kvKeyAll) count=\(cached.count)")
         }
 
-        // 2) сеть
         do {
-            print("🌐 fetch activities из сети…")
-            let fresh = try await repository.fetchAll()
+            log.info("[Activities] Fetch…")
+            let fresh = try await self.repository.fetchAll()
             self.activities = fresh
 
-            // 3) сохранить в оффлайн
-            try? KVStore.shared.put(fresh, namespace: ns, key: kvKeyAll, ttl: kvTTL)
-            print("💾 KVStore SAVE \(ns)/\(kvKeyAll) (\(fresh.count) записей, ttl \(Int(kvTTL))s)")
+            try? KVStore.shared.put(fresh, namespace: self.ns, key: self.kvKeyAll, ttl: self.kvTTL)
+            log.debug("[KV] SAVE \(self.ns)/\(self.kvKeyAll) count=\(fresh.count), ttl=\(Int(self.kvTTL))s")
         } catch {
-            // если сети нет и оффлайна не было — покажем ошибку
-            if activities.isEmpty {
-                self.errorMessage = error.localizedDescription
-                print("❌ activities fetch error: \(error.localizedDescription)")
+            if self.activities.isEmpty {
+                self.errorMessage = self.shortError(error)
+                log.error("[Activities] Fetch failed: \(error.localizedDescription, privacy: .public)")
             } else {
-                print("⚠️ activities fetch error (показан оффлайн): \(error.localizedDescription)")
+                log.error("[Activities] Fetch failed (offline shown): \(error.localizedDescription, privacy: .public)")
             }
         }
-
-        isLoading = false
     }
-
+    
     func upload(activity: Activity) async {
-        errorMessage = nil
+        self.errorMessage = nil
         do {
-            try await repository.upload(activity: activity)
-            // после успешной загрузки — обновим список, чтобы инвалидировать кэш/оффлайн
-            await load()
+            try await self.repository.upload(activity: activity)
+            log.info("[Activities] Upload ok")
+            await self.load()
         } catch {
-            errorMessage = error.localizedDescription
-            print("❌ upload error: \(error.localizedDescription)")
+            self.errorMessage = self.shortError(error)
+            log.error("[Activities] Upload failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -68,23 +68,31 @@ final class ActivityViewModel: ObservableObject {
                 comment: String?,
                 beforeImage: UIImage?,
                 afterImage: UIImage?) async {
-        errorMessage = nil
+        self.errorMessage = nil
         do {
-            try await repository.submit(activityId: activityId,
-                                        comment: comment,
-                                        beforeImage: beforeImage,
-                                        afterImage: afterImage)
-            // после успешной отправки — обновим список
-            await load()
+            try await self.repository.submit(activityId: activityId,
+                                             comment: comment,
+                                             beforeImage: beforeImage,
+                                             afterImage: afterImage)
+            log.info("[Activities] Submit ok")
+            await self.load()
         } catch {
-            errorMessage = error.localizedDescription
-            print("❌ submit error: \(error.localizedDescription)")
+            self.errorMessage = self.shortError(error)
+            log.error("[Activities] Submit failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    // MARK: - Debug helpers (по желанию можно вызвать из UI)
+    // MARK: - Debug helpers
     func clearOffline() {
-        try? KVStore.shared.delete(namespace: ns, key: kvKeyAll)
-        print("🧹 KVStore DELETE \(ns)/\(kvKeyAll)")
+        try? KVStore.shared.delete(namespace: self.ns, key: self.kvKeyAll)
+        log.info("[KV] DELETE \(self.ns)/\(self.kvKeyAll)")
+    }
+
+    // MARK: - Helpers
+    private func shortError(_ error: Error) -> String {
+        if case let NetworkError.server(status, _) = error {
+            return "Server error (\(status))"
+        }
+        return error.localizedDescription
     }
 }

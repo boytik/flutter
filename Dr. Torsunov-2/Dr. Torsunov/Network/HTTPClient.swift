@@ -1,6 +1,6 @@
-
 import Foundation
 
+// MARK: - NetworkError
 enum NetworkError: Error, LocalizedError {
     case badURL
     case noData
@@ -16,32 +16,28 @@ enum NetworkError: Error, LocalizedError {
         case .noData: return "No data received"
         case .decoding(let e): return "Decoding error: \(e.localizedDescription)"
         case .encoding(let e): return "Encoding error: \(e.localizedDescription)"
-        case .server(let code, let data):
-            let text = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
-            return "Server error (\(code)) \(text)"
+        case .server(let code, _): return "Server error (\(code))"
         case .unauthorized: return "Unauthorized"
         case .other(let e): return e.localizedDescription
         }
     }
 }
 
-// Кто умеет обновлять токен (вызывается на 401)
+// MARK: - Protocols
 protocol AuthRefresher { func refreshToken() async throws }
-// Откуда брать accessToken для Authorization: Bearer
 protocol TokenProvider { var accessToken: String? { get } }
 
+// MARK: - HTTPClient (quiet)
 final class HTTPClient {
     static let shared = HTTPClient()
     private init() {}
 
     enum Method: String { case GET, POST, PUT, PATCH, DELETE }
 
-    // Инъекции
     var tokenProvider: TokenProvider?
     var authRefresher: AuthRefresher?
     var urlSession: URLSession = .shared
 
-    // Логирование
     static var isLoggingEnabled = true
     private func log(_ lines: [String]) {
         guard Self.isLoggingEnabled else { return }
@@ -56,7 +52,7 @@ final class HTTPClient {
         return h
     }
 
-    // MARK: - Основной запрос (вариант 1: сначала URL)
+    // MARK: - Основной запрос
     @discardableResult
     func request<T: Decodable>(
         _ url: URL,
@@ -81,13 +77,10 @@ final class HTTPClient {
             catch { throw NetworkError.encoding(error) }
         }
 
-        // 🔎 исходящий лог
         if HTTPClient.isLoggingEnabled {
-            let bodyStr = req.httpBody.flatMap { String(data: $0, encoding: .utf8) } ?? ""
             log([
                 "➡️ \(req.httpMethod ?? "") \(req.url?.absoluteString ?? "<nil>")",
-                "   headers: \(maskedHeaders(req.allHTTPHeaderFields))",
-                bodyStr.isEmpty ? "   body: <empty>" : "   body: \(bodyStr)"
+                "   headers: \(maskedHeaders(req.allHTTPHeaderFields))"
             ])
         }
 
@@ -95,12 +88,10 @@ final class HTTPClient {
             let (data, resp) = try await urlSession.data(for: req)
             guard let http = resp as? HTTPURLResponse else { throw NetworkError.noData }
 
-            // 🔎 входящий лог
             if HTTPClient.isLoggingEnabled {
-                let respText = String(data: data, encoding: .utf8) ?? "<\(data.count) bytes>"
                 log([
                     "⬅️ status: \(http.statusCode) \(req.url?.absoluteString ?? "")",
-                    "   response: \(respText)"
+                    "   response_size: \(data.count) bytes"
                 ])
             }
 
@@ -129,7 +120,7 @@ final class HTTPClient {
         }
     }
 
-    // MARK: - Совместимый оверлоад (вариант 2: сначала тип, потом URL)
+    // MARK: - Совместимый оверлоад
     func request<T: Decodable>(
         _ decode: T.Type,
         url: URL,
@@ -140,7 +131,7 @@ final class HTTPClient {
         try await request(url, method: method, headers: headers, body: body, decode: decode)
     }
 
-    // MARK: - Запрос без тела ответа (void)
+    // MARK: - Запрос без тела ответа
     func requestVoid(
         url: URL,
         method: Method = .POST,
@@ -158,7 +149,6 @@ final class HTTPClient {
         let data: Data
     }
 
-    
     func uploadMultipart(
         url: URL,
         fields: [String: String],
@@ -192,7 +182,6 @@ final class HTTPClient {
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         req.httpBody = body
 
-        // 🔎 лог перед отправкой multipart
         if HTTPClient.isLoggingEnabled {
             log([
                 "➡️ POST (multipart) \(url.absoluteString)",
@@ -206,10 +195,9 @@ final class HTTPClient {
         guard let http = resp as? HTTPURLResponse else { throw NetworkError.noData }
 
         if HTTPClient.isLoggingEnabled {
-            let respText = String(data: data, encoding: .utf8) ?? "<\(data.count) bytes>"
             log([
                 "⬅️ status: \(http.statusCode) \(url.absoluteString)",
-                "   response: \(respText)"
+                "   response_size: \(data.count) bytes"
             ])
         }
 
@@ -228,7 +216,7 @@ final class HTTPClient {
     }
 }
 
-// MARK: - Вспомогательные типы/кодеки
+// MARK: - Helpers
 struct Empty: Decodable {}
 
 struct AnyEncodable: Encodable {

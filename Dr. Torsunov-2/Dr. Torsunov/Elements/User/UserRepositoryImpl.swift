@@ -1,14 +1,13 @@
 
-// Elements/Profile/UserRepository.swift
 import Foundation
 import UIKit
+import OSLog
 
+// MARK: - UserProfile
 struct UserProfile: Decodable {
     let email: String
     let name: String?
     let role: String?
-
-    // ↓ новое
     let avatarImageBase64: String?
     let avatarImageChangeDate: Date?
 
@@ -23,6 +22,7 @@ struct UserProfile: Decodable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+
         if let e = try c.decodeIfPresent(String.self, forKey: .userEmail) {
             email = e
         } else if let e2 = try c.decodeIfPresent(String.self, forKey: .emailLegacy) {
@@ -30,12 +30,13 @@ struct UserProfile: Decodable {
         } else {
             throw DecodingError.keyNotFound(
                 CodingKeys.userEmail,
-                .init(codingPath: decoder.codingPath, debugDescription: "email/userEmail not found")
+                .init(codingPath: decoder.codingPath,
+                      debugDescription: "email/userEmail not found")
             )
         }
+
         name = try c.decodeIfPresent(String.self, forKey: .name)
         role = try c.decodeIfPresent(String.self, forKey: .role)
-
         avatarImageBase64 = try c.decodeIfPresent(String.self, forKey: .avatarImageBase64)
 
         if let s = try c.decodeIfPresent(String.self, forKey: .avatarImageChangeDate) {
@@ -50,14 +51,13 @@ struct UserProfile: Decodable {
     }
 }
 
-
-
-
+// MARK: - Ошибки
 enum UserRepoError: LocalizedError {
     case noEmail
     var errorDescription: String? { "No email to load/update profile" }
 }
 
+// MARK: - Контракт
 protocol UserRepository {
     func getUser() async throws -> UserProfile
     func updateNameAndEmail(name: String, email: String) async throws
@@ -66,6 +66,11 @@ protocol UserRepository {
     func getUser(email: String, short: Bool) async throws -> UserProfile
 }
 
+// MARK: - Логгер
+private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
+                         category: "UserRepo")
+
+// MARK: - Реализация
 final class UserRepositoryImpl: UserRepository {
     private let client = HTTPClient.shared
 
@@ -80,23 +85,19 @@ final class UserRepositoryImpl: UserRepository {
         ]
 
         var lastError: Error = UserRepoError.noEmail
-        print("🔎 currentEmail(raw):", email)
-        print("🔎 path get:", ApiRoutes.Users.get(email: email).absoluteString)
-        print("🔎 path get(short):", ApiRoutes.Users.get(email: email, short: true).absoluteString)
-        print("🔎 query get:", ApiRoutes.Users.byQuery(email: email).absoluteString)
+        log.debug("[UserRepo] loading user email=\(email, privacy: .public)")
 
         for u in candidates {
             do {
                 let res: UserProfile = try await client.request(UserProfile.self, url: u)
-                print("✅ User loaded from:", u.absoluteString)
+                log.info("[UserRepo] loaded via \(u.absoluteString, privacy: .public)")
                 return res
             } catch NetworkError.server(let code, let data) where code == 404 || code == 500 {
-                print("↩️ \(code) on \(u.absoluteString), trying next…")
+                log.error("[UserRepo] HTTP \(code) on \(u.absoluteString, privacy: .public) → try next")
                 lastError = NetworkError.server(status: code, data: data)
-                continue
             } catch {
+                log.error("[UserRepo] failed: \(error.localizedDescription, privacy: .public)")
                 lastError = error
-                continue
             }
         }
         throw lastError
@@ -116,15 +117,13 @@ final class UserRepositoryImpl: UserRepository {
             do {
                 try await client.requestVoid(url: u, method: .PATCH, body: Body(name: name, email: email))
                 if current != email { TokenStorage.shared.appleEmail = email }
-                print("✅ User updated via:", u.absoluteString)
+                log.info("[UserRepo] name/email updated via \(u.absoluteString, privacy: .public)")
                 return
             } catch NetworkError.server(let code, let data) where code == 404 || code == 500 {
-                print("↩️ \(code) on \(u.absoluteString), trying next…")
+                log.error("[UserRepo] HTTP \(code) on \(u.absoluteString, privacy: .public) → try next")
                 lastError = NetworkError.server(status: code, data: data)
-                continue
             } catch {
                 lastError = error
-                continue
             }
         }
         throw lastError
@@ -144,33 +143,28 @@ final class UserRepositoryImpl: UserRepository {
         for u in candidates {
             do {
                 try await client.requestVoid(url: u, method: .PATCH, body: Body(role: role))
-                print("✅ Role updated via:", u.absoluteString)
+                log.info("[UserRepo] role updated via \(u.absoluteString, privacy: .public)")
                 return
             } catch NetworkError.server(let code, let data) where code == 404 || code == 500 {
-                print("↩️ \(code) on \(u.absoluteString), trying next…")
+                log.error("[UserRepo] HTTP \(code) on \(u.absoluteString, privacy: .public) → try next")
                 lastError = NetworkError.server(status: code, data: data)
-                continue
             } catch {
                 lastError = error
-                continue
             }
         }
         throw lastError
     }
 
-
-    struct AvatarBody: Encodable { let avatar_image: String }
-
     func uploadAvatar(_ image: UIImage) async throws {
-        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
-            throw UserRepoError.noEmail
-        }
+        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty
+        else { throw UserRepoError.noEmail }
         guard let data = image.jpegData(compressionQuality: 0.9) else {
             throw NetworkError.other(NSError(domain: "ImageEncoding", code: -1))
         }
-        let base64 = data.base64EncodedString()
 
-        // сначала PATCH /users/<email>, затем fallback PATCH /user?email=...
+        let base64 = data.base64EncodedString()
+        struct AvatarBody: Encodable { let avatar_image: String }
+
         let candidates: [URL] = [
             ApiRoutes.Users.update(email: email),
             ApiRoutes.Users.byQuery(email: email)
@@ -179,30 +173,20 @@ final class UserRepositoryImpl: UserRepository {
         var lastError: Error = UserRepoError.noEmail
         for u in candidates {
             do {
-                try await client.requestVoid(
-                    url: u,
-                    method: .PATCH,
-                    body: AvatarBody(avatar_image: base64)
-                )
-                print("✅ Avatar uploaded via:", u.absoluteString)
+                try await client.requestVoid(url: u,
+                                             method: .PATCH,
+                                             body: AvatarBody(avatar_image: base64))
+                log.info("[UserRepo] avatar uploaded via \(u.absoluteString, privacy: .public)")
                 return
-            }
-            // ВАРИАНТ 1: если enum объявлен как case server(status: Int, data: Data?)
-            catch let NetworkError.server(status: code, data: data) where code == 404 || code == 500 {
-                print("↩️ \(code) on \(u.absoluteString), trying next…")
+            } catch NetworkError.server(let code, let data) where code == 404 || code == 500 {
+                log.error("[UserRepo] HTTP \(code) on \(u.absoluteString, privacy: .public) → try next")
                 lastError = NetworkError.server(status: code, data: data)
-                continue
-            }
-
-            catch {
+            } catch {
                 lastError = error
-                continue
             }
         }
         throw lastError
     }
-
-
 
     func getUser(email: String, short: Bool) async throws -> UserProfile {
         try await client.request(UserProfile.self, url: ApiRoutes.Users.get(email: email, short: short))

@@ -1,8 +1,8 @@
-
-// Elements/Profile/PhysicalDataRepository.swift
 import Foundation
 import UIKit
+import OSLog
 
+// MARK: - Модель
 struct PhysicalData: Codable, Equatable {
     var startDate: Date?
     var age: Int?
@@ -15,6 +15,7 @@ struct PhysicalData: Codable, Equatable {
     var chronicDescription: String?
 }
 
+// MARK: - Контракт
 protocol PhysicalDataRepository {
     func load() async throws -> PhysicalData
     func save(data: PhysicalData) async throws
@@ -26,30 +27,39 @@ private enum PhysicalRepoError: LocalizedError {
     var errorDescription: String? { "No email to load/update physical data" }
 }
 
+// MARK: - Логгер
+private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
+                         category: "PhysicalDataRepo")
+
+// MARK: - Реализация
 final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
     private let client = HTTPClient.shared
 
+    // Основная загрузка с «тихими» fallback’ами
     func load() async throws -> PhysicalData {
-        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty
-        else { throw PhysicalRepoError.noEmail }
+        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
+            throw PhysicalRepoError.noEmail
+        }
 
-        // 1) пробуем «старые» варианты — вдруг потом появятся
+        // 1) «плановые» эндпоинты (пока 404/500) — вдруг оживут
         let primary: [URL] = [
-            ApiRoutes.Users.physical(email: email),            // 404 сейчас
-            ApiRoutes.Users.physicalByQuery(email: email)      // 404 сейчас
+            ApiRoutes.Users.physical(email: email),
+            ApiRoutes.Users.physicalByQuery(email: email)
         ]
 
         for u in primary {
             do {
                 let res: PhysicalData = try await client.request(PhysicalData.self, url: u)
-                print("✅ Physical loaded from:", u.absoluteString)
+                log.info("[Physical] loaded (primary) \(u.absoluteString, privacy: .public)")
                 return res
             } catch NetworkError.server(let code, _) where code == 404 || code == 500 {
-                print("↩️ \(code) on \(u.absoluteString), trying fallback…")
+                log.error("[Physical] \(code) on \(u.absoluteString, privacy: .public) → try fallback")
+            } catch {
+                log.error("[Physical] primary failed: \(error.localizedDescription, privacy: .public)")
             }
         }
 
-        // 2) Фоллбек: берём из /users/<email> (или /short) и конвертим
+        // 2) Фолбэк: /users/<email> (или /short) → маппинг в PhysicalData
         struct ServerUserRaw: Decodable {
             let userEmail: String?
             let name: String?
@@ -67,40 +77,38 @@ final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
         func parseDate(_ s: String?) -> Date? {
             guard let s, !s.isEmpty else { return nil }
             let f = DateFormatter()
-            f.locale = Locale(identifier: "en_US_POSIX")
-            f.timeZone = TimeZone(secondsFromGMT: 0)   // ← вместо .utc
+            f.locale = .init(identifier: "en_US_POSIX")
+            f.timeZone = .init(secondsFromGMT: 0)
             f.dateFormat = "yyyy-MM-dd HH:mm:ss"
             if let d = f.date(from: s) { return d }
-            let iso = ISO8601DateFormatter()
-            return iso.date(from: s)
+            return ISO8601DateFormatter().date(from: s)
         }
 
         let fullURL = ApiRoutes.Users.get(email: email, short: false)
         do {
             let raw: ServerUserRaw = try await client.request(ServerUserRaw.self, url: fullURL)
-            print("✅ Physical via /users/<email>")
+            log.info("[Physical] loaded via /users/<email> (full)")
             return PhysicalData(
                 startDate: parseDate(raw.starting_date),
-                age: raw.age.map { Int($0) },
+                age: raw.age.map(Int.init),
                 gender: raw.sex,
-                height: raw.height.map { Int($0) },
-                weight: raw.weight.map { Int($0) },
+                height: raw.height.map(Int.init),
+                weight: raw.weight.map(Int.init),
                 dailyRoutine: raw.maintaining_a_daily_routine.map { $0 != 0 },
                 badHabits: raw.bad_habits.map { $0 != 0 },
                 chronicDiseases: raw.chronic_diseases.map { $0 != 0 },
                 chronicDescription: raw.list_of_diseases
             )
         } catch {
-            // затем «короткий»
             let shortURL = ApiRoutes.Users.get(email: email, short: true)
             let raw: ServerUserRaw = try await client.request(ServerUserRaw.self, url: shortURL)
-            print("✅ Physical via /users/<email>/short")
+            log.info("[Physical] loaded via /users/<email>/short")
             return PhysicalData(
                 startDate: parseDate(raw.starting_date),
-                age: raw.age.map { Int($0) },
+                age: raw.age.map(Int.init),
                 gender: raw.sex,
-                height: raw.height.map { Int($0) },
-                weight: raw.weight.map { Int($0) },
+                height: raw.height.map(Int.init),
+                weight: raw.weight.map(Int.init),
                 dailyRoutine: raw.maintaining_a_daily_routine.map { $0 != 0 },
                 badHabits: raw.bad_habits.map { $0 != 0 },
                 chronicDiseases: raw.chronic_diseases.map { $0 != 0 },
@@ -109,10 +117,11 @@ final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
         }
     }
 
-
+    // Сохранение — пробуем несколько путей, логируем кратко
     func save(data: PhysicalData) async throws {
-        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty
-        else { throw PhysicalRepoError.noEmail }
+        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
+            throw PhysicalRepoError.noEmail
+        }
 
         let urls = [
             ApiRoutes.Users.physical(email: email),
@@ -123,23 +132,24 @@ final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
         for u in urls {
             do {
                 try await client.requestVoid(url: u, method: .PATCH, body: data)
-                print("✅ Physical saved via:", u.absoluteString)
+                log.info("[Physical] saved via \(u.absoluteString, privacy: .public)")
                 return
             } catch NetworkError.server(let code, let data) where code == 404 || code == 500 {
-                print("↩️ \(code) on \(u.absoluteString), trying next…")
+                log.error("[Physical] \(code) on \(u.absoluteString, privacy: .public) → try next")
                 lastError = NetworkError.server(status: code, data: data)
-                continue
             } catch {
+                log.error("[Physical] save failed: \(error.localizedDescription, privacy: .public)")
                 lastError = error
-                continue
             }
         }
         throw lastError
     }
 
+    // Загрузка аватара (multipart), без лишних логов
     func uploadAvatar(_ image: UIImage) async throws {
-        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty
-        else { throw PhysicalRepoError.noEmail }
+        guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
+            throw PhysicalRepoError.noEmail
+        }
         guard let data = image.jpegData(compressionQuality: 0.9) else {
             throw NetworkError.other(NSError(domain: "ImageEncoding", code: -1))
         }
@@ -155,5 +165,6 @@ final class PhysicalDataRepositoryImpl: PhysicalDataRepository {
                 )
             ]
         )
+        log.info("[Physical] avatar uploaded")
     }
 }

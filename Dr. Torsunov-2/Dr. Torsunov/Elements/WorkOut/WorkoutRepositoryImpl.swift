@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import OSLog
 
 // MARK: - UI-модель тренировки
 struct Workout: Identifiable, Codable, Equatable {
@@ -24,7 +25,7 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
     let activityType: String?
     let date: String?               // "yyyy-MM-dd" или "yyyy-MM-dd HH:mm:ss"
 
-    // то, что нужно для карточки будущей тренировки
+    // полями ниже UI пользуется по месту
     let durationMinutes: Int?
     let durationHours: Int?
     let description: String?
@@ -70,6 +71,10 @@ enum WorkoutsPlannerError: LocalizedError {
     var errorDescription: String? { "No email to load workouts" }
 }
 
+// MARK: - Локальный логгер
+private let logPlanner = Logger(subsystem: Bundle.main.bundleIdentifier ?? "app",
+                                category: "WorkoutPlannerRepo")
+
 // MARK: - Планировщик (реализация)
 final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
     private let client = HTTPClient.shared
@@ -79,7 +84,7 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
             throw WorkoutsPlannerError.noEmail
         }
 
-        // yyyy-MM → границы месяца (UTC) и строки в формате yyyy-MM-dd
+        // yyyy-MM → границы месяца (UTC) и строки yyyy-MM-dd
         let (start, end) = Self.monthBounds(from: filterMonth)
         let startStr = Self.fmtDayUTC.string(from: start)
         let endStr   = Self.fmtDayUTC.string(from: end)
@@ -106,7 +111,7 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
         return try await requestFirstNonEmpty(candidates)
     }
 
-    // MARK: - Common request helper
+    // MARK: - Common request helper (тихий)
     private func requestFirstNonEmpty(_ candidates: [(label: String, url: URL)]) async throws -> [ScheduledWorkoutDTO] {
         var firstSuccessfulEmpty: [ScheduledWorkoutDTO]? = nil
         var lastError: Error = WorkoutsPlannerError.noEmail
@@ -114,15 +119,17 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
         for (label, url) in candidates {
             do {
                 let res: [ScheduledWorkoutDTO] = try await client.request([ScheduledWorkoutDTO].self, url: url)
-                print("🛰️ planner \(label) -> \(url.absoluteString) items=\(res.count)")
+                // только короткий лог: путь и количество
+                logPlanner.info("[planner] \(label) ok: \(res.count) items — \(url.absoluteString, privacy: .public)")
                 if !res.isEmpty { return res }
                 if firstSuccessfulEmpty == nil { firstSuccessfulEmpty = res }
             } catch NetworkError.server(let code, _) where (400...599).contains(code) {
-                print("↩️ \(label) HTTP \(code) \(url.absoluteString)")
+                // без тела ответа
+                logPlanner.error("[planner] \(label) HTTP \(code) — \(url.absoluteString, privacy: .public)")
                 lastError = NetworkError.server(status: code, data: nil)
                 continue
             } catch {
-                print("↩️ \(label) error: \(error.localizedDescription)")
+                logPlanner.error("[planner] \(label) failed: \(error.localizedDescription, privacy: .public)")
                 lastError = error
                 continue
             }
@@ -133,7 +140,7 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
 
     // MARK: - Helpers
 
-    /// Форматтер yyyy-MM-dd в UTC, чтобы границы месяца не "плавали"
+    /// Форматтер yyyy-MM-dd в UTC, чтобы границы месяца не «плавали»
     private static let fmtDayUTC: DateFormatter = {
         let f = DateFormatter()
         f.locale = .init(identifier: "en_US_POSIX")

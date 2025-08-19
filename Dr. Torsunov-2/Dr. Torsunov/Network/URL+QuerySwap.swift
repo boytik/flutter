@@ -6,7 +6,6 @@ extension URL {
         guard var comps = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         var items = comps.queryItems ?? []
         items.removeAll { $0.name == oldName }
-        // если уже есть newName — перезапишем
         items.removeAll { $0.name == newName }
         items.append(URLQueryItem(name: newName, value: value))
         comps.queryItems = items
