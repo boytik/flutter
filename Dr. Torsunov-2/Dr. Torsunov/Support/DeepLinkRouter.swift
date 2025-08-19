@@ -14,7 +14,7 @@ final class DeepLinkRouter: ObservableObject {
 
     func handle(url: URL) {
         guard url.scheme == "myrevive" else { return }
-        let path = url.path // например: /workouts/123
+        let path = url.path 
 
         if path.hasPrefix("/workouts/") {
             let id = String(path.split(separator: "/").last ?? "")
