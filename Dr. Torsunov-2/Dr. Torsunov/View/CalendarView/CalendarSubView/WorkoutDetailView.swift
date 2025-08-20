@@ -10,11 +10,9 @@ struct WorkoutDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    // MARK: Tabs
     enum Tab: String, CaseIterable { case charts = "Графики", review = "На проверку" }
     @State private var tab: Tab = .charts
 
-    // MARK: Review state
     @State private var comment = ""
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
@@ -23,15 +21,12 @@ struct WorkoutDetailView: View {
     @State private var isSubmitting = false
     @State private var submissionSuccess: Bool?
 
-    // MARK: VM (метаданные/метрики)
     @StateObject private var vm: WorkoutDetailViewModel
 
-    // MARK: Planned (для будущих тренировок)
     private var isFuture: Bool { item.date > Date() }
     @State private var planned: PlannedInfo?
     @State private var plannedIsLoading = false
 
-    // MARK: Init
     private var workout: Workout? { item.asWorkout }
 
     init(item: CalendarItem, role: PersonalViewModel.Role) {
@@ -78,9 +73,11 @@ struct WorkoutDetailView: View {
         .sheet(isPresented: $showAfterPicker) { ImagePicker(image: $afterImage) }
     }
 
-    // MARK: Header
     private var header: some View {
         HStack(spacing: 12) {
+            headerIcon(name: workout?.name ?? item.name)
+                .frame(width: 40, height: 40)
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(workout?.name ?? item.name)
                     .font(.title3.bold())
@@ -93,7 +90,6 @@ struct WorkoutDetailView: View {
         }
     }
 
-    // MARK: Charts
     @State private var syncEnabled = false
 
     private var chartsSection: some View {
@@ -109,7 +105,6 @@ struct WorkoutDetailView: View {
                 .foregroundColor(.white)
                 .padding(.top, 4)
 
-            // 1) Пульс
             VStack(alignment: .leading, spacing: 10) {
                 Text("Диаграмма частоты сердцебиения")
                     .font(.headline).foregroundColor(.white)
@@ -119,20 +114,14 @@ struct WorkoutDetailView: View {
                         let count = min(tx.count, hr.count)
                         Chart {
                             ForEach(0..<count, id: \.self) { i in
-                                LineMark(
-                                    x: .value("t", tx[i]),
-                                    y: .value("bpm", hr[i])
-                                )
+                                LineMark(x: .value("t", tx[i]), y: .value("bpm", hr[i]))
                             }
                         }
                         .frame(height: 220)
                     } else {
                         Chart {
                             ForEach(hr.indices, id: \.self) { i in
-                                LineMark(
-                                    x: .value("i", Double(i)),
-                                    y: .value("bpm", hr[i])
-                                )
+                                LineMark(x: .value("i", Double(i)), y: .value("bpm", hr[i]))
                             }
                         }
                         .frame(height: 220)
@@ -162,20 +151,14 @@ struct WorkoutDetailView: View {
                         let count = min(tx.count, wt.count)
                         Chart {
                             ForEach(0..<count, id: \.self) { i in
-                                LineMark(
-                                    x: .value("t", tx[i]),
-                                    y: .value("°C", wt[i])
-                                )
+                                LineMark(x: .value("t", tx[i]), y: .value("°C", wt[i]))
                             }
                         }
                         .frame(height: 220)
                     } else {
                         Chart {
                             ForEach(wt.indices, id: \.self) { i in
-                                LineMark(
-                                    x: .value("i", Double(i)),
-                                    y: .value("°C", wt[i])
-                                )
+                                LineMark(x: .value("i", Double(i)), y: .value("°C", wt[i]))
                             }
                         }
                         .frame(height: 220)
@@ -196,7 +179,6 @@ struct WorkoutDetailView: View {
                 }
             }
 
-            // 3) Скорость (если есть)
             if let spd = vm.speedSeries {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Скорость, км/ч")
@@ -206,20 +188,14 @@ struct WorkoutDetailView: View {
                         let count = min(tx.count, spd.count)
                         Chart {
                             ForEach(0..<count, id: \.self) { i in
-                                LineMark(
-                                    x: .value("t", tx[i]),
-                                    y: .value("km/h", spd[i])
-                                )
+                                LineMark(x: .value("t", tx[i]), y: .value("km/h", spd[i]))
                             }
                         }
                         .frame(height: 180)
                     } else {
                         Chart {
                             ForEach(spd.indices, id: \.self) { i in
-                                LineMark(
-                                    x: .value("i", Double(i)),
-                                    y: .value("km/h", spd[i])
-                                )
+                                LineMark(x: .value("i", Double(i)), y: .value("km/h", spd[i]))
                             }
                         }
                         .frame(height: 180)
@@ -229,7 +205,6 @@ struct WorkoutDetailView: View {
         }
     }
 
-    // MARK: Review
     private var reviewSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(spacing: 14) {
@@ -292,7 +267,6 @@ struct WorkoutDetailView: View {
         }
     }
 
-    // MARK: – Отправка на проверку (пока заглушка)
     private func submitReview() async {
         guard !isSubmitting else { return }
         isSubmitting = true
@@ -302,7 +276,6 @@ struct WorkoutDetailView: View {
         submissionSuccess = true
     }
 
-    // MARK: - FUTURE: загрузка запланированной информации
     private func loadPlannedInfo() async {
         plannedIsLoading = true
         defer { plannedIsLoading = false }
@@ -330,61 +303,97 @@ struct WorkoutDetailView: View {
     }
 
     private var plannedCard: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Запланированная тренировка").font(.headline).foregroundColor(.white)
+                Text(workout?.name ?? item.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(Capsule())
                 Spacer()
             }
-            VStack(alignment: .leading, spacing: 10) {
-                Tag(text: workout?.name ?? item.name)
 
-                KVRow(key: "Запланированная дата тренировки:",
-                      value: item.date.formatted(date: .long, time: .standard))
+            VStack(alignment: .leading, spacing: 16) {
+                plannedRow(icon: "calendar",
+                           title: "Запланированная дата тренировки:",
+                           value: formattedPlannedDate(item.date))
 
-                KVRow(key: "Длительность:", value: planned?.durationText ?? "—")
-                KVRow(key: "Количество слоёв:", value: planned?.layersText ?? "—")
+                plannedRow(icon: "timer",
+                           title: "Длительность:",
+                           value: planned?.durationText ?? "—")
 
-                if let bd = planned?.breakDuration { KVRow(key: "Продолжительность перерыва:", value: "\(bd)") }
-                if let br = planned?.breaks { KVRow(key: "Перерывы:", value: "\(br)") }
-                if let t = planned?.type, !t.isEmpty { KVRow(key: "Тип:", value: t) }
-                if let p = planned?.protocolName, !p.isEmpty { KVRow(key: "Протокол:", value: p) }
+                plannedRow(icon: "square.grid.3x3",
+                           title: "Количество слоёв:",
+                           value: planned?.layersText ?? "—")
             }
-            .padding()
-            .background(Color(.systemGray6).opacity(0.12))
-            .cornerRadius(12)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(Color.white.opacity(0.04))
+                    )
+            )
         }
     }
-}
 
-// MARK: - Вспомогательные UI
-private struct KVRow: View {
-    let key: String
-    let value: String
-    var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(key).font(.subheadline.bold()).foregroundColor(.white)
-                .frame(width: 180, alignment: .leading)
-            Text(value).font(.subheadline).foregroundColor(.gray)
-                .multilineTextAlignment(.leading)
+    private func plannedRow(icon: String, title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.7))
+                Text(value)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(.white)
+            }
             Spacer()
         }
     }
-}
 
-private struct Tag: View {
-    let text: String
-    var body: some View {
-        Text(text)
-            .font(.caption.bold())
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.white.opacity(0.1))
-            .foregroundColor(.white)
-            .clipShape(Capsule())
+    private func formattedPlannedDate(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "ru_RU")
+        df.dateFormat = "yyyy-MM-dd HH:mm:ss EEEE"
+        let s = df.string(from: date)
+        return s.prefix(1).uppercased() + s.dropFirst()
+    }
+
+    private func headerIcon(name: String) -> some View {
+        let lower = name.lowercased()
+        if lower.contains("water") || lower.contains("вода") {
+            return AnyView(circleIcon(system: "drop.fill", bg: .blue))
+        } else if lower.contains("walk") || lower.contains("run")
+                    || lower.contains("ходь") || lower.contains("бег") {
+            return AnyView(circleIcon(system: "figure.walk", bg: .orange))
+        } else if lower.contains("sauna") || lower.contains("сауна") {
+            return AnyView(circleIcon(system: "flame.fill", bg: .red))
+        } else if lower.contains("swim") || lower.contains("плав") {
+            return AnyView(circleIcon(system: "figure.swim", bg: .cyan))
+        } else {
+            return AnyView(circleIcon(system: "dumbbell.fill", bg: .gray))
+        }
+    }
+
+    private func circleIcon(system: String, bg: Color) -> some View {
+        ZStack {
+            Circle().fill(bg.opacity(0.18))
+            Circle().stroke(bg.opacity(0.35), lineWidth: 1)
+            Image(systemName: system)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(bg)
+        }
     }
 }
 
-// MARK: - Локальные модели для Planned
 private struct PlannedInfo {
     let durationHours: Int
     let durationMinutes: Int
@@ -401,6 +410,7 @@ private struct PlannedInfo {
         if durationMinutes == 0 { return "\(durationHours) ч" }
         return "\(durationHours) ч \(durationMinutes) м"
     }
+
     var layersText: String {
         if let arr = swimLayers, !arr.isEmpty {
             return arr.enumerated().map { "\($0.offset+1): \($0.element)" }.joined(separator: "  ")
@@ -443,6 +453,6 @@ private struct PlannedInfo {
         self.breakDuration = dto.breakDuration
         self.breaks = dto.breaks
         self.type = dto.type
-        self.protocolName = dto.protocol
+        self.protocolName = dto.`protocol`
     }
 }

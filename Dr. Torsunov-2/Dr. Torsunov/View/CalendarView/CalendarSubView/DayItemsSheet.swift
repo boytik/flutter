@@ -4,150 +4,131 @@ struct DayItemsSheet: View {
     let date: Date
     let items: [CalendarItem]
     let role: PersonalViewModel.Role
-    var thumbProvider: ((CalendarItem) -> URL?)? = nil
+    let thumbProvider: (CalendarItem) -> URL?
 
     var body: some View {
         NavigationStack {
-            if items.isEmpty {
-                ContentUnavailableView("Нет тренировок", systemImage: "calendar")
-                    .foregroundStyle(.white)
-                    .navigationTitle(formattedDate)
-                    .navigationBarTitleDisplayMode(.inline)
-            } else {
+            VStack(spacing: 12) {
+                Capsule()
+                    .fill(Color.white.opacity(0.25))
+                    .frame(width: 44, height: 5)
+                    .padding(.top, 8)
+
+                HStack {
+                    Text(dateFormatted(date))
+                        .font(.headline).foregroundColor(.white)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+
                 ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(items) { item in
+                    LazyVStack(spacing: 12) {
+                        ForEach(items, id: \.id) { item in
                             NavigationLink {
-                                if let w = item.asWorkout {
-                                    WorkoutDetailView(item: .workout(w), role: role)
-                                } else if let a = item.asActivity {
-                                    ActivityDetailView(activity: a, role: role)
-                                } else {
-                                    Text("Неизвестный тип").foregroundColor(.white)
-                                }
+                                destination(for: item)
+                                    .background(Color.black.ignoresSafeArea())
                             } label: {
-                                DayItemRowDark(
-                                    item: item,
-                                    thumbURL: thumbProvider?(item)
-                                )
+                                row(for: item)
                             }
                             .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 16)
                 }
-                .navigationTitle(formattedDate)
-                .navigationBarTitleDisplayMode(.inline)
             }
+            .background(Color.black.ignoresSafeArea())
         }
-        .preferredColorScheme(.dark)
         .tint(.green)
-        .background(Color.black.ignoresSafeArea())
     }
 
-    private var formattedDate: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ru_RU")
-        f.dateFormat = "d MMMM"
-        return f.string(from: date)
+    @ViewBuilder
+    private func destination(for item: CalendarItem) -> some View {
+        if item.asWorkout != nil {
+            WorkoutDetailView(item: item, role: role)
+        } else if let activity = item.asActivity {
+            ActivityDetailView(activity: activity, role: role)
+        } else {
+            Text("Неизвестный тип").foregroundColor(.white)
+        }
     }
-}
 
-// MARK: - Row (тёмная тема)
-private struct DayItemRowDark: View {
-    let item: CalendarItem
-    let thumbURL: URL?
-
-    var body: some View {
+    private func row(for item: CalendarItem) -> some View {
         HStack(spacing: 12) {
-            thumbOrIcon
+            iconView(for: item)
                 .frame(width: 48, height: 48)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.name)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-
-                if let subtitle = item.description, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.6))
-                }
+                    .foregroundColor(.white)
+                    .lineLimit(1)
             }
 
-            Spacer(minLength: 12)
+            Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(dateOnly)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.6))
-                Text(timeOnly)
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.35))
+                Text(item.date, style: .date)
+                    .font(.caption).foregroundColor(.white.opacity(0.7))
+                Text(item.date, style: .time)
+                    .font(.caption2).foregroundColor(.white.opacity(0.6))
             }
-
-            Image(systemName: "chevron.right")
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.35))
         }
-        .padding(12)
-        .background(Color(.secondarySystemBackground).opacity(0.35))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
-        )
+        .padding(14)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     @ViewBuilder
-    private var thumbOrIcon: some View {
-        if let url = thumbURL {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.08))
-                        ProgressView().tint(.white)
-                    }
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                case .failure:
-                    defaultIcon
-                @unknown default:
-                    defaultIcon
-                }
+    private func iconView(for item: CalendarItem) -> some View {
+        if let url = thumbProvider(item) {
+            AsyncImage(url: url) { img in
+                img.resizable().scaledToFit()
+            } placeholder: {
+                ZStack { placeholderCircle(); ProgressView().tint(.white) }
             }
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         } else {
-            defaultIcon
+            let lower = item.name.lowercased()
+            if lower.contains("water") || lower.contains("вода") {
+                circleIcon(system: "drop.fill", bg: .blue)
+            } else if lower.contains("walk") || lower.contains("run")
+                        || lower.contains("ходь") || lower.contains("бег") {
+                circleIcon(system: "figure.walk", bg: .orange)
+            } else if lower.contains("sauna") || lower.contains("сауна") {
+                circleIcon(system: "flame.fill", bg: .red)
+            } else if lower.contains("swim") || lower.contains("плав") {
+                circleIcon(system: "figure.swim", bg: .cyan)
+            } else {
+                circleIcon(system: "dumbbell.fill", bg: .gray)
+            }
         }
     }
 
-    private var defaultIcon: some View {
+    private func circleIcon(system: String, bg: Color) -> some View {
         ZStack {
-            Circle().fill(item.tintColor.opacity(0.22))
-            Image(systemName: item.symbolName)
-                .foregroundStyle(item.tintColor)
+            Circle().fill(bg.opacity(0.18))
+            Circle().stroke(bg.opacity(0.35), lineWidth: 1)
+            Image(systemName: system)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundColor(bg)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private var dateOnly: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ru_RU")
-        f.dateFormat = "dd.MM.yyyy"
-        return f.string(from: item.date)
+    private func placeholderCircle() -> some View {
+        ZStack {
+            Circle().fill(Color.white.opacity(0.08))
+            Circle().stroke(Color.white.opacity(0.2), lineWidth: 1)
+            Image(systemName: "photo")
+                .font(.system(size: 18, weight: .regular))
+                .foregroundColor(.white.opacity(0.7))
+        }
     }
 
-    private var timeOnly: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ru_RU")
-        f.dateFormat = "HH:mm"
-        return f.string(from: item.date)
+    private func dateFormatted(_ d: Date) -> String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "ru_RU")
+        df.dateFormat = "d MMMM"
+        return df.string(from: d)
     }
 }

@@ -2,28 +2,38 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>BASE_URL</key>
-	<string>$(BASE_URL)</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>myrevive</string>
-			</array>
-		</dict>
-	</array>
-	<key>DEMO_PASSWORD</key>
-	<string>demo1234</string>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>myrevive</string>
-		<string>revive</string>
-		<string>otherappscheme</string>
-	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>bluetooth-central</string>
-	</array>
+    <key>BASE_URL</key>
+    <string>$(BASE_URL)</string>
+
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>myrevive</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>DEMO_PASSWORD</key>
+    <string>demo1234</string>
+
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>myrevive</string>
+        <string>revive</string>
+        <string>otherappscheme</string>
+    </array>
+
+    <!-- Фоновые режимы: оставляем BLE и добавляем remote-notification -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>bluetooth-central</string>
+        <string>remote-notification</string>
+    </array>
+
+    <!-- Необязательно, но полезно для прозрачности системного алерта -->
+    <key>NSUserNotificationUsageDescription</key>
+    <string>Мы отправляем уведомления о событиях и напоминаниях.</string>
 </dict>
 </plist>

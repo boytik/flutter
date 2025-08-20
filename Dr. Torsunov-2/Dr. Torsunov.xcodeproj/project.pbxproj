@@ -16,6 +16,9 @@
 		3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */; };
 		3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */; };
 		3E56032F2E534E8600C401DB /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032E2E534E8600C401DB /* CoreDataStack.swift */; };
+		3E670BD72E56042F007E5AA2 /* AppDelegate+Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */; };
+		3E670BD92E560450007E5AA2 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */; };
+		3E670BDB2E560463007E5AA2 /* NotificationCategoryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */; };
 		3E70454D2E49F6D2005EDE48 /* Inspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454C2E49F6D2005EDE48 /* Inspector.swift */; };
 		3E7045502E49F6FD005EDE48 /* Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454F2E49F6FD005EDE48 /* Calendar.swift */; };
 		3E7045572E4A009D005EDE48 /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */; };
@@ -94,6 +97,9 @@
 		3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " TokenStorage.swift"; sourceTree = "<group>"; };
 		3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPCacheStore.swift; sourceTree = "<group>"; };
 		3E56032E2E534E8600C401DB /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
+		3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Notifications.swift"; sourceTree = "<group>"; };
+		3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationManager.swift; sourceTree = "<group>"; };
+		3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCategoryFactory.swift; sourceTree = "<group>"; };
 		3E70454C2E49F6D2005EDE48 /* Inspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Inspector.swift; sourceTree = "<group>"; };
 		3E70454F2E49F6FD005EDE48 /* Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calendar.swift; sourceTree = "<group>"; };
 		3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
@@ -179,6 +185,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3E670BD52E5603F9007E5AA2 /* Push */ = {
+			isa = PBXGroup;
+			children = (
+				3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */,
+				3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */,
+				3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */,
+			);
+			path = Push;
+			sourceTree = "<group>";
+		};
 		3E70454E2E49F6EA005EDE48 /* InspectorElement */ = {
 			isa = PBXGroup;
 			children = (
@@ -374,6 +390,7 @@
 			children = (
 				3EADE7742E3A2396002A2D67 /* Dr__TorsunovApp.swift */,
 				3EC132982E4B579F00B6F9B3 /* Dr. Torsunov.entitlements */,
+				3E670BD52E5603F9007E5AA2 /* Push */,
 				3EE536862E4DFC630016D879 /* BLE_Starter */,
 				3EADE7792E3A2398002A2D67 /* Support */,
 				3ED0894B2E460717002F09CB /* Elements */,
@@ -637,11 +654,14 @@
 				3E7B17772E424F30001AF947 /* DataSectionView.swift in Sources */,
 				3E7045632E4A1363005EDE48 /* DemoPasswordView.swift in Sources */,
 				3E70455D2E4A06E8005EDE48 /* AppAuthState.swift in Sources */,
+				3E670BDB2E560463007E5AA2 /* NotificationCategoryFactory.swift in Sources */,
 				3E3D33C52E40BF8E009A5DCD /* PersonalView.swift in Sources */,
 				3ED089472E460168002F09CB /* ApiRoutes.swift in Sources */,
 				3EE536902E4E192D0016D879 /* DayItemsSheet.swift in Sources */,
+				3E670BD92E560450007E5AA2 /* PushNotificationManager.swift in Sources */,
 				3E44CE632E54776800DDE143 /* HTTPCacheKey.swift in Sources */,
 				3E7B177E2E42505C001AF947 /* ChronicAlertSheet.swift in Sources */,
+				3E670BD72E56042F007E5AA2 /* AppDelegate+Notifications.swift in Sources */,
 				3E8599BA2E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift in Sources */,
 				3E7B17752E424EFF001AF947 /* PhysicalDataViewModel.swift in Sources */,
 				3E7045712E4A2295005EDE48 /* ChatRepositoryImpl.swift in Sources */,

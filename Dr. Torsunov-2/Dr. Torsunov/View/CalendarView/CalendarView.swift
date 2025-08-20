@@ -13,20 +13,24 @@ struct CalendarView: View {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
     }
 
+    private var taskKey: String { "\(storedRoleRaw)_\(refreshToken)" }
+
     var body: some View {
         Group {
             if #available(iOS 16.0, *) {
                 NavigationStack { contentView }
                     .toolbar(.hidden, for: .navigationBar)
             } else {
-                NavigationView { contentView
+                NavigationView {
+                    contentView
                         .navigationBarTitle("")
                         .navigationBarHidden(true)
                 }
             }
         }
-        .task(id: storedRoleRaw) { await viewModel.reload(role: currentRole) }
-        .task(id: refreshToken) { await viewModel.reload(role: currentRole) }
+        .task(id: taskKey) {
+            await viewModel.reload(role: currentRole)
+        }
         .sheet(item: $selectedDay) { day in
             DayItemsSheet(
                 date: day.date,
@@ -40,7 +44,6 @@ struct CalendarView: View {
         }
     }
 
-    // MARK: - Content
     private var contentView: some View {
         VStack(spacing: 16) {
             HStack {
@@ -77,7 +80,6 @@ struct CalendarView: View {
         .background(Color.black.ignoresSafeArea())
     }
 
-    // MARK: - Mode Picker
     private var modePicker: some View {
         Picker("", selection: $viewModel.pickerMode) {
             ForEach(CalendarViewModel.PickersModes.allCases, id: \.self) { mode in
@@ -89,7 +91,6 @@ struct CalendarView: View {
         .padding(.horizontal)
     }
 
-    // MARK: - Calendar Section
     private var calendarSection: some View {
         VStack(spacing: 0) {
             HStack {
@@ -114,7 +115,6 @@ struct CalendarView: View {
         }
     }
 
-    // MARK: - История: заголовок только для User
     private var historyHeader: some View {
         HStack {
             Text("История")
@@ -133,7 +133,6 @@ struct CalendarView: View {
         .padding(.bottom, 6)
     }
 
-    // MARK: - История (User)
     private var historyGridUser: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.flexible())], spacing: 12) {
@@ -160,7 +159,6 @@ struct CalendarView: View {
         .scrollContentBackground(.hidden)
     }
 
-    // MARK: - История (Inspector)
     private var historyGridInspector: some View {
         ScrollView {
             LazyVStack(pinnedViews: [.sectionHeaders]) {
