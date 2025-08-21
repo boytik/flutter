@@ -19,6 +19,7 @@
 		3E6124762E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6124752E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift */; };
 		3E6124782E57068B00B2B1E0 /* BLEUploadPump.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6124772E57068B00B2B1E0 /* BLEUploadPump.swift */; };
 		3E61247C2E5716D500B2B1E0 /*   PhotoCompareGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E61247B2E5716D500B2B1E0 /*   PhotoCompareGrid.swift */; };
+		3E6126932E5789C900B2B1E0 /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6126922E5789C900B2B1E0 /* ProfileScreen.swift */; };
 		3E670BD72E56042F007E5AA2 /* AppDelegate+Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */; };
 		3E670BD92E560450007E5AA2 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */; };
 		3E670BDB2E560463007E5AA2 /* NotificationCategoryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */; };
@@ -95,6 +96,7 @@
 		3E6124752E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothManagerJSONAdapter.swift; sourceTree = "<group>"; };
 		3E6124772E57068B00B2B1E0 /* BLEUploadPump.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUploadPump.swift; sourceTree = "<group>"; };
 		3E61247B2E5716D500B2B1E0 /*   PhotoCompareGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "  PhotoCompareGrid.swift"; sourceTree = "<group>"; };
+		3E6126922E5789C900B2B1E0 /* ProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileScreen.swift; sourceTree = "<group>"; };
 		3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Notifications.swift"; sourceTree = "<group>"; };
 		3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationManager.swift; sourceTree = "<group>"; };
 		3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCategoryFactory.swift; sourceTree = "<group>"; };
@@ -280,6 +282,7 @@
 			children = (
 				3E3D33C42E40BF8E009A5DCD /* PersonalView.swift */,
 				3E7B177B2E424FA4001AF947 /* PersonalSubViews */,
+				3E6126922E5789C900B2B1E0 /* ProfileScreen.swift */,
 			);
 			path = ProfileSubView;
 			sourceTree = "<group>";
@@ -638,6 +641,7 @@
 				3E44CE632E54776800DDE143 /* HTTPCacheKey.swift in Sources */,
 				3E7B177E2E42505C001AF947 /* ChronicAlertSheet.swift in Sources */,
 				3E670BD72E56042F007E5AA2 /* AppDelegate+Notifications.swift in Sources */,
+				3E6126932E5789C900B2B1E0 /* ProfileScreen.swift in Sources */,
 				3E8599BA2E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift in Sources */,
 				3E7B17752E424EFF001AF947 /* PhysicalDataViewModel.swift in Sources */,
 				3E7045712E4A2295005EDE48 /* ChatRepositoryImpl.swift in Sources */,

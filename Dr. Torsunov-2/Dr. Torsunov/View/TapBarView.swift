@@ -7,8 +7,12 @@ struct TapBarView: View {
     private let uploadPump = BLEUploadPump()
     @Environment(\.scenePhase) private var scenePhase
 
+    // диплинк «app://chat» будет открывать чат во вкладке Профиля
+    @State private var openChatDeepLink = false
+
     var body: some View {
         let content = TabView(selection: $selectedTab) {
+            // 0 — Тренировки
             NavigationStack {
                 TrainingView()
                     .onAppear { openOtherAppOrStore() }
@@ -16,17 +20,15 @@ struct TapBarView: View {
             .tabItem { Label("tab_workouts", systemImage: "figure.run") }
             .tag(0)
 
+            // 1 — Календарь
             NavigationStack { CalendarView() }
-            .tabItem { Label("tab_calendar", systemImage: "calendar") }
-            .tag(1)
+                .tabItem { Label("tab_calendar", systemImage: "calendar") }
+                .tag(1)
 
-            NavigationStack { ChatView(messages: []) }
-            .tabItem { Label("tab_chat", systemImage: "bubble.left.and.bubble.right") }
-            .tag(2)
-
-            NavigationStack { ProfileView(viewModel: ProfileViewModel()) }
-            .tabItem { Label("tab_profile", systemImage: "person.circle") }
-            .tag(3)
+            // 2 — Профиль (с кнопкой «Чат» внутри)
+            ProfileScreen(openChat: $openChatDeepLink)
+                .tabItem { Label("tab_profile", systemImage: "person.circle") }
+                .tag(2)
         }
         .onAppear {
             bt.activateIfNeeded()
@@ -37,30 +39,30 @@ struct TapBarView: View {
             uploadPump.stop()
             bt.stopScanning()
         }
+        // диплинки вида app://chat, torsunov://chat и т.п.
+        .onOpenURL { url in
+            if url.host?.lowercased() == "chat" || url.absoluteString.lowercased().contains("/chat") {
+                selectedTab = 2
+                openChatDeepLink = true
+            }
+        }
 
-        // Корректная обработка жизненного цикла со свежим onChange
         if #available(iOS 17.0, *) {
             content
                 .onChange(of: scenePhase) { _, newPhase in
                     switch newPhase {
-                    case .active:
-                        bt.activateIfNeeded()
-                    case .inactive, .background:
-                        bt.stopScanning()
-                    @unknown default:
-                        break
+                    case .active: bt.activateIfNeeded()
+                    case .inactive, .background: bt.stopScanning()
+                    @unknown default: break
                     }
                 }
         } else {
             content
                 .onChange(of: scenePhase) { newPhase in
                     switch newPhase {
-                    case .active:
-                        bt.activateIfNeeded()
-                    case .inactive, .background:
-                        bt.stopScanning()
-                    @unknown default:
-                        break
+                    case .active: bt.activateIfNeeded()
+                    case .inactive, .background: bt.stopScanning()
+                    @unknown default: break
                     }
                 }
         }
@@ -68,7 +70,7 @@ struct TapBarView: View {
 
     private func openOtherAppOrStore() {
         let appScheme = "otherappscheme://"
-        let appStoreURL = "https://apps.apple.com/kz/app/my-revive/id6743324076"
+        let appStoreURL = "https://apps.apple.com/kz/app/my-revive/id/6743324076"
         if let schemeURL = URL(string: appScheme) {
             UIApplication.shared.open(schemeURL, options: [:]) { success in
                 if !success, let storeURL = URL(string: appStoreURL) {
