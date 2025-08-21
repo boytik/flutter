@@ -66,18 +66,7 @@ struct InspectorPhotosView: View {
             }
             .padding(.horizontal)
 
-            Button(action: send) {
-                HStack {
-                    if isSending { ProgressView().tint(.black) }
-                    Text("Отправить").fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity).padding(.vertical, 14)
-                .background(Color.green)
-                .foregroundColor(.black)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .disabled(isSending || (existingLayer != nil))
-            .padding(.horizontal)
+            sendButton // << зелёная без подложки
 
             if let err = loadError {
                 Text(err).foregroundColor(.red).font(.footnote).padding(.horizontal)
@@ -85,7 +74,30 @@ struct InspectorPhotosView: View {
 
             Spacer(minLength: 8)
         }
+        .background(Color.clear) // контейнер прозрачен — никакого серого фона
         .onAppear { Task { await loadMedia() } }
+    }
+
+    // MARK: - Кнопка отправки (без серого фона)
+    private var sendButton: some View {
+        HStack {
+            Button(action: send) {
+                HStack {
+                    if isSending { ProgressView().tint(.black) }
+                    Text("Отправить").fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                // Рисуем фон строго внутри скруглённой формы
+                .background(Color.green, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .foregroundColor(.black)
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain) // убираем системную подложку/тени
+            .disabled(isSending || (existingLayer != nil))
+        }
+        .padding(.horizontal)
+        .background(Color.clear) // контейнер HStack тоже прозрачный
     }
 
     private func picker(title: String, range: ClosedRange<Int>, selection: Binding<Int>) -> some View {
@@ -241,9 +253,9 @@ private struct URLPhotoTileSimple: View {
             RoundedRectangle(cornerRadius: corner, style: .continuous)
                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
-        .aspectRatio(aspect, contentMode: .fit) // ← высота стабильно считается от ширины
+        .aspectRatio(aspect, contentMode: .fit) // высота стабильно считается от ширины
         .frame(maxWidth: .infinity)
-        .compositingGroup()                      // ← гарантирует корректную маску/слои
+        .compositingGroup()                      // корректная маска/слои
         .zIndex(0)
     }
 
