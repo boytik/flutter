@@ -1,7 +1,9 @@
 import SwiftUI
+import Foundation
 
 @inline(__always) private func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
 
+@MainActor
 struct CalendarView: View {
     @StateObject private var viewModel = CalendarViewModel()
     @AppStorage("user_role") private var storedRoleRaw = PersonalViewModel.Role.user.rawValue
@@ -126,6 +128,7 @@ struct CalendarView: View {
                     Text(f.rawValue).tag(f)
                 }
             }
+            .tint(.green)
             .pickerStyle(.segmented)
             .frame(width: 260)
         }
@@ -183,8 +186,8 @@ struct CalendarView: View {
                         }
                     }
                 } header: {
+                    // ⬇️ Без подложки — только сами «пилюли»
                     filterBar
-                        .background(Color.black.opacity(0.98))
                 }
             }
             .padding()
@@ -194,35 +197,58 @@ struct CalendarView: View {
 
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                Chip(text: "Все", selected: viewModel.inspectorTypeFilter == nil) {
-                    viewModel.setInspectorFilter(nil)
-                }
+            HStack(spacing: 10) {
+                FilterChip(
+                    text: "Все",
+                    selected: viewModel.inspectorTypeFilter == nil,
+                    action: { viewModel.setInspectorFilter(nil) }
+                )
                 ForEach(viewModel.inspectorTypes, id: \.self) { t in
-                    Chip(text: t, selected: viewModel.inspectorTypeFilter == t) {
-                        viewModel.setInspectorFilter(t)
-                    }
+                    FilterChip(
+                        text: t,
+                        selected: viewModel.inspectorTypeFilter == t,
+                        action: { viewModel.setInspectorFilter(t) }
+                    )
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
         }
+        // Убрали материал/серую «подложку» и разделители
     }
+}
 
-    private struct Chip: View {
-        let text: String
-        let selected: Bool
-        let action: () -> Void
-        var body: some View {
-            Button(action: action) {
+// MARK: - Контрастные «пилюли» фильтра (неактивные серые, активная — зелёная)
+private struct FilterChip: View {
+    let text: String
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                }
                 Text(text)
-                    .font(.subheadline)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(selected ? Color.white.opacity(0.18) : Color.white.opacity(0.08))
-                    .clipShape(Capsule())
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundColor(selected ? .white : .white.opacity(0.92))
+            .background(
+                ZStack {
+                    (selected ? Color.green.opacity(0.28) : Color.white.opacity(0.14))
+                        .clipShape(Capsule())
+                    Capsule().strokeBorder(selected ? Color.green : Color.white.opacity(0.22), lineWidth: 1)
+                }
+            )
+            .contentShape(Capsule())
         }
+        .buttonStyle(.plain)
     }
 }
 

@@ -6,10 +6,19 @@ final class AudioRecorder: NSObject, ObservableObject {
     @Published var isRecording = false
     @Published var lastFileURL: URL?
 
+    /// Запрос разрешения на запись (iOS 17+ — AVAudioApplication; ниже — AVAudioSession)
     func requestPermission() async -> Bool {
-        await withCheckedContinuation { cont in
-            AVAudioSession.sharedInstance().requestRecordPermission { ok in
-                cont.resume(returning: ok)
+        if #available(iOS 17.0, *) {
+            return await withCheckedContinuation { cont in
+                AVAudioApplication.requestRecordPermission { granted in
+                    cont.resume(returning: granted)
+                }
+            }
+        } else {
+            return await withCheckedContinuation { cont in
+                AVAudioSession.sharedInstance().requestRecordPermission { ok in
+                    cont.resume(returning: ok)
+                }
             }
         }
     }
@@ -22,14 +31,17 @@ final class AudioRecorder: NSObject, ObservableObject {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("q-\(UUID().uuidString).m4a")
         let settings: [String: Any] = [
             AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVSampleRateKey: 44100,
+            AVSampleRateKey: 44_100,
             AVNumberOfChannelsKey: 1,
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
-        recorder = try AVAudioRecorder(url: url, settings: settings)
-        recorder?.delegate = self
-        recorder?.isMeteringEnabled = true
-        recorder?.record()
+
+        let rec = try AVAudioRecorder(url: url, settings: settings)
+        rec.delegate = self
+        rec.isMeteringEnabled = true
+        rec.record()
+
+        recorder = rec
         isRecording = true
     }
 
@@ -39,8 +51,12 @@ final class AudioRecorder: NSObject, ObservableObject {
     }
 }
 
+// MARK: - AVAudioRecorderDelegate
 extension AudioRecorder: AVAudioRecorderDelegate {
-    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
-        lastFileURL = recorder.url
+    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        Task { @MainActor in
+            self.lastFileURL = recorder.url
+            self.isRecording = false
+        }
     }
 }

@@ -3,9 +3,12 @@ import UIKit
 
 struct TapBarView: View {
     @State private var selectedTab = 1
+    @StateObject private var bt = BluetoothManager.shared
+    private let uploadPump = BLEUploadPump()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        let content = TabView(selection: $selectedTab) {
             NavigationStack {
                 TrainingView()
                     .onAppear { openOtherAppOrStore() }
@@ -13,30 +16,53 @@ struct TapBarView: View {
             .tabItem { Label("tab_workouts", systemImage: "figure.run") }
             .tag(0)
 
-            NavigationStack {
-                CalendarView()
-            }
+            NavigationStack { CalendarView() }
             .tabItem { Label("tab_calendar", systemImage: "calendar") }
             .tag(1)
 
-            NavigationStack {
-                ChatView(messages: [])
-            }
+            NavigationStack { ChatView(messages: []) }
             .tabItem { Label("tab_chat", systemImage: "bubble.left.and.bubble.right") }
             .tag(2)
 
-            NavigationStack {
-                ProfileView(viewModel: ProfileViewModel())
-            }
+            NavigationStack { ProfileView(viewModel: ProfileViewModel()) }
             .tabItem { Label("tab_profile", systemImage: "person.circle") }
             .tag(3)
+        }
+        .onAppear {
+            bt.activateIfNeeded()
+            let provider = BluetoothManagerJSONAdapter(manager: bt)
+            uploadPump.start(with: provider)
+        }
+        .onDisappear {
+            uploadPump.stop()
+            bt.stopScanning()
+        }
 
-            NavigationStack {
-                BLEScanView()
-                    .navigationTitle("Bluetooth")
-            }
-            .tabItem { Label("tab_bluetooth", systemImage: "dot.radiowaves.left.and.right") }
-            .tag(4)
+        // Корректная обработка жизненного цикла со свежим onChange
+        if #available(iOS 17.0, *) {
+            content
+                .onChange(of: scenePhase) { _, newPhase in
+                    switch newPhase {
+                    case .active:
+                        bt.activateIfNeeded()
+                    case .inactive, .background:
+                        bt.stopScanning()
+                    @unknown default:
+                        break
+                    }
+                }
+        } else {
+            content
+                .onChange(of: scenePhase) { newPhase in
+                    switch newPhase {
+                    case .active:
+                        bt.activateIfNeeded()
+                    case .inactive, .background:
+                        bt.stopScanning()
+                    @unknown default:
+                        break
+                    }
+                }
         }
     }
 
@@ -52,7 +78,3 @@ struct TapBarView: View {
         }
     }
 }
-
-
-
-

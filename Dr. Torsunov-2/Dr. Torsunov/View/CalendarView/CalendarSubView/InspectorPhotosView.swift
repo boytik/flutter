@@ -17,11 +17,18 @@ struct InspectorPhotosView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            HStack(spacing: 16) {
-                photoBox(title: "Фото ДО тренировки", url: beforeURL)
-                photoBox(title: "Фото ПОСЛЕ тренировки", url: afterURL)
-            }
-            .frame(height: 180)
+            URLPhotoCompareRow(
+                beforeURL: beforeURL,
+                afterURL: afterURL,
+                beforeTitle: "Фото ДО тренировки",
+                afterTitle: "Фото ПОСЛЕ тренировки",
+                aspect: 3.0/4.0,
+                corner: 18
+            )
+            .padding(.horizontal)
+            .padding(.top, 4)
+            .padding(.bottom, 8)
+            .zIndex(0)
 
             if let l = existingLayer, let s = existingSub {
                 HStack {
@@ -33,6 +40,7 @@ struct InspectorPhotosView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.white.opacity(0.9))
                 .padding(.horizontal)
+                .zIndex(1)
             } else {
                 HStack(spacing: 18) {
                     Text("Выберите слой")
@@ -42,6 +50,7 @@ struct InspectorPhotosView: View {
                     Spacer()
                 }
                 .padding(.horizontal)
+                .zIndex(1) // пикеры всегда над фото
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -77,35 +86,6 @@ struct InspectorPhotosView: View {
             Spacer(minLength: 8)
         }
         .onAppear { Task { await loadMedia() } }
-    }
-
-    @ViewBuilder
-    private func photoBox(title: String, url: URL?) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline).foregroundColor(.white.opacity(0.9))
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
-                    .background(Color.white.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                if let url {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty: ProgressView().tint(.white)
-                        case .success(let img): img.resizable().scaledToFill()
-                        case .failure(_): Image(systemName: "photo").resizable().scaledToFit().padding(24)
-                        @unknown default: EmptyView()
-                        }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                } else {
-                    Image(systemName: "photo")
-                        .resizable().scaledToFit().padding(24)
-                        .foregroundColor(.white.opacity(0.6))
-                }
-            }
-        }
     }
 
     private func picker(title: String, range: ClosedRange<Int>, selection: Binding<Int>) -> some View {
@@ -171,7 +151,7 @@ struct InspectorPhotosView: View {
             }
         }
     }
-    
+
     private func emailFromPathGuess() -> String? {
         for u in [beforeURL, afterURL] {
             if let url = u {
@@ -180,5 +160,102 @@ struct InspectorPhotosView: View {
             }
         }
         return nil
+    }
+}
+
+// MARK: - Ряд из двух URL-картинок с фиксированной пропорцией
+private struct URLPhotoCompareRow: View {
+    let beforeURL: URL?
+    let afterURL: URL?
+    var beforeTitle: String
+    var afterTitle: String
+    var aspect: CGFloat = 3.0/4.0
+    var corner: CGFloat = 18
+    var spacing: CGFloat = 12
+
+    var body: some View {
+        HStack(spacing: spacing) {
+            URLPhotoTileSimple(url: beforeURL,
+                               title: beforeTitle,
+                               aspect: aspect,
+                               corner: corner,
+                               titleAccent: Color.white.opacity(0.14))
+            URLPhotoTileSimple(url: afterURL,
+                               title: afterTitle,
+                               aspect: aspect,
+                               corner: corner,
+                               titleAccent: .green)
+        }
+        .frame(maxWidth: .infinity)
+        .zIndex(0)
+    }
+}
+
+private struct URLPhotoTileSimple: View {
+    let url: URL?
+    let title: String
+    var aspect: CGFloat = 3.0/4.0
+    var corner: CGFloat = 18
+    var titleAccent: Color
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+
+            if let url {
+                AsyncImage(url: url, transaction: .init(animation: .easeInOut)) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView().tint(.white)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .clipped()
+                    case .failure:
+                        placeholder
+                    @unknown default:
+                        placeholder
+                    }
+                }
+            } else {
+                placeholder
+            }
+
+            HStack {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous).fill(titleAccent)
+                    )
+                Spacer()
+            }
+            .foregroundColor(.white)
+            .padding(8)
+            .allowsHitTesting(false)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        )
+        .aspectRatio(aspect, contentMode: .fit) // ← высота стабильно считается от ширины
+        .frame(maxWidth: .infinity)
+        .compositingGroup()                      // ← гарантирует корректную маску/слои
+        .zIndex(0)
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+            VStack(spacing: 6) {
+                Image(systemName: "photo").font(.system(size: 20, weight: .semibold))
+                Text("Нет фото").font(.footnote)
+            }
+            .foregroundColor(.white.opacity(0.65))
+        }
     }
 }

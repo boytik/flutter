@@ -54,6 +54,7 @@ struct WorkoutDetailView: View {
                     }
                     .pickerStyle(.segmented)
                     .tint(.green)
+                    .zIndex(2) // ⬅️ всегда над фотоблоком
 
                     if tab == .charts { chartsSection } else { reviewSection }
                 }
@@ -105,6 +106,7 @@ struct WorkoutDetailView: View {
                 .foregroundColor(.white)
                 .padding(.top, 4)
 
+            // ЧСС
             VStack(alignment: .leading, spacing: 10) {
                 Text("Диаграмма частоты сердцебиения")
                     .font(.headline).foregroundColor(.white)
@@ -130,11 +132,7 @@ struct WorkoutDetailView: View {
                     $0.absoluteString.localizedCaseInsensitiveContains("heart")
                     || $0.lastPathComponent.localizedCaseInsensitiveContains("pulse")
                 }) {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: { ProgressView().tint(.white) }
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    FixedRemoteImage(url: url, aspect: 3/4, corner: 12)
                 } else {
                     Text("Нет данных для отображения.")
                         .foregroundColor(.gray)
@@ -142,6 +140,7 @@ struct WorkoutDetailView: View {
                 }
             }
 
+            // Температура воды
             VStack(alignment: .leading, spacing: 10) {
                 Text("Диаграмма температуры воды")
                     .font(.headline).foregroundColor(.white)
@@ -167,11 +166,7 @@ struct WorkoutDetailView: View {
                     $0.absoluteString.localizedCaseInsensitiveContains("temp")
                     || $0.absoluteString.localizedCaseInsensitiveContains("water")
                 }) {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: { ProgressView().tint(.white) }
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    FixedRemoteImage(url: url, aspect: 3/4, corner: 12)
                 } else {
                     Text("Нет данных для отображения.")
                         .foregroundColor(.gray)
@@ -179,6 +174,7 @@ struct WorkoutDetailView: View {
                 }
             }
 
+            // Скорость
             if let spd = vm.speedSeries {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Скорость, км/ч")
@@ -207,10 +203,15 @@ struct WorkoutDetailView: View {
 
     private var reviewSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(spacing: 14) {
-                uploadBlock(title: "Загрузите фото ДО тренировки", image: $beforeImage, showPicker: $showBeforePicker)
-                uploadBlock(title: "Загрузите фото ПОСЛЕ тренировки", image: $afterImage, showPicker: $showAfterPicker)
-            }
+            PhotoPickRow(
+                beforeImage: $beforeImage,
+                afterImage: $afterImage,
+                onPickBefore: { showBeforePicker = true },
+                onPickAfter: { showAfterPicker = true },
+                aspect: 3.0/4.0,
+                corner: 18
+            )
+            .zIndex(0)
 
             Text("Комментарий")
                 .foregroundColor(.white)
@@ -244,25 +245,6 @@ struct WorkoutDetailView: View {
                 Text(success ? "Отправлено" : "Ошибка отправки")
                     .foregroundColor(success ? .green : .red)
                     .padding(.top, 6)
-            }
-        }
-    }
-
-    private func uploadBlock(title: String, image: Binding<UIImage?>, showPicker: Binding<Bool>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).foregroundColor(.white).font(.subheadline)
-            Button { showPicker.wrappedValue = true } label: {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray6).opacity(0.2))
-                        .frame(height: 150)
-                    if let img = image.wrappedValue {
-                        Image(uiImage: img).resizable().scaledToFill()
-                            .frame(height: 150).clipShape(RoundedRectangle(cornerRadius: 12))
-                    } else {
-                        Image(systemName: "photo.on.rectangle.angled").font(.system(size: 40)).foregroundColor(.gray)
-                    }
-                }
             }
         }
     }
@@ -394,6 +376,138 @@ struct WorkoutDetailView: View {
     }
 }
 
+// MARK: - Локальные фото: две плитки без GeometryReader
+private struct PhotoPickRow: View {
+    @Binding var beforeImage: UIImage?
+    @Binding var afterImage: UIImage?
+    let onPickBefore: () -> Void
+    let onPickAfter: () -> Void
+
+    var aspect: CGFloat = 3.0/4.0
+    var corner: CGFloat = 18
+    var spacing: CGFloat = 12
+
+    var body: some View {
+        HStack(spacing: spacing) {
+            PhotoPickTileSimple(title: "Фото ДО тренировки",
+                                image: beforeImage,
+                                action: onPickBefore,
+                                aspect: aspect,
+                                corner: corner,
+                                accent: Color.white.opacity(0.14))
+            PhotoPickTileSimple(title: "Фото ПОСЛЕ тренировки",
+                                image: afterImage,
+                                action: onPickAfter,
+                                aspect: aspect,
+                                corner: corner,
+                                accent: .green)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 6)
+        .zIndex(0)
+    }
+}
+
+private struct PhotoPickTileSimple: View {
+    let title: String
+    let image: UIImage?
+    let action: () -> Void
+    var aspect: CGFloat
+    var corner: CGFloat
+    var accent: Color
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+
+                if let img = image {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .clipped()
+                } else {
+                    VStack(spacing: 8) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 28, weight: .semibold))
+                        Text("Выберите фото")
+                            .font(.footnote)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .foregroundColor(.white.opacity(0.6))
+                }
+
+                HStack {
+                    Text(title)
+                        .font(.footnote.weight(.semibold))
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(accent)
+                        )
+                    Spacer()
+                }
+                .foregroundColor(.white)
+                .padding(8)
+                .allowsHitTesting(false)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            )
+            .aspectRatio(aspect, contentMode: .fit) // высота → от ширины
+            .frame(maxWidth: .infinity)
+            .zIndex(0)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Удалённые картинки для диаграмм
+private struct FixedRemoteImage: View {
+    let url: URL?
+    var aspect: CGFloat = 3.0/4.0
+    var corner: CGFloat = 12
+
+    var body: some View {
+        Group {
+            if let url {
+                AsyncImage(url: url, transaction: .init(animation: .easeInOut)) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView().tint(.white)
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        placeholder
+                    @unknown default:
+                        placeholder
+                    }
+                }
+            } else {
+                placeholder
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(aspect, contentMode: .fill)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+            Image(systemName: "photo")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundColor(.white.opacity(0.6))
+        }
+        .aspectRatio(aspect, contentMode: .fit)
+    }
+}
+
 private struct PlannedInfo {
     let durationHours: Int
     let durationMinutes: Int
@@ -448,10 +562,10 @@ private struct PlannedInfo {
     init(dto: DTO) {
         self.durationHours = dto.durationHours ?? 0
         self.durationMinutes = dto.durationMinutes ?? 0
-        self.layers = dto.layers
-        self.swimLayers = dto.swimLayers
         self.breakDuration = dto.breakDuration
         self.breaks = dto.breaks
+        self.layers = dto.layers
+        self.swimLayers = dto.swimLayers
         self.type = dto.type
         self.protocolName = dto.`protocol`
     }

@@ -16,6 +16,9 @@
 		3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */; };
 		3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */; };
 		3E56032F2E534E8600C401DB /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032E2E534E8600C401DB /* CoreDataStack.swift */; };
+		3E6124762E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6124752E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift */; };
+		3E6124782E57068B00B2B1E0 /* BLEUploadPump.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6124772E57068B00B2B1E0 /* BLEUploadPump.swift */; };
+		3E61247C2E5716D500B2B1E0 /*   PhotoCompareGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E61247B2E5716D500B2B1E0 /*   PhotoCompareGrid.swift */; };
 		3E670BD72E56042F007E5AA2 /* AppDelegate+Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */; };
 		3E670BD92E560450007E5AA2 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */; };
 		3E670BDB2E560463007E5AA2 /* NotificationCategoryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */; };
@@ -35,9 +38,6 @@
 		3E7045732E4A22B0005EDE48 /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045722E4A22B0005EDE48 /* AudioRecorder.swift */; };
 		3E7045762E4A2317005EDE48 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045752E4A2317005EDE48 /* ChatViewModel.swift */; };
 		3E7045782E4A232D005EDE48 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045772E4A232D005EDE48 /* ChatView.swift */; };
-		3E70457C2E4A41A6005EDE48 /* Dev.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 3E70457B2E4A41A6005EDE48 /* Dev.xcconfig */; };
-		3E70457E2E4A41C4005EDE48 /* Test.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 3E70457D2E4A41C4005EDE48 /* Test.xcconfig */; };
-		3E7045822E4A41E2005EDE48 /* Prod.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 3E7045812E4A41E2005EDE48 /* Prod.xcconfig */; };
 		3E7045842E4A42E5005EDE48 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045832E4A42E5005EDE48 /* DeepLinkRouter.swift */; };
 		3E7045872E4A455A005EDE48 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3E7045852E4A455A005EDE48 /* Localizable.strings */; };
 		3E70458C2E4A4774005EDE48 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3E70458A2E4A4774005EDE48 /* InfoPlist.strings */; };
@@ -72,18 +72,13 @@
 		3EADE78B2E3A54A0002A2D67 /* CalendarItemCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */; };
 		3ED089472E460168002F09CB /* ApiRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED089462E460168002F09CB /* ApiRoutes.swift */; };
 		3ED0894A2E460683002F09CB /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED089492E460683002F09CB /* HTTPClient.swift */; };
-		3ED0894C2E460C35002F09CB /* Dr--Torsunov-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3ED089482E4602B2002F09CB /* Dr--Torsunov-Info.plist */; };
 		3EE502BB2E50C66A00BBE86F /* WorkoutMediaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE502BA2E50C66A00BBE86F /* WorkoutMediaRepository.swift */; };
 		3EE502BD2E50C70500BBE86F /* InspectorPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE502BC2E50C70500BBE86F /* InspectorPhotosView.swift */; };
 		3EE502BF2E50CF3000BBE86F /* URL+QuerySwap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE502BE2E50CF3000BBE86F /* URL+QuerySwap.swift */; };
-		3EE536872E4DFC630016D879 /* BLEViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367D2E4DFC630016D879 /* BLEViewModel.swift */; };
-		3EE536882E4DFC630016D879 /* BLEMockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536792E4DFC630016D879 /* BLEMockService.swift */; };
 		3EE536892E4DFC630016D879 /* HTTPClient+RawJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536812E4DFC630016D879 /* HTTPClient+RawJSON.swift */; };
 		3EE5368A2E4DFC630016D879 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367B2E4DFC630016D879 /* BLEManager.swift */; };
 		3EE5368B2E4DFC630016D879 /* ApiRoutes+InsertData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367F2E4DFC630016D879 /* ApiRoutes+InsertData.swift */; };
-		3EE5368C2E4DFC630016D879 /* BLEScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536832E4DFC630016D879 /* BLEScanView.swift */; };
 		3EE5368D2E4DFC630016D879 /* BLEUploadRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536802E4DFC630016D879 /* BLEUploadRepository.swift */; };
-		3EE5368E2E4DFC630016D879 /* BLEUUIDs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367C2E4DFC630016D879 /* BLEUUIDs.swift */; };
 		3EE536902E4E192D0016D879 /* DayItemsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */; };
 /* End PBXBuildFile section */
 
@@ -97,6 +92,9 @@
 		3E55E9462E3A829900CBBC29 /*  TokenStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " TokenStorage.swift"; sourceTree = "<group>"; };
 		3E56032C2E534C4D00C401DB /* HTTPCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPCacheStore.swift; sourceTree = "<group>"; };
 		3E56032E2E534E8600C401DB /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
+		3E6124752E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothManagerJSONAdapter.swift; sourceTree = "<group>"; };
+		3E6124772E57068B00B2B1E0 /* BLEUploadPump.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUploadPump.swift; sourceTree = "<group>"; };
+		3E61247B2E5716D500B2B1E0 /*   PhotoCompareGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "  PhotoCompareGrid.swift"; sourceTree = "<group>"; };
 		3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Notifications.swift"; sourceTree = "<group>"; };
 		3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationManager.swift; sourceTree = "<group>"; };
 		3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCategoryFactory.swift; sourceTree = "<group>"; };
@@ -158,19 +156,15 @@
 		3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarItemCellView.swift; sourceTree = "<group>"; };
 		3EC132982E4B579F00B6F9B3 /* Dr. Torsunov.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Dr. Torsunov.entitlements"; sourceTree = "<group>"; };
 		3ED089462E460168002F09CB /* ApiRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiRoutes.swift; sourceTree = "<group>"; };
-		3ED089482E4602B2002F09CB /* Dr--Torsunov-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Dr--Torsunov-Info.plist"; sourceTree = SOURCE_ROOT; };
+		3ED089482E4602B2002F09CB /* DrTorsunov-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "DrTorsunov-Info.plist"; sourceTree = SOURCE_ROOT; };
 		3ED089492E460683002F09CB /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
 		3EE502BA2E50C66A00BBE86F /* WorkoutMediaRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMediaRepository.swift; sourceTree = "<group>"; };
 		3EE502BC2E50C70500BBE86F /* InspectorPhotosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorPhotosView.swift; sourceTree = "<group>"; };
 		3EE502BE2E50CF3000BBE86F /* URL+QuerySwap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+QuerySwap.swift"; sourceTree = "<group>"; };
-		3EE536792E4DFC630016D879 /* BLEMockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEMockService.swift; sourceTree = "<group>"; };
 		3EE5367B2E4DFC630016D879 /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
-		3EE5367C2E4DFC630016D879 /* BLEUUIDs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUUIDs.swift; sourceTree = "<group>"; };
-		3EE5367D2E4DFC630016D879 /* BLEViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEViewModel.swift; sourceTree = "<group>"; };
 		3EE5367F2E4DFC630016D879 /* ApiRoutes+InsertData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ApiRoutes+InsertData.swift"; sourceTree = "<group>"; };
 		3EE536802E4DFC630016D879 /* BLEUploadRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUploadRepository.swift; sourceTree = "<group>"; };
 		3EE536812E4DFC630016D879 /* HTTPClient+RawJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HTTPClient+RawJSON.swift"; sourceTree = "<group>"; };
-		3EE536832E4DFC630016D879 /* BLEScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEScanView.swift; sourceTree = "<group>"; };
 		3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayItemsSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -371,7 +365,7 @@
 		3EADE75B2E3A2377002A2D67 = {
 			isa = PBXGroup;
 			children = (
-				3ED089482E4602B2002F09CB /* Dr--Torsunov-Info.plist */,
+				3ED089482E4602B2002F09CB /* DrTorsunov-Info.plist */,
 				3EADE7752E3A2396002A2D67 /* Dr. Torsunov */,
 				3EADE7652E3A2377002A2D67 /* Products */,
 			);
@@ -448,6 +442,7 @@
 				3E7045772E4A232D005EDE48 /* ChatView.swift */,
 				3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */,
 				3EE502BC2E50C70500BBE86F /* InspectorPhotosView.swift */,
+				3E61247B2E5716D500B2B1E0 /*   PhotoCompareGrid.swift */,
 			);
 			path = CalendarSubView;
 			sourceTree = "<group>";
@@ -455,6 +450,7 @@
 		3EADE7872E3A5424002A2D67 /* Network */ = {
 			isa = PBXGroup;
 			children = (
+				3EE5367F2E4DFC630016D879 /* ApiRoutes+InsertData.swift */,
 				3ED089462E460168002F09CB /* ApiRoutes.swift */,
 				3ED089492E460683002F09CB /* HTTPClient.swift */,
 				3EE502BE2E50CF3000BBE86F /* URL+QuerySwap.swift */,
@@ -480,21 +476,12 @@
 			path = Elements;
 			sourceTree = "<group>";
 		};
-		3EE5367A2E4DFC630016D879 /* Mocks */ = {
-			isa = PBXGroup;
-			children = (
-				3EE536792E4DFC630016D879 /* BLEMockService.swift */,
-			);
-			path = Mocks;
-			sourceTree = "<group>";
-		};
 		3EE5367E2E4DFC630016D879 /* BLE */ = {
 			isa = PBXGroup;
 			children = (
-				3EE5367A2E4DFC630016D879 /* Mocks */,
 				3EE5367B2E4DFC630016D879 /* BLEManager.swift */,
-				3EE5367C2E4DFC630016D879 /* BLEUUIDs.swift */,
-				3EE5367D2E4DFC630016D879 /* BLEViewModel.swift */,
+				3E6124752E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift */,
+				3E6124772E57068B00B2B1E0 /* BLEUploadPump.swift */,
 			);
 			path = BLE;
 			sourceTree = "<group>";
@@ -502,25 +489,15 @@
 		3EE536822E4DFC630016D879 /* Network */ = {
 			isa = PBXGroup;
 			children = (
-				3EE5367F2E4DFC630016D879 /* ApiRoutes+InsertData.swift */,
 				3EE536802E4DFC630016D879 /* BLEUploadRepository.swift */,
 				3EE536812E4DFC630016D879 /* HTTPClient+RawJSON.swift */,
 			);
 			path = Network;
 			sourceTree = "<group>";
 		};
-		3EE536842E4DFC630016D879 /* BLE */ = {
-			isa = PBXGroup;
-			children = (
-				3EE536832E4DFC630016D879 /* BLEScanView.swift */,
-			);
-			path = BLE;
-			sourceTree = "<group>";
-		};
 		3EE536852E4DFC630016D879 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				3EE536842E4DFC630016D879 /* BLE */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -598,13 +575,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3E70457E2E4A41C4005EDE48 /* Test.xcconfig in Resources */,
 				3E70458C2E4A4774005EDE48 /* InfoPlist.strings in Resources */,
 				3E7045872E4A455A005EDE48 /* Localizable.strings in Resources */,
-				3ED0894C2E460C35002F09CB /* Dr--Torsunov-Info.plist in Resources */,
-				3E7045822E4A41E2005EDE48 /* Prod.xcconfig in Resources */,
 				3EADE7782E3A2396002A2D67 /* Assets.xcassets in Resources */,
-				3E70457C2E4A41A6005EDE48 /* Dev.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -623,6 +596,7 @@
 				3EADE7862E3A5332002A2D67 /* ExtensionsDate.swift in Sources */,
 				3E7045782E4A232D005EDE48 /* ChatView.swift in Sources */,
 				3EADE7762E3A2396002A2D67 /* CalendarView.swift in Sources */,
+				3E6124762E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift in Sources */,
 				3E70456A2E4A1BD1005EDE48 /* InspectorView.swift in Sources */,
 				3E8F8A572E438EEB00CE00CB /* WorkoutDetailView.swift in Sources */,
 				3E8599C52E44CA2B00FA1FAB /* UserRepositoryImpl.swift in Sources */,
@@ -634,6 +608,7 @@
 				3E7B17792E424F4D001AF947 /* ToggleSectionView.swift in Sources */,
 				3E8599E42E45203100FA1FAB /* CalendarItem.swift in Sources */,
 				3EE502BB2E50C66A00BBE86F /* WorkoutMediaRepository.swift in Sources */,
+				3E6124782E57068B00B2B1E0 /* BLEUploadPump.swift in Sources */,
 				3EADE7772E3A2396002A2D67 /* Dr__TorsunovApp.swift in Sources */,
 				3E8599E22E44F31500FA1FAB /* ActivityRepositoryImpl.swift in Sources */,
 				3E7045612E4A1154005EDE48 /* StartScreen.swift in Sources */,
@@ -647,6 +622,7 @@
 				3E7045572E4A009D005EDE48 /* ActivityViewModel.swift in Sources */,
 				3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */,
 				3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */,
+				3E61247C2E5716D500B2B1E0 /*   PhotoCompareGrid.swift in Sources */,
 				3E8599D02E44DFC500FA1FAB /* ProfilePhotoView.swift in Sources */,
 				3EADE7812E3A2A5C002A2D67 /* CalendarViewModel.swift in Sources */,
 				3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */,
@@ -675,15 +651,11 @@
 				3E7B17802E425077001AF947 /* PickerSheet.swift in Sources */,
 				3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */,
 				3E8F8A592E43A28900CE00CB /* ImagePicker.swift in Sources */,
-				3EE536872E4DFC630016D879 /* BLEViewModel.swift in Sources */,
-				3EE536882E4DFC630016D879 /* BLEMockService.swift in Sources */,
 				3EE536892E4DFC630016D879 /* HTTPClient+RawJSON.swift in Sources */,
 				3EE5368A2E4DFC630016D879 /* BLEManager.swift in Sources */,
 				3EE5368B2E4DFC630016D879 /* ApiRoutes+InsertData.swift in Sources */,
-				3EE5368C2E4DFC630016D879 /* BLEScanView.swift in Sources */,
 				3E56032F2E534E8600C401DB /* CoreDataStack.swift in Sources */,
 				3EE5368D2E4DFC630016D879 /* BLEUploadRepository.swift in Sources */,
-				3EE5368E2E4DFC630016D879 /* BLEUUIDs.swift in Sources */,
 				3E8F8A502E43646000CE00CB /* EditFieldSheet.swift in Sources */,
 				3E7B17732E424595001AF947 /* PhysicalDataView.swift in Sources */,
 			);
@@ -848,7 +820,7 @@
 				DEVELOPMENT_TEAM = 286R94F7L7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Dr--Torsunov-Info.plist";
+				INFOPLIST_FILE = "DrTorsunov-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Dr. Torsunov - IOS (TEST)";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Нужно для подключения к тренировочному устройству по Bluetooth.";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Нужно для обмена данными с устройством по Bluetooth.";
@@ -885,7 +857,7 @@
 				DEVELOPMENT_TEAM = 286R94F7L7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Dr--Torsunov-Info.plist";
+				INFOPLIST_FILE = "DrTorsunov-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Dr. Torsunov - IOS (TEST)";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Нужно для подключения к тренировочному устройству по Bluetooth.";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Нужно для обмена данными с устройством по Bluetooth.";
