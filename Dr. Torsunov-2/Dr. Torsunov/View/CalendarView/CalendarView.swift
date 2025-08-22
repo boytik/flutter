@@ -1,3 +1,4 @@
+
 import SwiftUI
 import Foundation
 
@@ -110,7 +111,10 @@ struct CalendarView: View {
             }
             .padding(.horizontal)
 
-            CalendarGridView(monthDates: viewModel.monthDates) { tapped in
+            CalendarGridView(
+                monthDates: viewModel.monthDates,
+                displayMonth: viewModel.currentMonthDate
+            ) { tapped in
                 selectedDay = IdentDate(tapped)
             }
             .padding(.vertical)
@@ -186,7 +190,6 @@ struct CalendarView: View {
                         }
                     }
                 } header: {
-                    // ⬇️ Без подложки — только сами «пилюли»
                     filterBar
                 }
             }
@@ -214,11 +217,10 @@ struct CalendarView: View {
             .padding(.horizontal)
             .padding(.vertical, 10)
         }
-        // Убрали материал/серую «подложку» и разделители
     }
 }
 
-// MARK: - Контрастные «пилюли» фильтра (неактивные серые, активная — зелёная)
+// MARK: - Контрастные «пилюли» фильтра
 private struct FilterChip: View {
     let text: String
     let selected: Bool

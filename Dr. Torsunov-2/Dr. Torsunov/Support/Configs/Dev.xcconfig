@@ -1,2 +1,4 @@
 BASE_URL = https://revive-server.dev.myrevive.app
 DEBUG_MODE = YES
+RAG_BASE_URL = https://rag.myrevive.app
+

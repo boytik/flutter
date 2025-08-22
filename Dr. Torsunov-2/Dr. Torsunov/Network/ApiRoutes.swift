@@ -2,10 +2,18 @@ import Foundation
 
 // MARK: - BASE
 enum APIEnv {
+    /// Основной бэкенд (как и было)
     static var baseURL: URL {
         if let s = Bundle.main.object(forInfoDictionaryKey: "BASE_URL") as? String,
            let u = URL(string: s) { return u }
         return URL(string: "https://revive-server.dev.myrevive.app")!
+    }
+
+    /// Бэкенд RAG/чат (как во Flutter)
+    static var ragBaseURL: URL {
+        if let s = Bundle.main.object(forInfoDictionaryKey: "RAG_BASE_URL") as? String,
+           let u = URL(string: s) { return u }
+        return URL(string: "https://rag.dev.myrevive.app")!
     }
 }
 
@@ -94,12 +102,19 @@ enum ApiRoutes {
 
     // MARK: Chat
     enum Chat {
-        static var ask: URL      { url("chat/ask") }
-        static var askAudio: URL { url("chat/ask/audio") }
-        static var list: URL     { url("chat/messages") }
+        // === как во Flutter: обращаемся к RAG-бэкенду и путям /ask, /ask/audio ===
+        static var ask: URL      { ragUrl("ask") }
+        static var askAudio: URL { ragUrl("ask/audio") }
 
+        // если где-то в коде использовались question/questionAudio — оставляем алиасы
         static var question: URL      { ask }
         static var questionAudio: URL { askAudio }
+
+        // Список сообщений REST нам не нужен (во Flutter его нет), но если где-то используется — оставим на основном бэке
+        static var list: URL     { url("chat/messages") }
+
+        // (опционально, для WebView-версии чата, если понадобится позже)
+        // static func webURL() -> URL { ragUrl("videoBotWebView") }
     }
 
     enum StaticLinks {
@@ -133,7 +148,7 @@ extension ApiRoutes {
 
 // MARK: - Helpers
 private extension ApiRoutes {
-    /// Старый удобный хелпер (для коротких путей)
+    /// Старый удобный хелпер (для коротких путей) — основной бэкенд
     static func url(_ path: String, query: [String: String]? = nil) -> URL {
         var url = APIEnv.baseURL.appendingPathComponent(path)
         if let query, !query.isEmpty, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
@@ -143,9 +158,30 @@ private extension ApiRoutes {
         return url
     }
 
-    /// Новый безопасный хелпер: путь по сегментам → исключает повторное кодирование `%`
+    /// Новый безопасный хелпер: путь по сегментам → исключает повторное кодирование `%` (основной бэкенд)
     static func url(_ segments: [String], query: [String: String]? = nil) -> URL {
         var url = APIEnv.baseURL
+        for seg in segments { url.appendPathComponent(seg) }
+        if let query, !query.isEmpty, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
+            url = comps.url ?? url
+        }
+        return url
+    }
+
+    /// RAG-бэкенд (чат) — короткий путь
+    static func ragUrl(_ path: String, query: [String: String]? = nil) -> URL {
+        var url = APIEnv.ragBaseURL.appendingPathComponent(path)
+        if let query, !query.isEmpty, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            comps.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
+            url = comps.url ?? url
+        }
+        return url
+    }
+
+    /// RAG-бэкенд по сегментам
+    static func ragUrl(_ segments: [String], query: [String: String]? = nil) -> URL {
+        var url = APIEnv.ragBaseURL
         for seg in segments { url.appendPathComponent(seg) }
         if let query, !query.isEmpty, var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) {
             comps.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }

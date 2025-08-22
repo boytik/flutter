@@ -2,8 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- BASE_URL уже есть и остаётся как был -->
     <key>BASE_URL</key>
     <string>$(BASE_URL)</string>
+
+    <!-- Новый base для чата (RAG) -->
+    <key>RAG_BASE_URL</key>
+    <string>$(RAG_BASE_URL)</string>
 
     <key>CFBundleURLTypes</key>
     <array>
@@ -25,15 +30,37 @@
         <string>otherappscheme</string>
     </array>
 
-    <!-- Фоновые режимы: оставляем BLE и добавляем remote-notification -->
+    <!-- Фоновые режимы -->
     <key>UIBackgroundModes</key>
     <array>
         <string>bluetooth-central</string>
         <string>remote-notification</string>
     </array>
 
-    <!-- Необязательно, но полезно для прозрачности системного алерта -->
+    <!-- Уведомления -->
     <key>NSUserNotificationUsageDescription</key>
     <string>Мы отправляем уведомления о событиях и напоминаниях.</string>
+
+    <!-- ATS: разрешаем доступ к доменам веб/чат-сервера -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>rag.dev.myrevive.app</key>
+            <dict>
+                <key>NSIncludesSubdomains</key><true/>
+                <key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key><false/>
+                <key>NSExceptionRequiresForwardSecrecy</key><true/>
+            </dict>
+            <key>rag.myrevive.app</key>
+            <dict>
+                <key>NSIncludesSubdomains</key><true/>
+                <key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key><false/>
+                <key>NSExceptionRequiresForwardSecrecy</key><true/>
+            </dict>
+        </dict>
+    </dict>
 </dict>
 </plist>

@@ -1,9 +1,11 @@
+
 import SwiftUI
 
 @inline(__always) private func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
 
 struct CalendarGridView: View {
     let monthDates: [WorkoutDay]
+    let displayMonth: Date
     var onDayTap: ((Date) -> Void)? = nil
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 7)
@@ -17,10 +19,10 @@ struct CalendarGridView: View {
 
     private var gridDays: [GridDay] {
         let cal = isoCal
-        let anchor = monthDates.first?.date ?? Date()
+        // ⚠️ ВАЖНО: якоримся на явно переданный месяц (а не на первый элемент monthDates)
+        let anchor = displayMonth
 
         let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: anchor))!
-
         let daysInMonth = cal.range(of: .day, in: .month, for: startOfMonth)!.count
 
         let weekday = cal.component(.weekday, from: startOfMonth)
@@ -49,13 +51,15 @@ struct CalendarGridView: View {
         let nextDates: [Date] = (0..<trailing).compactMap { offset in
             cal.date(byAdding: .day, value: offset, to: nextStart)
         }
+
+        // Точки берём для всех дат видимого грида
         let dotsByDay: [Date: [Color]] = Dictionary(uniqueKeysWithValues:
             monthDates.map { let d = cal.startOfDay(for: $0.date); return (d, $0.dots) }
         )
 
         func makeGridDay(_ date: Date, isCurrent: Bool) -> GridDay {
             let key = cal.startOfDay(for: date)
-            let dots = isCurrent ? (dotsByDay[key] ?? []) : []
+            let dots = dotsByDay[key] ?? []
             return GridDay(date: date, isCurrentMonth: isCurrent, dots: dots)
         }
 
@@ -136,7 +140,7 @@ struct GridDay: Identifiable {
 private func localizedWeekdaysISO() -> [String] {
     var cal = Calendar(identifier: .iso8601)
     cal.locale = Locale.current
-    cal.firstWeekday = 2 
+    cal.firstWeekday = 2
 
     let df = DateFormatter()
     df.locale = cal.locale

@@ -10,6 +10,7 @@ struct TapBarView: View {
     // диплинк «app://chat» будет открывать чат во вкладке Профиля
     @State private var openChatDeepLink = false
 
+
     var body: some View {
         let content = TabView(selection: $selectedTab) {
             // 0 — Тренировки
