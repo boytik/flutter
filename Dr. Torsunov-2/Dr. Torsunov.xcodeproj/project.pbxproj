@@ -8,6 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		3E31C8CE2E4C876700527C76 /* WorkoutDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */; };
+		3E327F172E5C8E8D000A7D33 /* FullScreenChartsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F162E5C8E8D000A7D33 /* FullScreenChartsView.swift */; };
+		3E327F192E5C8F61000A7D33 /* ChartsFullScreenButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F182E5C8F61000A7D33 /* ChartsFullScreenButton.swift */; };
+		3E327F1B2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F1A2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift */; };
+		3E327F1D2E5C9072000A7D33 /* CalendarGridView+Markers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F1C2E5C9072000A7D33 /* CalendarGridView+Markers.swift */; };
+		3E327F1F2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F1E2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift */; };
+		3E327F212E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */; };
+		3E327F232E5CD15A000A7D33 /* debugDumpVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F222E5CD15A000A7D33 /* debugDumpVM.swift */; };
 		3E3BAF062E3B6C1A0013DE9B /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */; };
 		3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */; };
 		3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */; };
@@ -18,7 +25,7 @@
 		3E56032F2E534E8600C401DB /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56032E2E534E8600C401DB /* CoreDataStack.swift */; };
 		3E6124762E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6124752E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift */; };
 		3E6124782E57068B00B2B1E0 /* BLEUploadPump.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6124772E57068B00B2B1E0 /* BLEUploadPump.swift */; };
-		3E61247C2E5716D500B2B1E0 /*   PhotoCompareGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E61247B2E5716D500B2B1E0 /*   PhotoCompareGrid.swift */; };
+		3E61247C2E5716D500B2B1E0 /* PhotoCompareGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E61247B2E5716D500B2B1E0 /* PhotoCompareGrid.swift */; };
 		3E6126932E5789C900B2B1E0 /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E6126922E5789C900B2B1E0 /* ProfileScreen.swift */; };
 		3E670BD72E56042F007E5AA2 /* AppDelegate+Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */; };
 		3E670BD92E560450007E5AA2 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */; };
@@ -85,6 +92,13 @@
 
 /* Begin PBXFileReference section */
 		3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailViewModel.swift; sourceTree = "<group>"; };
+		3E327F162E5C8E8D000A7D33 /* FullScreenChartsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenChartsView.swift; sourceTree = "<group>"; };
+		3E327F182E5C8F61000A7D33 /* ChartsFullScreenButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartsFullScreenButton.swift; sourceTree = "<group>"; };
+		3E327F1A2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarCellMarkersView.swift; sourceTree = "<group>"; };
+		3E327F1C2E5C9072000A7D33 /* CalendarGridView+Markers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarGridView+Markers.swift"; sourceTree = "<group>"; };
+		3E327F1E2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarItem+CalendarGridDayContext.swift"; sourceTree = "<group>"; };
+		3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutDetailViewModel+Metrics.swift"; sourceTree = "<group>"; };
+		3E327F222E5CD15A000A7D33 /* debugDumpVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = debugDumpVM.swift; sourceTree = "<group>"; };
 		3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingView.swift; sourceTree = "<group>"; };
 		3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGridView.swift; sourceTree = "<group>"; };
 		3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
@@ -95,7 +109,7 @@
 		3E56032E2E534E8600C401DB /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		3E6124752E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothManagerJSONAdapter.swift; sourceTree = "<group>"; };
 		3E6124772E57068B00B2B1E0 /* BLEUploadPump.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUploadPump.swift; sourceTree = "<group>"; };
-		3E61247B2E5716D500B2B1E0 /*   PhotoCompareGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "  PhotoCompareGrid.swift"; sourceTree = "<group>"; };
+		3E61247B2E5716D500B2B1E0 /* PhotoCompareGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCompareGrid.swift; sourceTree = "<group>"; };
 		3E6126922E5789C900B2B1E0 /* ProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileScreen.swift; sourceTree = "<group>"; };
 		3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Notifications.swift"; sourceTree = "<group>"; };
 		3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationManager.swift; sourceTree = "<group>"; };
@@ -231,6 +245,7 @@
 			isa = PBXGroup;
 			children = (
 				3EADE77C2E3A2558002A2D67 /* ProfileView.swift */,
+				3E7045772E4A232D005EDE48 /* ChatView.swift */,
 				3E7B177A2E424F73001AF947 /* ProfileSubView */,
 			);
 			path = ProfileView;
@@ -438,14 +453,20 @@
 			children = (
 				3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */,
 				3E8F8A562E438EEB00CE00CB /* WorkoutDetailView.swift */,
+				3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */,
 				3E8599E52E452D8900FA1FAB /* ActivityDetailView.swift */,
 				3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */,
 				3E8F8A582E43A28900CE00CB /* ImagePicker.swift */,
 				3E7045692E4A1BD1005EDE48 /* InspectorView.swift */,
-				3E7045772E4A232D005EDE48 /* ChatView.swift */,
 				3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */,
 				3EE502BC2E50C70500BBE86F /* InspectorPhotosView.swift */,
-				3E61247B2E5716D500B2B1E0 /*   PhotoCompareGrid.swift */,
+				3E61247B2E5716D500B2B1E0 /* PhotoCompareGrid.swift */,
+				3E327F162E5C8E8D000A7D33 /* FullScreenChartsView.swift */,
+				3E327F182E5C8F61000A7D33 /* ChartsFullScreenButton.swift */,
+				3E327F1A2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift */,
+				3E327F1C2E5C9072000A7D33 /* CalendarGridView+Markers.swift */,
+				3E327F1E2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift */,
+				3E327F222E5CD15A000A7D33 /* debugDumpVM.swift */,
 			);
 			path = CalendarSubView;
 			sourceTree = "<group>";
@@ -595,11 +616,14 @@
 				3E7045842E4A42E5005EDE48 /* DeepLinkRouter.swift in Sources */,
 				3EADE77F2E3A2577002A2D67 /* TapBarView.swift in Sources */,
 				3E70454D2E49F6D2005EDE48 /* Inspector.swift in Sources */,
+				3E327F1D2E5C9072000A7D33 /* CalendarGridView+Markers.swift in Sources */,
+				3E327F1B2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift in Sources */,
 				3EE502BD2E50C70500BBE86F /* InspectorPhotosView.swift in Sources */,
 				3EADE7862E3A5332002A2D67 /* ExtensionsDate.swift in Sources */,
 				3E7045782E4A232D005EDE48 /* ChatView.swift in Sources */,
 				3EADE7762E3A2396002A2D67 /* CalendarView.swift in Sources */,
 				3E6124762E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift in Sources */,
+				3E327F212E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift in Sources */,
 				3E70456A2E4A1BD1005EDE48 /* InspectorView.swift in Sources */,
 				3E8F8A572E438EEB00CE00CB /* WorkoutDetailView.swift in Sources */,
 				3E8599C52E44CA2B00FA1FAB /* UserRepositoryImpl.swift in Sources */,
@@ -623,9 +647,10 @@
 				3E8599CB2E44D4DC00FA1FAB /* PhysicalDataRepositoryImpl.swift in Sources */,
 				3E8599B82E44C4B400FA1FAB /* AuthenticationRepository.swift in Sources */,
 				3E7045572E4A009D005EDE48 /* ActivityViewModel.swift in Sources */,
+				3E327F172E5C8E8D000A7D33 /* FullScreenChartsView.swift in Sources */,
 				3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */,
 				3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */,
-				3E61247C2E5716D500B2B1E0 /*   PhotoCompareGrid.swift in Sources */,
+				3E61247C2E5716D500B2B1E0 /* PhotoCompareGrid.swift in Sources */,
 				3E8599D02E44DFC500FA1FAB /* ProfilePhotoView.swift in Sources */,
 				3EADE7812E3A2A5C002A2D67 /* CalendarViewModel.swift in Sources */,
 				3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */,
@@ -644,8 +669,10 @@
 				3E6126932E5789C900B2B1E0 /* ProfileScreen.swift in Sources */,
 				3E8599BA2E44C4CD00FA1FAB /* AuthenticationRepositoryImpl.swift in Sources */,
 				3E7B17752E424EFF001AF947 /* PhysicalDataViewModel.swift in Sources */,
+				3E327F192E5C8F61000A7D33 /* ChartsFullScreenButton.swift in Sources */,
 				3E7045712E4A2295005EDE48 /* ChatRepositoryImpl.swift in Sources */,
 				3E7045652E4A1780005EDE48 /* Unauthorized.swift in Sources */,
+				3E327F1F2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift in Sources */,
 				3E70455F2E4A112F005EDE48 /* AuthLandingView.swift in Sources */,
 				3EE502BF2E50CF3000BBE86F /* URL+QuerySwap.swift in Sources */,
 				3E3BAF062E3B6C1A0013DE9B /* TrainingView.swift in Sources */,
@@ -653,6 +680,7 @@
 				3E8F8A552E4371F200CE00CB /* ExtensionView.swift in Sources */,
 				3E7045592E4A04C1005EDE48 /* AppleSignInError.swift in Sources */,
 				3E7B17802E425077001AF947 /* PickerSheet.swift in Sources */,
+				3E327F232E5CD15A000A7D33 /* debugDumpVM.swift in Sources */,
 				3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */,
 				3E8F8A592E43A28900CE00CB /* ImagePicker.swift in Sources */,
 				3EE536892E4DFC630016D879 /* HTTPClient+RawJSON.swift in Sources */,
@@ -840,9 +868,13 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.revive.main;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -877,9 +909,13 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.revive.main;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

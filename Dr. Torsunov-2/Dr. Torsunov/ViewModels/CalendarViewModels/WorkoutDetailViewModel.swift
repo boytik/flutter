@@ -79,6 +79,17 @@ final class WorkoutDetailViewModel: ObservableObject {
     private let kvTTLMetr: TimeInterval  = 60 * 10
 
     init(workoutID: String) { self.workoutID = workoutID }
+    
+    // ВРЕМЕННО: отладочный дамп полей VM
+    func dumpVMKeys(_ vm: Any) {
+        let mirror = Mirror(reflecting: vm)
+        for c in mirror.children {
+            if let l = c.label {
+                print("VM field:", l, "→", type(of: c.value))
+            }
+        }
+    }
+
 
     func load() async {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
@@ -175,6 +186,7 @@ final class WorkoutDetailViewModel: ObservableObject {
             throw error
         }
     }
+    
 
     private static func shortError(_ error: Error) -> String {
         if case let NetworkError.server(status, _) = error { return "Server error (\(status))" }

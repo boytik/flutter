@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 @inline(__always) private func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
@@ -7,6 +6,9 @@ struct CalendarGridView: View {
     let monthDates: [WorkoutDay]
     let displayMonth: Date
     var onDayTap: ((Date) -> Void)? = nil
+
+    /// 🔹 Новый безопасный провайдер элементов дня (по умолчанию пусто, чтобы ничего не ломать)
+    var itemsProvider: (Date) -> [CalendarGridDayContext] = { _ in [] }
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 7)
 
@@ -52,7 +54,7 @@ struct CalendarGridView: View {
             cal.date(byAdding: .day, value: offset, to: nextStart)
         }
 
-        // Точки берём для всех дат видимого грида
+        // Точки берём для всех дат видимого грида (оставляем для совместимости — не отображаем)
         let dotsByDay: [Date: [Color]] = Dictionary(uniqueKeysWithValues:
             monthDates.map { let d = cal.startOfDay(for: $0.date); return (d, $0.dots) }
         )
@@ -93,14 +95,8 @@ struct CalendarGridView: View {
                                 .font(.headline)
                                 .foregroundColor(cell.isCurrentMonth ? .white : .white.opacity(0.45))
 
-                            HStack(spacing: 4) {
-                                ForEach(Array(cell.dots.prefix(6)).indices, id: \.self) { idx in
-                                    Capsule()
-                                        .fill(cell.dots[idx])
-                                        .frame(width: 10, height: 4)
-                                }
-                            }
-                            .frame(height: 8)
+                            // Маркеры тренировки для этого дня (вместо старых «точек»)
+                            CalendarGridMarkersLayer(items: itemsProvider(cell.date))
                         }
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity, minHeight: 44)
@@ -160,3 +156,4 @@ private func localizedWeekdaysISO() -> [String] {
         return base.map { $0.capitalized }
     }
 }
+

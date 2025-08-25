@@ -113,13 +113,20 @@ struct CalendarView: View {
 
             CalendarGridView(
                 monthDates: viewModel.monthDates,
-                displayMonth: viewModel.currentMonthDate
-            ) { tapped in
-                selectedDay = IdentDate(tapped)
-            }
+                displayMonth: viewModel.currentMonthDate,
+                onDayTap: { tapped in
+                    selectedDay = IdentDate(tapped)
+                },
+                itemsProvider: { date in
+                    viewModel.items(on: date).map { $0 as CalendarGridDayContext }
+                }
+            )
             .padding(.vertical)
         }
     }
+
+
+
 
     private var historyHeader: some View {
         HStack {

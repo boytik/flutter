@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Charts
 
 @inline(__always) private func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
@@ -54,7 +55,7 @@ struct WorkoutDetailView: View {
                     }
                     .pickerStyle(.segmented)
                     .tint(.green)
-                    .zIndex(2) // ⬅️ всегда над фотоблоком
+                    .zIndex(2)
 
                     if tab == .charts { chartsSection } else { reviewSection }
                 }
@@ -74,6 +75,7 @@ struct WorkoutDetailView: View {
         .sheet(isPresented: $showAfterPicker) { ImagePicker(image: $afterImage) }
     }
 
+    // MARK: - Header
     private var header: some View {
         HStack(spacing: 12) {
             headerIcon(name: workout?.name ?? item.name)
@@ -93,6 +95,7 @@ struct WorkoutDetailView: View {
 
     @State private var syncEnabled = false
 
+    // MARK: - Charts (Flutter-like)
     private var chartsSection: some View {
         VStack(alignment: .leading, spacing: 18) {
             if vm.isLoading { ProgressView().tint(.white) }
@@ -104,103 +107,70 @@ struct WorkoutDetailView: View {
                 .toggleStyle(.switch)
                 .tint(.green)
                 .foregroundColor(.white)
-                .padding(.top, 4)
 
-            // ЧСС
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Диаграмма частоты сердцебиения")
-                    .font(.headline).foregroundColor(.white)
-
-                if let hr = vm.heartRateSeries {
-                    if let tx = vm.timeSeries, !tx.isEmpty {
-                        let count = min(tx.count, hr.count)
-                        Chart {
-                            ForEach(0..<count, id: \.self) { i in
-                                LineMark(x: .value("t", tx[i]), y: .value("bpm", hr[i]))
-                            }
-                        }
-                        .frame(height: 220)
-                    } else {
-                        Chart {
-                            ForEach(hr.indices, id: \.self) { i in
-                                LineMark(x: .value("i", Double(i)), y: .value("bpm", hr[i]))
-                            }
-                        }
-                        .frame(height: 220)
-                    }
-                } else if let url = vm.diagramImageURLs.first(where: {
-                    $0.absoluteString.localizedCaseInsensitiveContains("heart")
-                    || $0.lastPathComponent.localizedCaseInsensitiveContains("pulse")
-                }) {
-                    FixedRemoteImage(url: url, aspect: 3/4, corner: 12)
-                } else {
-                    Text("Нет данных для отображения.")
-                        .foregroundColor(.gray)
-                        .font(.subheadline)
-                }
+            // 1) ЧСС
+            if let hr = vm.heartRateSeries, !hr.isEmpty {
+                ChartSectionView(
+                    title: "Диаграмма частоты сердцебиения",
+                    unit: "bpm",
+                    seriesName: "ЧСС",
+                    values: hr,
+                    timeOffsets: vm.timeSeries,
+                    totalMinutes: vm.preferredDurationMinutes,     // ⬅️ время как во Flutter
+                    layer: vm.currentLayerCheckedInt,
+                    subLayer: vm.currentSubLayerCheckedInt,
+                    subLayerProgress: vm.subLayerProgressText,
+                    preferredHeight: 240
+                )
+            } else if let url = vm.diagramImageURLs.first(where: {
+                $0.absoluteString.localizedCaseInsensitiveContains("heart")
+                || $0.lastPathComponent.localizedCaseInsensitiveContains("pulse")
+            }) {
+                sectionTitle("Диаграмма частоты сердцебиения")
+                FixedRemoteImage(url: url, aspect: 3/4, corner: 12)
             }
 
-            // Температура воды
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Диаграмма температуры воды")
-                    .font(.headline).foregroundColor(.white)
-
-                if let wt = vm.waterTempSeries {
-                    if let tx = vm.timeSeries, !tx.isEmpty {
-                        let count = min(tx.count, wt.count)
-                        Chart {
-                            ForEach(0..<count, id: \.self) { i in
-                                LineMark(x: .value("t", tx[i]), y: .value("°C", wt[i]))
-                            }
-                        }
-                        .frame(height: 220)
-                    } else {
-                        Chart {
-                            ForEach(wt.indices, id: \.self) { i in
-                                LineMark(x: .value("i", Double(i)), y: .value("°C", wt[i]))
-                            }
-                        }
-                        .frame(height: 220)
-                    }
-                } else if let url = vm.diagramImageURLs.first(where: {
-                    $0.absoluteString.localizedCaseInsensitiveContains("temp")
-                    || $0.absoluteString.localizedCaseInsensitiveContains("water")
-                }) {
-                    FixedRemoteImage(url: url, aspect: 3/4, corner: 12)
-                } else {
-                    Text("Нет данных для отображения.")
-                        .foregroundColor(.gray)
-                        .font(.subheadline)
-                }
+            // 2) Температура воды
+            if let wt = vm.waterTempSeries, !wt.isEmpty {
+                ChartSectionView(
+                    title: "Диаграмма температуры воды",
+                    unit: "°C",
+                    seriesName: "Температура воды",
+                    values: wt,
+                    timeOffsets: vm.timeSeries,
+                    totalMinutes: vm.preferredDurationMinutes,     // ⬅️ время как во Flutter
+                    layer: vm.currentLayerCheckedInt,
+                    subLayer: vm.currentSubLayerCheckedInt,
+                    subLayerProgress: vm.subLayerProgressText,
+                    preferredHeight: 220
+                )
+            } else if let url = vm.diagramImageURLs.first(where: {
+                $0.absoluteString.localizedCaseInsensitiveContains("temp")
+                || $0.absoluteString.localizedCaseInsensitiveContains("water")
+            }) {
+                sectionTitle("Диаграмма температуры воды")
+                FixedRemoteImage(url: url, aspect: 3/4, corner: 12)
             }
 
-            // Скорость
-            if let spd = vm.speedSeries {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Скорость, км/ч")
-                        .font(.headline).foregroundColor(.white)
-
-                    if let tx = vm.timeSeries, !tx.isEmpty {
-                        let count = min(tx.count, spd.count)
-                        Chart {
-                            ForEach(0..<count, id: \.self) { i in
-                                LineMark(x: .value("t", tx[i]), y: .value("km/h", spd[i]))
-                            }
-                        }
-                        .frame(height: 180)
-                    } else {
-                        Chart {
-                            ForEach(spd.indices, id: \.self) { i in
-                                LineMark(x: .value("i", Double(i)), y: .value("km/h", spd[i]))
-                            }
-                        }
-                        .frame(height: 180)
-                    }
-                }
+            // 3) Скорость
+            if let spd = vm.speedSeries, !spd.isEmpty {
+                ChartSectionView(
+                    title: "Скорость, км/ч",
+                    unit: "км/ч",
+                    seriesName: "Скорость",
+                    values: spd,
+                    timeOffsets: vm.timeSeries,
+                    totalMinutes: vm.preferredDurationMinutes,     // ⬅️ время как во Flutter
+                    layer: vm.currentLayerCheckedInt,
+                    subLayer: vm.currentSubLayerCheckedInt,
+                    subLayerProgress: vm.subLayerProgressText,
+                    preferredHeight: 200
+                )
             }
         }
     }
 
+    // MARK: - Review
     private var reviewSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             PhotoPickRow(
@@ -258,6 +228,7 @@ struct WorkoutDetailView: View {
         submissionSuccess = true
     }
 
+    // MARK: - Planned info (для карточки будущей тренировки)
     private func loadPlannedInfo() async {
         plannedIsLoading = true
         defer { plannedIsLoading = false }
@@ -376,7 +347,155 @@ struct WorkoutDetailView: View {
     }
 }
 
-// MARK: - Локальные фото: две плитки без GeometryReader
+// === Общий компонент графика с разворотом и метриками ===
+private struct ChartSectionView: View {
+    let title: String
+    let unit: String
+    let seriesName: String
+
+    let values: [Double]
+    /// секунды от старта (если окажется unix, замените на Date(timeIntervalSince1970:))
+    let timeOffsets: [Double]?
+
+    /// Общее время тренировки (минуты)
+    let totalMinutes: Int?
+
+    /// слой/подслой (и строка формата 6/7)
+    let layer: Int?
+    let subLayer: Int?
+    let subLayerProgress: String?
+
+    var preferredHeight: CGFloat = 220
+
+    @State private var selectedIndex: Int? = nil
+    @State private var showFull = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle(title)
+
+            metricsHeader
+
+            ZStack(alignment: .topTrailing) {
+                chart.frame(height: preferredHeight)
+
+                Button {
+                    showFull = true
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .padding(8)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .padding(6)
+            }
+        }
+        .fullScreenCover(isPresented: $showFull) {
+            FullScreenChartsView(series: [ChartSeries(name: seriesName, points: makePoints())])
+        }
+    }
+
+    private var metricsHeader: some View {
+        let i = selectedIndex ?? (values.indices.last ?? 0)
+        let val = valueString(at: i)
+
+        return HStack(spacing: 16) {
+            metric("Время", (totalMinutes != nil ? "\(totalMinutes!)  мин" : "—"), boldLeft: true)
+            Divider().frame(height: 16).background(Color.white.opacity(0.2))
+            metric("Слой", layer.map(String.init) ?? "—", highlight: true)
+            metric("Подслой", subLayerProgress ?? subLayer.map(String.init) ?? "—", subdued: layer == nil)
+            Spacer()
+            metric(seriesName, val, highlight: true, unitSuffix: unit)
+        }
+        .font(.footnote)
+        .foregroundColor(.white)
+        .padding(.vertical, 4)
+    }
+
+    private var chart: some View {
+        Chart {
+            let pts = makePoints()
+            ForEach(pts) { p in
+                AreaMark(x: .value("t", p.time), y: .value("v", p.value))
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(.linearGradient(colors: [.green.opacity(0.22), .clear], startPoint: .top, endPoint: .bottom))
+                LineMark(x: .value("t", p.time), y: .value("v", p.value))
+                    .interpolationMethod(.monotone)
+                    .lineStyle(StrokeStyle(lineWidth: 2.0))
+            }
+            if let idx = selectedIndex, pts.indices.contains(idx) {
+                let sp = pts[idx]
+                RuleMark(x: .value("t", sp.time))
+                PointMark(x: .value("t", sp.time), y: .value("v", sp.value)).symbolSize(80)
+            }
+        }
+        .chartScrollableAxes(.horizontal)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle().fill(.clear).contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                let origin = geo[proxy.plotAreaFrame].origin
+                                let x = value.location.x - origin.x
+                                if let date: Date = proxy.value(atX: x) {
+                                    let pts = makePoints()
+                                    if let idx = nearestIndex(in: pts, to: date) {
+                                        selectedIndex = idx
+                                    }
+                                }
+                            }
+                    )
+            }
+        }
+    }
+
+    // Helpers
+    private func metric(_ title: String, _ value: String, boldLeft: Bool = false, highlight: Bool = false, subdued: Bool = false, unitSuffix: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(boldLeft ? .subheadline.bold() : .subheadline).foregroundColor(.white.opacity(0.75))
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(value).font(.body.weight(.semibold)).foregroundColor(highlight ? .green : (subdued ? .white.opacity(0.6) : .white))
+                if let unitSuffix { Text(unitSuffix).font(.caption).foregroundColor(.white.opacity(0.7)) }
+            }
+        }
+    }
+
+    private func makePoints() -> [ChartPoint] {
+        let start = Date()
+        if let t = timeOffsets, !t.isEmpty {
+            let cnt = min(t.count, values.count)
+            return (0..<cnt).map { i in ChartPoint(time: start.addingTimeInterval(t[i]), value: values[i]) }
+        } else {
+            return values.enumerated().map { (i, v) in ChartPoint(time: start.addingTimeInterval(Double(i)), value: v) }
+        }
+    }
+
+    private func valueString(at index: Int) -> String {
+        guard index < values.count else { return "—" }
+        let v = values[index]
+        if abs(v) >= 1000 { return String(format: "%.0f", v) }
+        if abs(v) >= 100  { return String(format: "%.1f", v) }
+        return String(format: "%.2f", v)
+    }
+
+    private func nearestIndex(in points: [ChartPoint], to t: Date) -> Int? {
+        guard !points.isEmpty else { return nil }
+        let times = points.map { $0.time.timeIntervalSinceReferenceDate }
+        var lo = 0, hi = times.count - 1
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if times[mid] < t.timeIntervalSinceReferenceDate { lo = mid + 1 } else { hi = mid }
+        }
+        let i = lo
+        if i == 0 { return 0 }
+        if i >= times.count { return times.count - 1 }
+        let a = times[i - 1], b = times[i]
+        return (abs(a - t.timeIntervalSinceReferenceDate) <= abs(b - t.timeIntervalSinceReferenceDate)) ? (i - 1) : i
+    }
+}
+
+// MARK: - Локальные фото: две плитки
 private struct PhotoPickRow: View {
     @Binding var beforeImage: UIImage?
     @Binding var afterImage: UIImage?
@@ -457,7 +576,7 @@ private struct PhotoPickTileSimple: View {
                 RoundedRectangle(cornerRadius: corner, style: .continuous)
                     .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
-            .aspectRatio(aspect, contentMode: .fit) // высота → от ширины
+            .aspectRatio(aspect, contentMode: .fit)
             .frame(maxWidth: .infinity)
             .zIndex(0)
         }
@@ -465,7 +584,7 @@ private struct PhotoPickTileSimple: View {
     }
 }
 
-// MARK: - Удалённые картинки для диаграмм
+// MARK: - Удалённые картинки Fallback
 private struct FixedRemoteImage: View {
     let url: URL?
     var aspect: CGFloat = 3.0/4.0
@@ -508,6 +627,7 @@ private struct FixedRemoteImage: View {
     }
 }
 
+// MARK: - DTOs/planned info
 private struct PlannedInfo {
     let durationHours: Int
     let durationMinutes: Int
@@ -569,4 +689,9 @@ private struct PlannedInfo {
         self.type = dto.type
         self.protocolName = dto.`protocol`
     }
+}
+
+// MARK: - Small view helpers
+private func sectionTitle(_ text: String) -> some View {
+    Text(text).font(.headline).foregroundColor(.white)
 }
