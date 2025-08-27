@@ -7,10 +7,10 @@ struct CalendarGridView: View {
     let displayMonth: Date
     var onDayTap: ((Date) -> Void)? = nil
 
-    /// безопасный провайдер элементов дня (по умолчанию пусто)
+    /// провайдер элементов дня
     var itemsProvider: (Date) -> [CalendarGridDayContext] = { _ in [] }
 
-    /// выбранная дата — для зелёной рамки (как на референсе)
+    /// выбранная дата — для зелёной рамки
     var selectedDate: Date? = nil
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
@@ -24,7 +24,6 @@ struct CalendarGridView: View {
 
     private var gridDays: [GridDay] {
         let cal = isoCal
-        // якоримся на явно переданный месяц
         let anchor = displayMonth
 
         let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: anchor))!
@@ -37,17 +36,16 @@ struct CalendarGridView: View {
         let prevStart = cal.date(from: cal.dateComponents([.year, .month], from: prevMonth))!
         let prevCount = cal.range(of: .day, in: .month, for: prevStart)!.count
 
-        let prevDates: [Date]
-        if leading == 0 {
-            prevDates = []
-        } else {
-            prevDates = (prevCount - leading + 1 ... prevCount).compactMap { day in
+        let prevDates: [Date] =
+            leading == 0 ? [] :
+            (prevCount - leading + 1 ... prevCount).compactMap { day in
                 cal.date(byAdding: .day, value: day - 1, to: prevStart)
             }
-        }
+
         let currentDates: [Date] = (1 ... daysInMonth).compactMap { day in
             cal.date(byAdding: .day, value: day - 1, to: startOfMonth)
         }
+
         let totalSoFar = leading + daysInMonth
         let trailing = (7 - (totalSoFar % 7)) % 7
 
@@ -57,7 +55,6 @@ struct CalendarGridView: View {
             cal.date(byAdding: .day, value: offset, to: nextStart)
         }
 
-        // точки берём для всех дат видимого грида (оставляем для совместимости — не отображаем)
         let dotsByDay: [Date: [Color]] = Dictionary(uniqueKeysWithValues:
             monthDates.map { let d = cal.startOfDay(for: $0.date); return (d, $0.dots) }
         )
@@ -70,7 +67,7 @@ struct CalendarGridView: View {
 
         return prevDates.map { makeGridDay($0, isCurrent: false) }
             + currentDates.map { makeGridDay($0, isCurrent: true) }
-            + nextDates.map { makeGridDay($0, isCurrent: false) }
+            + nextDates.map  { makeGridDay($0, isCurrent: false) }
     }
 
     var body: some View {
@@ -98,15 +95,17 @@ struct CalendarGridView: View {
                     Button {
                         onDayTap?(cell.date)
                     } label: {
-                        VStack(spacing: 6) {
-                            Text("\(Calendar.current.component(.day, from: cell.date))")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(cell.isCurrentMonth ? .white : .white.opacity(0.45))
-
-                            // маркеры тренировки для этого дня (цветные пунктирные полоски)
+                        VStack(alignment: .center) {
+                                Text("\(Calendar.current.component(.day, from: cell.date))")
+                                    .font(.system(size: 12, weight: .semibold))           // меньше
+                                    .foregroundColor(cell.isCurrentMonth ? .white : .white.opacity(0.45))
+                                    .padding(.top, 4)
+                            Spacer()
                             CalendarGridMarkersLayer(items: itemsProvider(cell.date))
+                                .padding(.horizontal, 2)
+                            Spacer()
+                            
                         }
-                        .padding(.vertical, 6)
                         .frame(maxWidth: .infinity, minHeight: 52)
                         .background(bgColor(isCurrentMonth: cell.isCurrentMonth, isPast: isPast))
                         .overlay(
@@ -125,14 +124,13 @@ struct CalendarGridView: View {
     }
 
     private func bgColor(isCurrentMonth: Bool, isPast: Bool) -> Color {
-        // темнее и ровнее, как на референсном скрине
         if !isCurrentMonth { return Color.white.opacity(0.06) }
         if isPast          { return Color.white.opacity(0.10) }
         return Color.white.opacity(0.12)
     }
 }
 
-// MARK: - Модель ячейки сетки
+// MARK: - Модель ячейки
 struct GridDay: Identifiable {
     let id = UUID()
     let date: Date
@@ -144,24 +142,14 @@ struct GridDay: Identifiable {
 
 private func localizedWeekdaysISO() -> [String] {
     var cal = Calendar(identifier: .iso8601)
-    cal.locale = Locale.current
+    cal.locale = .current
     cal.firstWeekday = 2
 
     let df = DateFormatter()
     df.locale = cal.locale
     df.calendar = cal
 
-    let base: [String]
-    if let standalone = df.shortStandaloneWeekdaySymbols, standalone.count == 7 {
-        base = standalone
-    } else {
-        base = df.shortWeekdaySymbols
-    }
-
-    if base.count == 7 {
-        let mondayFirst = Array(base[1...6]) + [base[0]]
-        return mondayFirst.map { $0.capitalized }
-    } else {
-        return base.map { $0.capitalized }
-    }
+    let base: [String] = (df.shortStandaloneWeekdaySymbols ?? df.shortWeekdaySymbols)
+    let arr = base.count == 7 ? Array(base[1...6]) + [base[0]] : base
+    return arr.map { $0.capitalized }
 }
