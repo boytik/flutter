@@ -81,13 +81,12 @@ struct ActivityDetailView: View {
         .onAppear { comment = activity.description ?? "" }
         .task { await vm.load()
 #if DEBUG
-debugDumpVM(vm) // если добавлял мой VMIntrospectionDebug.swift
+debugDumpVM(vm)
 print("durationMinutesInt:", vm.durationMinutesInt as Any)
 print("currentLayerCheckedInt:", vm.currentLayerCheckedInt as Any)
 print("currentSubLayerCheckedInt:", vm.currentSubLayerCheckedInt as Any)
 print("subLayerProgressText:", vm.subLayerProgressText as Any)
 #endif
-
         }
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -137,7 +136,7 @@ print("subLayerProgressText:", vm.subLayerProgressText as Any)
                     seriesName: "ЧСС",
                     values: hr,
                     timeOffsets: vm.timeSeries,
-                    totalMinutes: vm.durationMinutesInt,
+                    totalMinutes: vm.preferredDurationMinutes,
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
@@ -159,7 +158,7 @@ print("subLayerProgressText:", vm.subLayerProgressText as Any)
                     seriesName: "Температура воды",
                     values: wt,
                     timeOffsets: vm.timeSeries,
-                    totalMinutes: vm.durationMinutesInt,
+                    totalMinutes: vm.preferredDurationMinutes,
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
@@ -181,7 +180,7 @@ print("subLayerProgressText:", vm.subLayerProgressText as Any)
                     seriesName: "Скорость",
                     values: spd,
                     timeOffsets: vm.timeSeries,
-                    totalMinutes: vm.durationMinutesInt,
+                    totalMinutes: vm.preferredDurationMinutes,
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
@@ -384,12 +383,13 @@ private struct ChartSectionView: View {
         }
     }
 
+    // MARK: Header with dynamic time
     private var metricsHeader: some View {
         let i = selectedIndex ?? (values.indices.last ?? 0)
         let val = valueString(at: i)
 
         return HStack(spacing: 16) {
-            metric("Время", (totalMinutes != nil ? "\(totalMinutes!)  мин" : "—"), boldLeft: true)
+            metric("Время", selectedElapsedTimeString() ?? formatDuration(totalMinutes), boldLeft: true)
             Divider().frame(height: 16).background(Color.white.opacity(0.2))
             metric("Слой", layer.map(String.init) ?? "—", highlight: true)
             metric("Подслой", subLayerProgress ?? subLayer.map(String.init) ?? "—", subdued: layer == nil)
@@ -434,12 +434,16 @@ private struct ChartSectionView: View {
                                     }
                                 }
                             }
+                            .onEnded { _ in
+                                // оставить выбранной последнюю позицию; убрать — раскомментируй строку ниже
+                                // selectedIndex = nil
+                            }
                     )
             }
         }
     }
 
-    // Helpers
+    // MARK: Helpers
     private func metric(_ title: String, _ value: String, boldLeft: Bool = false, highlight: Bool = false, subdued: Bool = false, unitSuffix: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(boldLeft ? .subheadline.bold() : .subheadline).foregroundColor(.white.opacity(0.75))
@@ -450,6 +454,7 @@ private struct ChartSectionView: View {
         }
     }
 
+    /// Формирует точки графика. Если переданы offsets (секунды от старта) — используем их.
     private func makePoints() -> [ChartPoint] {
         let start = Date()
         if let t = timeOffsets, !t.isEmpty {
@@ -481,6 +486,30 @@ private struct ChartSectionView: View {
         if i >= times.count { return times.count - 1 }
         let a = times[i - 1], b = times[i]
         return (abs(a - t.timeIntervalSinceReferenceDate) <= abs(b - t.timeIntervalSinceReferenceDate)) ? (i - 1) : i
+    }
+
+    // MARK: Time formatting
+    /// Форматирует общее время (из минут) в HH:mm
+    private func formatDuration(_ minutes: Int?) -> String {
+        guard let m = minutes, m > 0 else { return "—" }
+        let h = m / 60, mm = m % 60
+        return String(format: "%02d:%02d", h, mm)
+    }
+
+    /// Время в точке курсора относительно начала: mm:ss или HH:mm:ss
+    private func selectedElapsedTimeString() -> String? {
+        let pts = makePoints()
+        guard let idx = selectedIndex, pts.indices.contains(idx), let first = pts.first?.time else { return nil }
+        let sec = Int(max(0, pts[idx].time.timeIntervalSince(first)))
+        return formatElapsed(seconds: sec)
+    }
+
+    private func formatElapsed(seconds: Int) -> String {
+        let h = seconds / 3600
+        let m = (seconds % 3600) / 60
+        let s = seconds % 60
+        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
+        return String(format: "%02d:%02d", m, s)
     }
 }
 

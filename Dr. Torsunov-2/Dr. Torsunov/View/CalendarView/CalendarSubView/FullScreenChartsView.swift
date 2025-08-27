@@ -31,12 +31,28 @@ public struct FullScreenChartsView: View {
     /// Набор серий (например: ЧСС, Темп, Скорость и т.п.)
     let series: [ChartSeries]
 
-    /// Отформатированное имя X‑оси (время)
+    /// Отформатированное имя X-оси (абсолютное время, для второго ряда)
     let timeFormatter: Date.FormatStyle
 
     /// Локальное состояние курсора
     @State private var selectedTime: Date? = nil
     @State private var isDragging: Bool = false
+
+    // Вычисленные границы временного диапазона
+    private var startTime: Date {
+        series.flatMap { $0.points.map(\.time) }.min() ?? Date()
+    }
+    private var endTime: Date {
+        series.flatMap { $0.points.map(\.time) }.max() ?? Date()
+    }
+    private var totalDurationSeconds: Int {
+        max(0, Int(endTime.timeIntervalSince(startTime)))
+    }
+    private var totalHHmm: String {
+        let h = totalDurationSeconds / 3600
+        let m = (totalDurationSeconds % 3600) / 60
+        return String(format: "%02d:%02d", h, m)
+    }
 
     public init(
         series: [ChartSeries],
@@ -50,14 +66,28 @@ public struct FullScreenChartsView: View {
         NavigationStack {
             VStack(spacing: 12) {
                 // Краткая шапка выбранной точки
-                if let t = selectedTime {
-                    SelectionHeaderView(
-                        time: t,
-                        values: valuesAt(time: t),
-                        timeFormatter: timeFormatter
-                    )
-                    .padding(.horizontal)
+                HStack(alignment: .firstTextBaseline) {
+                    if let t = selectedTime {
+                        SelectionHeaderView(
+                            time: t,
+                            startTime: startTime,
+                            values: valuesAt(time: t),
+                            timeFormatter: timeFormatter
+                        )
+                    } else {
+                        // Ничего не выбрано — показываем только итог
+                        Text("Время").font(.footnote).foregroundStyle(.secondary)
+                        Text("—").font(.callout.monospacedDigit())
+                    }
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Text("Итого:")
+                            .font(.footnote).foregroundStyle(.secondary)
+                        Text(totalHHmm)
+                            .font(.callout.monospacedDigit())
+                    }
                 }
+                .padding(.horizontal)
 
                 // Основной чарт
                 Chart {
@@ -81,31 +111,31 @@ public struct FullScreenChartsView: View {
                         }
                     }
 
-                    // Вертикальная линия‑правило (курсор)
+                    // Вертикальная линия-правило (курсор)
                     if let t = selectedTime {
                         RuleMark(x: .value("Time", t))
                             .annotation(position: .top, alignment: .leading) {
-                                if let first = valuesAt(time: t).first {
-                                    Text(first.time.formatted(timeFormatter))
-                                        .font(.caption2)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(elapsedString(from: startTime, to: t))
+                                        .font(.caption2.monospacedDigit())
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
                                         .background(.ultraThinMaterial, in: Capsule())
+                                    Text(t.formatted(timeFormatter))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
                     }
                 }
                 .chartScrollableAxes(.horizontal)
-                .chartXScale(domain: globalTimeDomain())
+                .chartXScale(domain: startTime...endTime)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
                             isDragging = true
-                            if let t = resolveTime(atX: value.location.x, in: value) {
-                                selectedTime = t
-                            }
                         }
                         .onEnded { _ in
                             isDragging = false
@@ -127,6 +157,10 @@ public struct FullScreenChartsView: View {
                                     }
                                     .onEnded { _ in isDragging = false }
                             )
+                            .onAppear {
+                                // По умолчанию ставим курсор в конец
+                                selectedTime = endTime
+                            }
                     }
                 }
                 .padding(.horizontal)
@@ -135,28 +169,15 @@ public struct FullScreenChartsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .keyboardShortcut(.cancelAction)
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
+                        .keyboardShortcut(.cancelAction)
                 }
             }
         }
-        .statusBarHidden(true) // фуллскрин‑ощущение
+        .statusBarHidden(true) // фуллскрин-ощущение
     }
 
     // MARK: - Хелперы выборки
-
-    private func globalTimeDomain() -> ClosedRange<Date> {
-        let all = series.flatMap { $0.points.map(\.time) }
-        guard let minT = all.min(), let maxT = all.max(), minT < maxT else {
-            let now = Date()
-            return now.addingTimeInterval(-60)...now.addingTimeInterval(60)
-        }
-        return minT...maxT
-    }
 
     private func valuesAt(time: Date) -> [(name: String, value: Double, time: Date)] {
         series.compactMap { s in
@@ -190,10 +211,16 @@ public struct FullScreenChartsView: View {
         return abs(a.time.timeIntervalSince(t)) <= abs(b.time.timeIntervalSince(t)) ? a : b
     }
 
-    // Перевод координаты жеста в дату, для резервного жеста (если понадобится)
-    private func resolveTime(atX _: CGFloat, in _: DragGesture.Value) -> Date? {
-        // Основной путь — через chartOverlay/proxy, поэтому оставим как fallback
-        return selectedTime
+    // MARK: - Время: форматирование
+
+    /// Строка прошедшего времени от `start` до `to` как mm:ss / HH:mm:ss
+    private func elapsedString(from start: Date, to: Date) -> String {
+        let sec = max(0, Int(to.timeIntervalSince(start)))
+        let h = sec / 3600
+        let m = (sec % 3600) / 60
+        let s = sec % 60
+        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
+        return String(format: "%02d:%02d", m, s)
     }
 }
 
@@ -201,11 +228,17 @@ public struct FullScreenChartsView: View {
 
 fileprivate struct SelectionHeaderView: View {
     let time: Date
+    let startTime: Date
     let values: [(name: String, value: Double, time: Date)]
     let timeFormatter: Date.FormatStyle
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            // 1) Время по курсору как elapsed
+            Text(elapsedString(from: startTime, to: time))
+                .font(.headline.monospacedDigit())
+
+            // 2) Абсолютное время точкой
             Text(time.formatted(timeFormatter))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -214,8 +247,7 @@ fileprivate struct SelectionHeaderView: View {
             VStack(spacing: 8) {
                 ForEach(values, id: \.name) { item in
                     HStack {
-                        Text(item.name)
-                            .font(.callout)
+                        Text(item.name).font(.callout)
                         Spacer()
                         Text(Self.valueFormatter(item.value))
                             .font(.callout.monospacedDigit())
@@ -228,13 +260,18 @@ fileprivate struct SelectionHeaderView: View {
     }
 
     private static func valueFormatter(_ v: Double) -> String {
-        if abs(v) >= 1000 {
-            return String(format: "%.0f", v)
-        } else if abs(v) >= 100 {
-            return String(format: "%.1f", v)
-        } else {
-            return String(format: "%.2f", v)
-        }
+        if abs(v) >= 1000 { return String(format: "%.0f", v) }
+        if abs(v) >= 100  { return String(format: "%.1f", v) }
+        return String(format: "%.2f", v)
+    }
+
+    private func elapsedString(from start: Date, to: Date) -> String {
+        let sec = max(0, Int(to.timeIntervalSince(start)))
+        let h = sec / 3600
+        let m = (sec % 3600) / 60
+        let s = sec % 60
+        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
+        return String(format: "%02d:%02d", m, s)
     }
 }
 
@@ -258,6 +295,5 @@ fileprivate struct SelectionHeaderView: View {
             return ChartPoint(time: t, value: val)
         }
     )
-
     return FullScreenChartsView(series: [s1, s2])
 }
