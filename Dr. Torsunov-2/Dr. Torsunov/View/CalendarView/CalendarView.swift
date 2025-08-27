@@ -119,9 +119,11 @@ struct CalendarView: View {
                 },
                 itemsProvider: { date in
                     viewModel.items(on: date).map { $0 as CalendarGridDayContext }
-                }
+                },
+                selectedDate: selectedDay?.date   // ← добавили
             )
             .padding(.vertical)
+
         }
     }
 

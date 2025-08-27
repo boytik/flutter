@@ -7,10 +7,13 @@ struct CalendarGridView: View {
     let displayMonth: Date
     var onDayTap: ((Date) -> Void)? = nil
 
-    /// 🔹 Новый безопасный провайдер элементов дня (по умолчанию пусто, чтобы ничего не ломать)
+    /// безопасный провайдер элементов дня (по умолчанию пусто)
     var itemsProvider: (Date) -> [CalendarGridDayContext] = { _ in [] }
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 7)
+    /// выбранная дата — для зелёной рамки (как на референсе)
+    var selectedDate: Date? = nil
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
 
     private var isoCal: Calendar {
         var c = Calendar(identifier: .iso8601)
@@ -21,7 +24,7 @@ struct CalendarGridView: View {
 
     private var gridDays: [GridDay] {
         let cal = isoCal
-        // ⚠️ ВАЖНО: якоримся на явно переданный месяц (а не на первый элемент monthDates)
+        // якоримся на явно переданный месяц
         let anchor = displayMonth
 
         let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: anchor))!
@@ -54,7 +57,7 @@ struct CalendarGridView: View {
             cal.date(byAdding: .day, value: offset, to: nextStart)
         }
 
-        // Точки берём для всех дат видимого грида (оставляем для совместимости — не отображаем)
+        // точки берём для всех дат видимого грида (оставляем для совместимости — не отображаем)
         let dotsByDay: [Date: [Color]] = Dictionary(uniqueKeysWithValues:
             monthDates.map { let d = cal.startOfDay(for: $0.date); return (d, $0.dots) }
         )
@@ -72,40 +75,46 @@ struct CalendarGridView: View {
 
     var body: some View {
         VStack(spacing: 8) {
+            // ряд дней недели
             HStack {
                 ForEach(localizedWeekdaysISO(), id: \.self) { s in
                     Text(s.uppercased())
                         .font(.caption2.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.white.opacity(0.65))
                         .frame(maxWidth: .infinity)
                 }
             }
 
-            LazyVGrid(columns: columns, spacing: 10) {
+            LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(gridDays) { cell in
-                    let isToday = Calendar.current.isDateInToday(cell.date)
                     let startOfToday = isoCal.startOfDay(for: Date())
                     let isPast = isoCal.startOfDay(for: cell.date) < startOfToday
+
+                    let isSelected: Bool = {
+                        guard let s = selectedDate else { return false }
+                        return isoCal.isDate(s, inSameDayAs: cell.date)
+                    }()
 
                     Button {
                         onDayTap?(cell.date)
                     } label: {
-                        VStack(spacing: 8) {
+                        VStack(spacing: 6) {
                             Text("\(Calendar.current.component(.day, from: cell.date))")
-                                .font(.headline)
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(cell.isCurrentMonth ? .white : .white.opacity(0.45))
 
-                            // Маркеры тренировки для этого дня (вместо старых «точек»)
+                            // маркеры тренировки для этого дня (цветные пунктирные полоски)
                             CalendarGridMarkersLayer(items: itemsProvider(cell.date))
                         }
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(bgColor(isCurrentMonth: cell.isCurrentMonth, isToday: isToday, isPast: isPast))
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .background(bgColor(isCurrentMonth: cell.isCurrentMonth, isPast: isPast))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(isToday ? Color.green : Color.clear, lineWidth: 2)
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(isSelected ? Color.green : Color.white.opacity(0.10),
+                                        lineWidth: isSelected ? 2 : 1)
                         )
-                        .cornerRadius(10)
+                        .cornerRadius(12)
                     }
                     .buttonStyle(.plain)
                     .contentShape(Rectangle())
@@ -115,11 +124,11 @@ struct CalendarGridView: View {
         .padding(.horizontal)
     }
 
-    private func bgColor(isCurrentMonth: Bool, isToday: Bool, isPast: Bool) -> Color {
-        if !isCurrentMonth { return Color(.systemGray6).opacity(0.06) }
-        if isToday        { return Color(.systemGray6).opacity(0.22) }
-        if isPast         { return Color(.systemGray6).opacity(0.12) }
-        return Color(.systemGray6).opacity(0.16)
+    private func bgColor(isCurrentMonth: Bool, isPast: Bool) -> Color {
+        // темнее и ровнее, как на референсном скрине
+        if !isCurrentMonth { return Color.white.opacity(0.06) }
+        if isPast          { return Color.white.opacity(0.10) }
+        return Color.white.opacity(0.12)
     }
 }
 
@@ -156,4 +165,3 @@ private func localizedWeekdaysISO() -> [String] {
         return base.map { $0.capitalized }
     }
 }
-

@@ -1,164 +1,77 @@
 import SwiftUI
 
-/// Индикаторы тренировок для ячейки календаря:
-/// - цвет бара зависит от типа тренировки
-/// - количество делений = количество слоёв
-/// - выполненные помечаются бейджем (галочка)
+/// Отрисовывает цветные "пунктирные" полоски-индикаторы внутри ячейки календаря.
+/// Поддерживает до 4 строк. По умолчанию 6 сегментов на строку.
+/// Визуально соответствует референсу (скрин №2).
 public struct CalendarCellMarkersView: View {
-    // MARK: - Public API
 
+    /// Маркер одной строки (цвет линии).
     public struct Marker: Identifiable, Hashable {
         public let id = UUID()
-        public let workoutType: String           // например: "swim", "run", "bike" и т.п.
-        public let plannedLayers: Int            // сколько слоёв запланировано
-        public let doneLayers: Int?              // сколько слоёв выполнено (если nil — неизвестно)
-        public let isPlanned: Bool               // пометка «запланировано»
-        public let isDone: Bool                  // пометка «выполнено»
-
-        public init(
-            workoutType: String,
-            plannedLayers: Int,
-            doneLayers: Int? = nil,
-            isPlanned: Bool,
-            isDone: Bool
-        ) {
-            self.workoutType = workoutType
-            self.plannedLayers = max(1, plannedLayers)
-            self.doneLayers = doneLayers
-            self.isPlanned = isPlanned
-            self.isDone = isDone
-        }
+        public let color: Color
+        public init(color: Color) { self.color = color }
     }
 
-    public let markers: [Marker]
-    public let maxRows: Int
-    public let segmentHeight: CGFloat
-    public let cornerRadius: CGFloat
+    private let markers: [Marker]
+    private let linesPerRow: Int
+    private let segmentHeight: CGFloat
+    private let rowSpacing: CGFloat
+    private let segmentSpacing: CGFloat
+    private let cornerRadius: CGFloat
 
-    /// Создавайте вью с массивом маркеров за конкретный день
+    /// Основной инициализатор (через массив Marker)
     public init(
         markers: [Marker],
-        maxRows: Int = 3,
-        segmentHeight: CGFloat = 6,
-        cornerRadius: CGFloat = 3
+        linesPerRow: Int = 6,
+        segmentHeight: CGFloat = 3,
+        rowSpacing: CGFloat = 3,
+        segmentSpacing: CGFloat = 2,
+        cornerRadius: CGFloat = 2.5
     ) {
-        self.markers = markers
-        self.maxRows = maxRows
+        // максимум 4 строки, как на референсе
+        self.markers = Array(markers.prefix(4))
+        self.linesPerRow = max(3, min(8, linesPerRow))
         self.segmentHeight = segmentHeight
+        self.rowSpacing = rowSpacing
+        self.segmentSpacing = segmentSpacing
         self.cornerRadius = cornerRadius
     }
 
-    // MARK: - Body
+    /// Удобный инициализатор (если в проекте передаются только цвета)
+    public init(
+        colors: [Color],
+        linesPerRow: Int = 6,
+        segmentHeight: CGFloat = 3,
+        rowSpacing: CGFloat = 3,
+        segmentSpacing: CGFloat = 2,
+        cornerRadius: CGFloat = 2.5
+    ) {
+        self.init(
+            markers: colors.map { Marker(color: $0) },
+            linesPerRow: linesPerRow,
+            segmentHeight: segmentHeight,
+            rowSpacing: rowSpacing,
+            segmentSpacing: segmentSpacing,
+            cornerRadius: cornerRadius
+        )
+    }
 
     public var body: some View {
-        VStack(spacing: 3) {
-            let rows = Array(markers.prefix(maxRows))
-            ForEach(rows) { marker in
-                HStack(spacing: 4) {
-                    SegmentedBar(
-                        segments: marker.plannedLayers,
-                        // заполняем «выполненные» слои, если они известны
-                        filled: marker.doneLayers ?? (marker.isDone ? marker.plannedLayers : 0),
-                        color: color(for: marker.workoutType),
-                        height: segmentHeight,
-                        radius: cornerRadius
-                    )
-                    .frame(maxWidth: .infinity)
-
-                    if marker.isDone {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.green)
-                            .accessibilityLabel("Выполнено")
-                    } else if marker.isPlanned {
-                        Image(systemName: "clock")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel("Запланировано")
+        VStack(spacing: rowSpacing) {
+            ForEach(markers) { marker in
+                HStack(spacing: segmentSpacing) {
+                    ForEach(0..<linesPerRow, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .fill(marker.color)
+                            .frame(height: segmentHeight)
                     }
                 }
             }
-
-            // Если тренировок больше, чем maxRows — покажем компактный счётчик
-            if markers.count > maxRows {
-                Text("+\(markers.count - maxRows)")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
         }
-        .frame(maxWidth: .infinity, alignment: .top)
-        .accessibilityElement(children: .contain)
-    }
-
-    // MARK: - Color mapping
-
-    private func color(for workoutType: String) -> Color {
-        // Простая мапа по типам, синхронная подходу Flutter (тип -> цвет).
-        // При необходимости расширим, чтобы точно совпасть с вашей схемой.
-        switch workoutType.lowercased() {
-        case "swim", "swimming", "плавание":
-            return .teal
-        case "run", "running", "бег":
-            return .red
-        case "bike", "cycling", "велосипед", "велотренировка":
-            return .orange
-        case "strength", "силовая":
-            return .blue
-        case "yoga", "йога", "stretch":
-            return .purple
-        case "walk", "ходьба":
-            return .green
-        default:
-            return .gray
-        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .accessibilityHidden(true)
     }
 }
 
-// MARK: - Segmented bar
-
-fileprivate struct SegmentedBar: View {
-    let segments: Int
-    let filled: Int
-    let color: Color
-    let height: CGFloat
-    let radius: CGFloat
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(0..<segments, id: \.self) { i in
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(i < filled ? color.opacity(0.95) : color.opacity(0.35))
-                    .frame(height: height)
-            }
-        }
-    }
-}
-
-// MARK: - Preview
-
-#Preview {
-    VStack(alignment: .leading, spacing: 12) {
-        Text("Ячейка календаря — демо")
-            .font(.headline)
-
-        CalendarCellMarkersView(markers: [
-            .init(workoutType: "swim", plannedLayers: 4, doneLayers: 2, isPlanned: true, isDone: false),
-            .init(workoutType: "run", plannedLayers: 3, doneLayers: 3, isPlanned: true, isDone: true),
-            .init(workoutType: "bike", plannedLayers: 2, isPlanned: true, isDone: false)
-        ])
-
-        Divider()
-
-        CalendarCellMarkersView(
-            markers: [
-                .init(workoutType: "swim", plannedLayers: 5, doneLayers: 5, isPlanned: true, isDone: true),
-                .init(workoutType: "run", plannedLayers: 4, isPlanned: true, isDone: false),
-                .init(workoutType: "strength", plannedLayers: 2, isPlanned: true, isDone: false),
-                .init(workoutType: "yoga", plannedLayers: 3, isPlanned: true, isDone: false)
-            ],
-            maxRows: 3
-        )
-    }
-    .padding()
-    .frame(width: 220)
-}
+// На случай, если где-то в коде использовался старый псевдоним
+public typealias CalendarCellMarker = CalendarCellMarkersView.Marker
