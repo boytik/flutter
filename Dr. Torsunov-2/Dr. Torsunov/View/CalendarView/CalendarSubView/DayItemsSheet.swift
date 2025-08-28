@@ -6,6 +6,16 @@ struct DayItemsSheet: View {
     let role: PersonalViewModel.Role
     let thumbProvider: (CalendarItem) -> URL?
 
+    // Завершённые (Activity) выше, внутри групп — по времени
+    private var sortedItems: [CalendarItem] {
+        items.sorted { a, b in
+            let ca = isCompleted(a)
+            let cb = isCompleted(b)
+            if ca != cb { return ca && !cb }
+            return a.date < b.date
+        }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
@@ -22,7 +32,7 @@ struct DayItemsSheet: View {
 
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(items, id: \.id) { item in
+                        ForEach(sortedItems, id: \.id) { item in
                             NavigationLink {
                                 destination(for: item).background(Color.black.ignoresSafeArea())
                             } label: {
@@ -56,10 +66,9 @@ struct DayItemsSheet: View {
     // MARK: - Row
 
     private func row(for item: CalendarItem) -> some View {
-        // быстрая диагностика
-        // print("DBG name=\(item.name) type=\(item.asWorkout?.activityType ?? "nil")")
+        let completed = isCompleted(item)
 
-        HStack(spacing: 12) {
+        return HStack(spacing: 12) {
             iconView(for: item)
                 .frame(width: 48, height: 48)
 
@@ -87,8 +96,17 @@ struct DayItemsSheet: View {
             }
         }
         .padding(14)
-        .background(Color.white.opacity(0.06))
+        // completed → фон чуть светлее, как на скрине Flutter
+        .background(Color.white.opacity(completed ? 0.10 : 0.06))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    // MARK: - Completed flag
+
+    /// Завершённая тренировка — это Activity (как во Flutter).
+    /// Если в будущем появится флаг в Workout (isCompleted), добавим сюда.
+    private func isCompleted(_ item: CalendarItem) -> Bool {
+        return item.asActivity != nil
     }
 
     // MARK: - Titles (EN, как во Flutter)
@@ -98,7 +116,6 @@ struct DayItemsSheet: View {
            let en = enName(for: canonicalType(raw)) {
             return en
         }
-        // если тип не пришёл — оставляем имя, иначе пробуем угадать по имени
         let fallback = enName(for: canonicalType(inferType(from: item.name)))
         return fallback ?? item.name
     }
@@ -119,7 +136,6 @@ struct DayItemsSheet: View {
     }
 
     private func enName(for type: String) -> String? {
-        // канонические ключи
         let map: [String: String] = [
             "swim":"Swim",
             "water":"Water",
@@ -136,7 +152,7 @@ struct DayItemsSheet: View {
         return map[type]
     }
 
-    // MARK: - Icons (assets → SF Symbols → default)
+    // MARK: - Icons  (assets → SF Symbols → default)
 
     @ViewBuilder
     private func iconView(for item: CalendarItem) -> some View {
@@ -148,7 +164,6 @@ struct DayItemsSheet: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         } else {
-            // тип: activityType → canonical, иначе infer → canonical
             let baseType = item.asWorkout?.activityType?.lowercased()
                 ?? inferType(from: item.name)
             let t = canonicalType(baseType)
@@ -167,7 +182,7 @@ struct DayItemsSheet: View {
         case "yoga":       return "ic_workout_yoga"
         case "run":        return "ic_workout_run"
         case "walk":       return "ic_workout_walk"
-        case "run_walk":   return "ic_workout_run"   // объединяем как во Flutter
+        case "run_walk":   return "ic_workout_run"
         case "bike":       return "ic_workout_bike"
         case "swim":       return "ic_workout_swim"
         case "water":      return "ic_workout_water"
@@ -180,8 +195,6 @@ struct DayItemsSheet: View {
 
     // MARK: - Normalization & inference
 
-    /// Приводим тип к каноническому ключу, чтобы ловить варианты:
-    /// "walking/running", "walk_run", "RUN-WALK", "runningWalking", и т.п.
     private func canonicalType(_ raw: String) -> String {
         let s = raw
             .lowercased()
@@ -189,7 +202,6 @@ struct DayItemsSheet: View {
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: " ", with: "_")
 
-        // run+walk комбо
         if (s.contains("run") || s.contains("running")) &&
            (s.contains("walk") || s.contains("walking")) { return "run_walk" }
 
@@ -206,7 +218,6 @@ struct DayItemsSheet: View {
         return s
     }
 
-    /// Если типа нет — пытаемся угадать его из имени (EN/RU).
     private func inferType(from name: String) -> String {
         let s = name.lowercased()
         if (s.contains("run") || s.contains("бег")) &&
@@ -231,7 +242,7 @@ struct DayItemsSheet: View {
         case "yoga": return "figure.mind.and.body"
         case "run":  return "figure.run"
         case "walk": return "figure.walk"
-        case "run_walk": return "figure.run" // единая иконка, как в Flutter
+        case "run_walk": return "figure.run"
         case "bike": return "bicycle"
         case "swim", "water": return "drop.fill"
         case "strength":
