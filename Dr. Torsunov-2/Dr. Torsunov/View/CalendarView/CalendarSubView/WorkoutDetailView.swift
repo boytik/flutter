@@ -51,7 +51,6 @@ struct WorkoutDetailView: View {
                         plannedCard
                     }
                 } else {
-                    // На всякий случай оставили «графики/на проверку» если сюда попадёт Activity
                     Picker("", selection: $tab) {
                         Text(Tab.charts.rawValue).tag(Tab.charts)
                         if role == .user { Text(Tab.review.rawValue).tag(Tab.review) }
@@ -68,15 +67,19 @@ struct WorkoutDetailView: View {
         .background(Color.black.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await loadPlannedInfo()     // для Workout всегда грузим план
-            if !isPlanned { await vm.load() } // подстраховка на случай Activity
+            await loadPlannedInfo()              // для Workout всегда грузим план
+            if !isPlanned {                      // если вдруг это Activity — грузим метрики
+                await vm.load()
+                #if DEBUG
+                await MainActor.run { debugListVMSets(vm) }
+                #endif
+            }
         }
         .sheet(isPresented: $showBeforePicker) { ImagePicker(image: $beforeImage) }
         .sheet(isPresented: $showAfterPicker) { ImagePicker(image: $afterImage) }
     }
 
     // MARK: - Header (иконка/имя как в DayItemsSheet)
-
     private var header: some View {
         HStack(spacing: 12) {
             headerIcon(for: item)
@@ -96,8 +99,7 @@ struct WorkoutDetailView: View {
 
     @State private var syncEnabled = false
 
-    // MARK: - Charts (оставлено — может понадобиться для Activity)
-
+    // MARK: - Charts (оставлено для done-активностей)
     private var chartsSection: some View {
         VStack(alignment: .leading, spacing: 18) {
             if vm.isLoading { ProgressView().tint(.white) }
@@ -173,7 +175,6 @@ struct WorkoutDetailView: View {
     }
 
     // MARK: - Review (оставлено)
-
     private var reviewSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             PhotoPickRow(
@@ -232,7 +233,6 @@ struct WorkoutDetailView: View {
     }
 
     // MARK: - Planned info (для карточки будущей тренировки)
-
     private func loadPlannedInfo() async {
         plannedIsLoading = true
         defer { plannedIsLoading = false }
@@ -267,7 +267,6 @@ struct WorkoutDetailView: View {
     }
 
     // MARK: - ПЛАН — карточка (как во Flutter)
-
     private var plannedCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -328,8 +327,6 @@ struct WorkoutDetailView: View {
             )
         }
     }
-
-
 
     @ViewBuilder
     private var plannedLayersRow: some View {
@@ -440,7 +437,6 @@ struct WorkoutDetailView: View {
         .frame(minWidth: 72) // фиксируем ширину, чтобы не ломались подписи
     }
 
-
     private func smallTypeIcon(_ type: String) -> some View {
         let system = (type == "water") ? "drop.fill" : "flame.fill"
         let bg: Color = (type == "water") ? .blue : .red
@@ -488,7 +484,6 @@ struct WorkoutDetailView: View {
     }
 
     // MARK: - Header icon & title helpers (паритет с DayItemsSheet)
-
     @ViewBuilder
     private func headerIcon(for item: CalendarItem) -> some View {
         let baseType = item.asWorkout?.activityType?.lowercased()
@@ -515,34 +510,27 @@ struct WorkoutDetailView: View {
 
     private func enName(for type: String) -> String? {
         let map: [String: String] = [
-            "swim":"Swim",
-            "water":"Water",
-            "bike":"Cycling",
-            "run":"Run",
-            "walk":"Walk",
-            "run_walk":"Run/Walk",
-            "yoga":"Yoga",
-            "strength":"Strength",
-            "sauna":"Sauna",
-            "fasting":"Fasting",
-            "triathlon":"Triathlon"
+            "swim":"Swim","water":"Water","bike":"Cycling",
+            "run":"Run","walk":"Walk","run_walk":"Run/Walk",
+            "yoga":"Yoga","strength":"Strength","sauna":"Sauna",
+            "fasting":"Fasting","triathlon":"Triathlon"
         ]
         return map[type]
     }
 
     private func iconAssetName(for type: String) -> String? {
         switch type {
-        case "yoga":       return "ic_workout_yoga"
-        case "run":        return "ic_workout_run"
-        case "walk":       return "ic_workout_walk"
-        case "run_walk":   return "ic_workout_run"
-        case "bike":       return "ic_workout_bike"
-        case "swim":       return "ic_workout_swim"
-        case "water":      return "ic_workout_water"
-        case "strength":   return "ic_workout_strength"
-        case "sauna":      return "ic_workout_sauna"
-        case "fasting":    return "ic_workout_fast"
-        default:           return nil
+        case "yoga": return "ic_workout_yoga"
+        case "run": return "ic_workout_run"
+        case "walk": return "ic_workout_walk"
+        case "run_walk": return "ic_workout_run"
+        case "bike": return "ic_workout_bike"
+        case "swim": return "ic_workout_swim"
+        case "water": return "ic_workout_water"
+        case "strength": return "ic_workout_strength"
+        case "sauna": return "ic_workout_sauna"
+        case "fasting": return "ic_workout_fast"
+        default: return nil
         }
     }
 
@@ -618,7 +606,6 @@ struct WorkoutDetailView: View {
     }
 
     // MARK: - Icon circles
-
     private func circleIcon(system: String, bg: Color) -> some View {
         ZStack {
             Circle().fill(bg.opacity(0.18))
@@ -1000,8 +987,8 @@ private struct PlannedInfo {
     }
 }
 
-
 // MARK: - Small view helpers
 private func sectionTitle(_ text: String) -> some View {
     Text(text).font(.headline).foregroundColor(.white)
 }
+
