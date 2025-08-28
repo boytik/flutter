@@ -91,17 +91,14 @@ print("subLayerProgressText:", vm.subLayerProgressText as Any)
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    // MARK: Header
+    // MARK: Header (иконка/имя — как в WorkoutDetailView)
     private var headerSection: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(Color.green.opacity(0.2))
-                Text("✅").font(.title2)
-            }
-            .frame(width: 44, height: 44)
+            headerIcon(for: activity)
+                .frame(width: 44, height: 44)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(activity.name ?? "Activity")
+                Text(titleEN(for: activity))
                     .font(.headline)
                     .foregroundColor(.white)
 
@@ -240,6 +237,150 @@ print("subLayerProgressText:", vm.subLayerProgressText as Any)
         }
         return nil
     }
+
+    // MARK: - Icon & title helpers (паритет с WorkoutDetailView)
+
+    @ViewBuilder
+    private func headerIcon(for activity: Activity) -> some View {
+        // Источник типа — пробуем вытащить из имени/описания
+        let base = ((activity.name ?? "") + " " + (activity.description ?? "")).trimmingCharacters(in: .whitespacesAndNewlines)
+        let t = canonicalType(inferType(from: base))
+
+        if let asset = iconAssetName(for: t), UIImage(named: asset) != nil {
+            circleIcon(image: Image(asset), bg: colorByType(t))
+        } else {
+            circleIcon(system: glyphSymbolByType(t), bg: colorByType(t))
+        }
+    }
+
+    private func titleEN(for activity: Activity) -> String {
+        let base = ((activity.name ?? "") + " " + (activity.description ?? "")).trimmingCharacters(in: .whitespacesAndNewlines)
+        let t = canonicalType(inferType(from: base))
+        return enName(for: t) ?? (activity.name ?? "Activity")
+    }
+
+    private func enName(for type: String) -> String? {
+        let map: [String: String] = [
+            "swim":"Swim",
+            "water":"Water",
+            "bike":"Cycling",
+            "run":"Run",
+            "walk":"Walk",
+            "run_walk":"Run/Walk",
+            "yoga":"Yoga",
+            "strength":"Strength",
+            "sauna":"Sauna",
+            "fasting":"Fasting",
+            "triathlon":"Triathlon"
+        ]
+        return map[type]
+    }
+
+    private func iconAssetName(for type: String) -> String? {
+        switch type {
+        case "yoga":       return "ic_workout_yoga"
+        case "run":        return "ic_workout_run"
+        case "walk":       return "ic_workout_walk"
+        case "run_walk":   return "ic_workout_run"
+        case "bike":       return "ic_workout_bike"
+        case "swim":       return "ic_workout_swim"
+        case "water":      return "ic_workout_water"
+        case "strength":   return "ic_workout_strength"
+        case "sauna":      return "ic_workout_sauna"
+        case "fasting":    return "ic_workout_fast"
+        default:           return nil
+        }
+    }
+
+    private func glyphSymbolByType(_ type: String) -> String {
+        switch type {
+        case "yoga": return "figure.mind.and.body"
+        case "run":  return "figure.run"
+        case "walk": return "figure.walk"
+        case "run_walk": return "figure.run"
+        case "bike": return "bicycle"
+        case "swim", "water": return "drop.fill"
+        case "strength":
+            if #available(iOS 16.0, *) { return "dumbbell.fill" } else { return "bolt.heart" }
+        case "sauna": return "flame.fill"
+        case "fasting": return "fork.knife"
+        default: return "checkmark.seal.fill"
+        }
+    }
+
+    private func colorByType(_ type: String) -> Color {
+        switch type {
+        case "yoga": return .purple
+        case "run": return .pink
+        case "walk": return .orange
+        case "run_walk": return .pink
+        case "bike": return .mint
+        case "swim", "water": return .blue
+        case "strength": return .green
+        case "sauna": return .red
+        case "fasting": return .yellow
+        default: return .gray
+        }
+    }
+
+    private func canonicalType(_ raw: String) -> String {
+        let s = raw
+            .lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: " ", with: "_")
+
+        if (s.contains("run") || s.contains("running")) &&
+            (s.contains("walk") || s.contains("walking")) { return "run_walk" }
+
+        if s.contains("swim")       { return "swim" }
+        if s.contains("water")      { return "water" }
+        if s.contains("bike") || s.contains("cycl") { return "bike" }
+        if s.contains("running") || s == "run"      { return "run" }
+        if s.contains("walking") || s == "walk"     { return "walk" }
+        if s.contains("yoga")       { return "yoga" }
+        if s.contains("strength") || s.contains("gym") { return "strength" }
+        if s.contains("sauna")      { return "sauna" }
+        if s.contains("fast") || s.contains("fasting") || s.contains("active") { return "fasting" }
+        if s.contains("triathlon")  { return "triathlon" }
+        return s
+    }
+
+    private func inferType(from name: String) -> String {
+        let s = name.lowercased()
+        if (s.contains("run") || s.contains("бег")) &&
+           (s.contains("walk") || s.contains("ходь")) { return "run_walk" }
+        if s.contains("yoga") || s.contains("йога") { return "yoga" }
+        if s.contains("run") || s.contains("бег") { return "run" }
+        if s.contains("walk") || s.contains("ходь") { return "walk" }
+        if s.contains("bike") || s.contains("velo") || s.contains("вел") || s.contains("cycl") { return "bike" }
+        if s.contains("swim") || s.contains("плав") { return "swim" }
+        if s.contains("water") || s.contains("вода") { return "water" }
+        if s.contains("sauna") || s.contains("сауна") { return "sauna" }
+        if s.contains("fast") || s.contains("пост") || s.contains("active") { return "fasting" }
+        if s.contains("strength") || s.contains("силов") || s.contains("gym") { return "strength" }
+        if s.contains("triathlon") { return "triathlon" }
+        return ""
+    }
+
+    // кружки-иконки
+    private func circleIcon(system: String, bg: Color) -> some View {
+        ZStack {
+            Circle().fill(bg.opacity(0.18))
+            Circle().stroke(bg.opacity(0.35), lineWidth: 1)
+            Image(systemName: system)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(bg)
+        }
+    }
+
+    private func circleIcon(image: Image, bg: Color) -> some View {
+        ZStack {
+            Circle().fill(bg.opacity(0.18))
+            Circle().stroke(bg.opacity(0.35), lineWidth: 1)
+            image.resizable().scaledToFit().padding(8)
+        }
+    }
 }
 
 // === Локальные хелперы для выбора фото (user) ===
@@ -342,13 +483,8 @@ private struct ChartSectionView: View {
     let seriesName: String
 
     let values: [Double]
-    /// секунды от старта (если окажется unix, замените на Date(timeIntervalSince1970:))
-    let timeOffsets: [Double]?
-
-    /// Время тренировки общее (мин)
-    let totalMinutes: Int?
-
-    /// слой/подслой (и формат 6/7)
+    let timeOffsets: [Double]?      // секунды от старта
+    let totalMinutes: Int?          // общее время (мин)
     let layer: Int?
     let subLayer: Int?
     let subLayerProgress: String?
@@ -383,7 +519,6 @@ private struct ChartSectionView: View {
         }
     }
 
-    // MARK: Header with dynamic time
     private var metricsHeader: some View {
         let i = selectedIndex ?? (values.indices.last ?? 0)
         let val = valueString(at: i)
@@ -435,7 +570,6 @@ private struct ChartSectionView: View {
                                 }
                             }
                             .onEnded { _ in
-                                // оставить выбранной последнюю позицию; убрать — раскомментируй строку ниже
                                 // selectedIndex = nil
                             }
                     )
@@ -443,7 +577,7 @@ private struct ChartSectionView: View {
         }
     }
 
-    // MARK: Helpers
+    // Helpers
     private func metric(_ title: String, _ value: String, boldLeft: Bool = false, highlight: Bool = false, subdued: Bool = false, unitSuffix: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(boldLeft ? .subheadline.bold() : .subheadline).foregroundColor(.white.opacity(0.75))
@@ -454,7 +588,6 @@ private struct ChartSectionView: View {
         }
     }
 
-    /// Формирует точки графика. Если переданы offsets (секунды от старта) — используем их.
     private func makePoints() -> [ChartPoint] {
         let start = Date()
         if let t = timeOffsets, !t.isEmpty {
@@ -488,15 +621,12 @@ private struct ChartSectionView: View {
         return (abs(a - t.timeIntervalSinceReferenceDate) <= abs(b - t.timeIntervalSinceReferenceDate)) ? (i - 1) : i
     }
 
-    // MARK: Time formatting
-    /// Форматирует общее время (из минут) в HH:mm
     private func formatDuration(_ minutes: Int?) -> String {
         guard let m = minutes, m > 0 else { return "—" }
         let h = m / 60, mm = m % 60
         return String(format: "%02d:%02d", h, mm)
     }
 
-    /// Время в точке курсора относительно начала: mm:ss или HH:mm:ss
     private func selectedElapsedTimeString() -> String? {
         let pts = makePoints()
         guard let idx = selectedIndex, pts.indices.contains(idx), let first = pts.first?.time else { return nil }
