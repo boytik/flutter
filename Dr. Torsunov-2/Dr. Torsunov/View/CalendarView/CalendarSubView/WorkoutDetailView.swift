@@ -24,7 +24,9 @@ struct WorkoutDetailView: View {
 
     @StateObject private var vm: WorkoutDetailViewModel
 
-    private var isFuture: Bool { item.date > Date() }
+    /// Как во Flutter: запланированность определяем по типу сущности (Workout), а не по дате
+    private var isPlanned: Bool { item.asActivity == nil }
+
     @State private var planned: PlannedInfo?
     @State private var plannedIsLoading = false
 
@@ -42,13 +44,14 @@ struct WorkoutDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
 
-                if isFuture {
+                if isPlanned {
                     if plannedIsLoading {
                         ProgressView().tint(.white)
                     } else {
                         plannedCard
                     }
                 } else {
+                    // На всякий случай оставили «графики/на проверку» если сюда попадёт Activity
                     Picker("", selection: $tab) {
                         Text(Tab.charts.rawValue).tag(Tab.charts)
                         if role == .user { Text(Tab.review.rawValue).tag(Tab.review) }
@@ -65,17 +68,15 @@ struct WorkoutDetailView: View {
         .background(Color.black.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            if isFuture {
-                await loadPlannedInfo()
-            } else {
-                await vm.load()
-            }
+            await loadPlannedInfo()     // для Workout всегда грузим план
+            if !isPlanned { await vm.load() } // подстраховка на случай Activity
         }
         .sheet(isPresented: $showBeforePicker) { ImagePicker(image: $beforeImage) }
         .sheet(isPresented: $showAfterPicker) { ImagePicker(image: $afterImage) }
     }
 
-    // MARK: - Header (иконка и имя — как в DayItemsSheet)
+    // MARK: - Header (иконка/имя как в DayItemsSheet)
+
     private var header: some View {
         HStack(spacing: 12) {
             headerIcon(for: item)
@@ -95,7 +96,8 @@ struct WorkoutDetailView: View {
 
     @State private var syncEnabled = false
 
-    // MARK: - Charts (Flutter-like)
+    // MARK: - Charts (оставлено — может понадобиться для Activity)
+
     private var chartsSection: some View {
         VStack(alignment: .leading, spacing: 18) {
             if vm.isLoading { ProgressView().tint(.white) }
@@ -170,7 +172,8 @@ struct WorkoutDetailView: View {
         }
     }
 
-    // MARK: - Review
+    // MARK: - Review (оставлено)
+
     private var reviewSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             PhotoPickRow(
@@ -229,6 +232,7 @@ struct WorkoutDetailView: View {
     }
 
     // MARK: - Planned info (для карточки будущей тренировки)
+
     private func loadPlannedInfo() async {
         plannedIsLoading = true
         defer { plannedIsLoading = false }
@@ -255,20 +259,29 @@ struct WorkoutDetailView: View {
         return f.string(from: d)
     }
 
+    // тип текущей тренировки (нормализованный)
+    private var currentType: String {
+        let raw = item.asWorkout?.activityType?.lowercased()
+            ?? inferType(from: item.asWorkout?.name ?? item.name)
+        return canonicalType(raw)
+    }
+
+    // MARK: - ПЛАН — карточка (как во Flutter)
+
     private var plannedCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(titleEN(for: item))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(Color.white.opacity(0.1))
                     .clipShape(Capsule())
                 Spacer()
             }
 
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 plannedRow(icon: "calendar",
                            title: "Запланированная дата тренировки:",
                            value: formattedPlannedDate(item.date))
@@ -277,20 +290,174 @@ struct WorkoutDetailView: View {
                            title: "Длительность:",
                            value: planned?.durationText ?? "—")
 
-                plannedRow(icon: "square.grid.3x3",
-                           title: "Количество слоёв:",
-                           value: planned?.layersText ?? "—")
+                // ✅ как во Flutter — показываем, если пришло rest_days_after
+                if let after = planned?.restDaysAfter {
+                    plannedRow(icon: "calendar.badge.clock",
+                               title: "Дни отдыха после:",
+                               value: "\(after)")
+                }
+
+                // (опционально) просто дни отдыха, если есть поле
+                if let rd = planned?.restDays {
+                    plannedRow(icon: "bed.double.fill",
+                               title: "Дни отдыха:",
+                               value: "\(rd)")
+                }
+
+                // (опционально) тип поста/голодания, если есть
+                if let ft = planned?.fastingType, !ft.isEmpty {
+                    plannedRow(icon: "fork.knife",
+                               title: "Тип поста:",
+                               value: ft)
+                }
+
+                plannedLayersRow
+
+                if shouldShowProtocolBox {
+                    protocolBox
+                }
             }
-            .padding(16)
+            .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
                     .background(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(Color.white.opacity(0.04))
                     )
             )
         }
+    }
+
+
+
+    @ViewBuilder
+    private var plannedLayersRow: some View {
+        let t = currentType
+        if t == "water", let arr = planned?.swimLayers, !arr.isEmpty {
+            // Вода — показываем массив "1: 5  2: 1 ..."
+            let str = arr.enumerated().map { "\($0.offset + 1): \($0.element)" }
+                .joined(separator: "  ")
+            plannedRow(icon: "square.grid.3x3",
+                       title: "Количество слоёв:",
+                       value: str)
+        } else if let l = planned?.layers {
+            plannedRow(icon: "square.grid.3x3",
+                       title: "Количество слоёв:",
+                       value: "\(l)")
+        } else {
+            plannedRow(icon: "square.grid.3x3",
+                       title: "Количество слоёв:",
+                       value: "—")
+        }
+    }
+
+    // Показываем протокол только для бани и если есть водные слои
+    private var shouldShowProtocolBox: Bool {
+        currentType == "sauna" && (planned?.swimLayers?.isEmpty == false) && planned?.layers != nil
+    }
+
+    @ViewBuilder
+    private var protocolBox: some View {
+        let water1 = planned?.swimLayers?.first ?? 0
+        let saunaL = planned?.layers ?? 0
+        let water2 = planned?.swimLayers?.dropFirst().first ?? 0
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Протокол:")
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.7))
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Комплекс процедур*")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+
+                // горизонтальная лента, чтобы ничего не переносилось и не растягивало экран
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        if water1 > 0 { protocolStep(type: "water", count: water1) }
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.white.opacity(0.6))
+                        protocolStep(type: "sauna", count: saunaL)
+                        if water2 > 0 {
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.white.opacity(0.6))
+                            protocolStep(type: "water", count: water2)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                }
+
+                Text("*Последовательное выполнение процедур в течение дня с указанным количеством слоёв")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.white.opacity(0.04))
+                    )
+            )
+        }
+    }
+
+    private func protocolStep(type: String, count: Int) -> some View {
+        VStack(spacing: 6) {
+            smallTypeIcon(type)
+                .frame(width: 34, height: 34)
+
+            Text(type == "water" ? "Вода" : "Баня")
+                .font(.caption)
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+
+                VStack(spacing: 0) {
+                    Text("\(count)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.white)
+                    Text(pluralLayers(count))
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding(.vertical, 6)
+            }
+            .frame(width: 66, height: 40)
+        }
+        .frame(minWidth: 72) // фиксируем ширину, чтобы не ломались подписи
+    }
+
+
+    private func smallTypeIcon(_ type: String) -> some View {
+        let system = (type == "water") ? "drop.fill" : "flame.fill"
+        let bg: Color = (type == "water") ? .blue : .red
+        return ZStack {
+            Circle().fill(bg.opacity(0.18))
+            Circle().stroke(bg.opacity(0.35), lineWidth: 1)
+            Image(systemName: system)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(bg)
+        }
+    }
+
+    private func pluralLayers(_ n: Int) -> String {
+        if n == 1 { return "Слой" }
+        let d = n % 10, h = n % 100
+        if (2...4).contains(d) && !(11...14).contains(h) { return "Слоя" }
+        return "Слоёв"
     }
 
     private func plannedRow(icon: String, title: String, value: String) -> some View {
@@ -320,7 +487,7 @@ struct WorkoutDetailView: View {
         return s.prefix(1).uppercased() + s.dropFirst()
     }
 
-    // MARK: - Header icon & title helpers (как в DayItemsSheet)
+    // MARK: - Header icon & title helpers (паритет с DayItemsSheet)
 
     @ViewBuilder
     private func headerIcon(for item: CalendarItem) -> some View {
@@ -759,6 +926,11 @@ private struct PlannedInfo {
     let swimLayers: [Int]?
     let breakDuration: Int?
     let breaks: Int?
+
+    // ⬇️ Новые поля как во Flutter
+    let restDaysAfter: Int?
+    let restDays: Int?
+    let fastingType: String?
     let type: String?
     let protocolName: String?
 
@@ -789,6 +961,11 @@ private struct PlannedInfo {
         let type: String?
         let `protocol`: String?
 
+        // ⬇️ Новые поля из Flutter-модели
+        let restDaysAfter: Int?   // JSON: rest_days_after
+        let restDays: Int?        // JSON: rest_days
+        let fastingType: String?  // JSON: fasting_type
+
         enum CodingKeys: String, CodingKey {
             case workoutUuid       = "workout_uuid"
             case date
@@ -800,6 +977,9 @@ private struct PlannedInfo {
             case swimLayers        = "swim_layers"
             case type
             case `protocol`
+            case restDaysAfter     = "rest_days_after"
+            case restDays          = "rest_days"
+            case fastingType       = "fasting_type"
         }
     }
 
@@ -812,8 +992,14 @@ private struct PlannedInfo {
         self.swimLayers = dto.swimLayers
         self.type = dto.type
         self.protocolName = dto.`protocol`
+
+        // ⬇️ Новые поля
+        self.restDaysAfter = dto.restDaysAfter
+        self.restDays = dto.restDays
+        self.fastingType = dto.fastingType
     }
 }
+
 
 // MARK: - Small view helpers
 private func sectionTitle(_ text: String) -> some View {
