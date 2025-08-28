@@ -16,7 +16,7 @@ public struct CalendarGridMarkersAdapter {
         items.map { item in
             return CalendarCellMarkersView.Marker(
                 workoutType: item.workoutTypeKey,
-                isSolid: item.isDone   // done = сплошная, planned = пунктир
+                isSolid: item.isDone   
             )
         }
     }

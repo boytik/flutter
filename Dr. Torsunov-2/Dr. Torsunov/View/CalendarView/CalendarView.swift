@@ -1,4 +1,3 @@
-
 import SwiftUI
 import Foundation
 
@@ -13,7 +12,6 @@ struct CalendarView: View {
     @State private var refreshToken: Int = 0
     @State private var didDebugPrintSamples = false
 
-
     private var currentRole: PersonalViewModel.Role {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
     }
@@ -21,18 +19,32 @@ struct CalendarView: View {
     private var taskKey: String { "\(storedRoleRaw)_\(refreshToken)" }
 
     var body: some View {
-        Group {
-            if #available(iOS 16.0, *) {
-                NavigationStack { contentView }
-                    .toolbar(.hidden, for: .navigationBar)
-            } else {
-                NavigationView {
-                    contentView
-                        .navigationBarTitle("")
-                        .navigationBarHidden(true)
+        ZStack {
+            Group {
+                if #available(iOS 16.0, *) {
+                    NavigationStack { contentView }
+                        .toolbar(.hidden, for: .navigationBar)
+                } else {
+                    NavigationView {
+                        contentView
+                            .navigationBarTitle("")
+                            .navigationBarHidden(true)
+                    }
                 }
             }
+            // 🔄 Единый оверлей загрузки, независимо от роли и режима
+            if viewModel.isLoading {
+                ZStack {
+                    Color.black.opacity(0.35).ignoresSafeArea()
+                    ProgressView()
+                        .scaleEffect(1.2)
+                        .tint(.green)
+                        .accessibilityLabel(Text("Загрузка"))
+                }
+                .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isLoading)
         .task(id: taskKey) {
             await viewModel.reload(role: currentRole)
         }
@@ -83,6 +95,8 @@ struct CalendarView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.ignoresSafeArea())
+        // при желании можно заблокировать жесты во время загрузки:
+        // .allowsHitTesting(!viewModel.isLoading)
     }
 
     private var modePicker: some View {
@@ -131,7 +145,6 @@ struct CalendarView: View {
                         }
                         didDebugPrintSamples = true
                     }
-
                     selectedDay = IdentDate(tapped)
                 },
                 itemsProvider: { date in
@@ -139,24 +152,9 @@ struct CalendarView: View {
                 },
                 selectedDate: selectedDay?.date
             )
-//            CalendarGridView(
-//                monthDates: viewModel.monthDates,
-//                displayMonth: viewModel.currentMonthDate,
-//                onDayTap: { tapped in
-//                    selectedDay = IdentDate(tapped)
-//                },
-//                itemsProvider: { date in
-//                    viewModel.items(on: date).map { $0 as CalendarGridDayContext }
-//                },
-//                selectedDate: selectedDay?.date   // ← добавили
-//            )
             .padding(.vertical)
-
         }
     }
-
-
-
 
     private var historyHeader: some View {
         HStack {

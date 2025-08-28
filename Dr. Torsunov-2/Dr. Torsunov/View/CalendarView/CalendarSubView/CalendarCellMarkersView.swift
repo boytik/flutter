@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// Полоски-индикаторы в ячейке календаря.
-/// Цвет определяется по `workoutType` (как было изначально),
-/// стиль: done = сплошная, planned = пунктир.
 public struct CalendarCellMarkersView: View {
 
     public struct Marker: Identifiable, Hashable {
@@ -15,7 +12,6 @@ public struct CalendarCellMarkersView: View {
         }
     }
 
-    // палитра — как во Flutter
     private enum Palette {
         static func color(for raw: String) -> Color {
             let key = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

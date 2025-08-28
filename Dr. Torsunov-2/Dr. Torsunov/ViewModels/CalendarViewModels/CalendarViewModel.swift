@@ -148,6 +148,9 @@ final class CalendarViewModel: ObservableObject {
     @Published var filteredItems: [CalendarItem] = []
     @Published var thumbs: [String: URL] = [:]
 
+    // 🔄 Глобовый индикатор загрузки для экрана
+    @Published var isLoading: Bool = false
+
     private var monthPlanned: [Workout] = []
     private var monthActivities: [Activity] = []
     private var allActivities: [Activity] = []
@@ -200,6 +203,9 @@ final class CalendarViewModel: ObservableObject {
     // MARK: Load (USER)
 
     private func loadCalendarForMonth(_ monthDate: Date) async {
+        isLoading = true
+        defer { isLoading = false }
+
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else { reset(); return }
 
         let (gridStart, gridEnd) = visibleGridRange(for: monthDate)
@@ -357,6 +363,9 @@ final class CalendarViewModel: ObservableObject {
     var inspectorTypes: [String] { inspectorTypesRaw.map { Self.prettyType($0) } }
 
     private func loadInspector() async {
+        isLoading = true
+        defer { isLoading = false }
+
         do {
             async let a: [Activity] = inspectorRepo.getActivitiesForCheck()
             async let b: [Activity] = inspectorRepo.getActivitiesFullCheck()
