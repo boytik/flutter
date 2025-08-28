@@ -29,7 +29,42 @@ struct CalendarItemCellView: View {
         df2.setLocalizedDateFormatFromTemplate("HH:mm")
         return (df1.string(from: d), df2.string(from: d))
     }
+
+    /// Иконка теперь определяется в первую очередь по типу тренировки (`activityType`),
+    /// как во Flutter. Если тип отсутствует/неизвестен — фоллбек к прежней эвристике по названию.
     private var glyph: (system: String, color: Color) {
+        // 1) Точный маппинг по типу тренировки из модели
+        if let t = item.asWorkout?.activityType?.lowercased(), !t.isEmpty {
+            switch t {
+            case "swim", "swimming":
+                return ("drop.fill", .blue)
+            case "bike", "cycling":
+                return ("bicycle", .green)
+            case "run", "running":
+                return ("figure.run", .orange)
+            case "walk", "walking":
+                return ("figure.walk", .orange)
+            case "yoga":
+                return ("figure.mind.and.body", .purple)
+            case "strength", "gym":
+                if #available(iOS 16.0, *) {
+                    return ("dumbbell.fill", .green)
+                } else {
+                    return ("bolt.heart", .green)
+                }
+            case "sauna":
+                return ("flame.fill", .red)
+            case "fast", "fasting":
+                return ("fork.knife", .yellow)
+            case "triathlon":
+                return ("figure.run", .orange)
+            default:
+                // неизвестный тип → нейтральная иконка
+                return ("checkmark.seal.fill", .green)
+            }
+        }
+
+        // 2) Фоллбек: как было раньше — по названию активности
         let name = displayName.lowercased()
         if name.contains("йога") || name.contains("yoga") {
             return ("figure.mind.and.body", .purple)
