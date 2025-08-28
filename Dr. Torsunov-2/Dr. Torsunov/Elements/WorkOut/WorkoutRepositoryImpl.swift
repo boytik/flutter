@@ -9,6 +9,12 @@ struct Workout: Identifiable, Codable, Equatable {
     var description: String?
     var duration: Int
     var date: Date
+    /// Тип активности для окраски planned (из ScheduledWorkoutDTO.activityType)
+    var activityType: String?  // "run" | "swim" | "bike" | "yoga" | "other"
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, description, duration, date, activityType
+    }
 }
 
 // MARK: - День календаря (маркеры-точки)
@@ -23,7 +29,7 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
     let workoutUuid: String?
     let userEmail: String?
     let activityType: String?
-    let date: String?              
+    let date: String?
 
     let durationMinutes: Int?
     let durationHours: Int?
@@ -58,10 +64,7 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
 
 // MARK: - Планировщик (контракт)
 protocol WorkoutPlannerRepository {
-    /// Получить план за месяц (yyyy-MM)
     func getPlannerCalendar(filterMonth: String) async throws -> [ScheduledWorkoutDTO]
-
-    /// Получить план на конкретный день
     func getPlannerDay(_ date: Date) async throws -> [ScheduledWorkoutDTO]
 }
 
@@ -158,5 +161,52 @@ final class WorkoutPlannerRepositoryImpl: WorkoutPlannerRepository {
         let range = cal.range(of: .day, in: .month, for: start)!
         let end   = cal.date(byAdding: .day, value: range.count - 1, to: start)!
         return (start, end)
+    }
+}
+
+// MARK: - Общие парсеры дат для DTO → модель (один раз)
+private let _isoFull: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+}()
+
+private let _isoShort: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = .init(identifier: "en_US_POSIX")
+    f.timeZone = .current
+    f.dateFormat = "yyyy-MM-dd"
+    return f
+}()
+
+// MARK: - Маппинг ScheduledWorkoutDTO → Workout (не теряем activityType)
+extension Workout {
+    init(from dto: ScheduledWorkoutDTO) {
+        let parsedDate =
+            (dto.date.flatMap { _isoFull.date(from: $0) }) ??
+            (dto.date.flatMap { _isoShort.date(from: $0) }) ??
+            Date()
+        let minutes = dto.durationMinutes ?? ((dto.durationHours ?? 0) * 60)
+
+        self.init(
+            id: dto.workoutUuid ?? UUID().uuidString,
+            name: dto.protocolName ?? (dto.type ?? "Тренировка"),
+            description: dto.description,
+            duration: minutes,
+            date: parsedDate,
+            activityType: dto.activityType?.lowercased()   // ← КЛЮЧЕВОЕ
+        )
+    }
+}
+
+// Удобный сборщик CalendarItem из массива DTO планов
+// там же, где у тебя уже есть:
+extension CalendarItem {
+    static func fromScheduledDTOs(_ list: [ScheduledWorkoutDTO]) -> [CalendarItem] {
+        // 👇 разовый лог — видно, что приходит от бэка
+        if let sample = list.first {
+            print("👇👇👇DTO sample → activityType=\(sample.activityType ?? "nil"), protocol=\(sample.protocolName ?? "nil")")
+        }
+        return list.map { .workout(Workout(from: $0)) }
     }
 }

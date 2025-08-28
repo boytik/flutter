@@ -11,6 +11,8 @@ struct CalendarView: View {
 
     @State private var selectedDay: IdentDate?
     @State private var refreshToken: Int = 0
+    @State private var didDebugPrintSamples = false
+
 
     private var currentRole: PersonalViewModel.Role {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
@@ -110,18 +112,44 @@ struct CalendarView: View {
                 }
             }
             .padding(.horizontal)
-
             CalendarGridView(
                 monthDates: viewModel.monthDates,
                 displayMonth: viewModel.currentMonthDate,
                 onDayTap: { tapped in
+                    // 👇 один раз распечатаем примеры из выбранного дня
+                    if !didDebugPrintSamples {
+                        let items = viewModel.items(on: tapped)
+                        if let w = items.compactMap({ $0.asWorkout }).first {
+                            print("=== SAMPLE WORKOUT ==="); dump(w)
+                        } else {
+                            print("=== SAMPLE WORKOUT: none on this day ===")
+                        }
+                        if let a = items.compactMap({ $0.asActivity }).first {
+                            print("=== SAMPLE ACTIVITY ==="); dump(a)
+                        } else {
+                            print("=== SAMPLE ACTIVITY: none on this day ===")
+                        }
+                        didDebugPrintSamples = true
+                    }
+
                     selectedDay = IdentDate(tapped)
                 },
                 itemsProvider: { date in
                     viewModel.items(on: date).map { $0 as CalendarGridDayContext }
                 },
-                selectedDate: selectedDay?.date   // ← добавили
+                selectedDate: selectedDay?.date
             )
+//            CalendarGridView(
+//                monthDates: viewModel.monthDates,
+//                displayMonth: viewModel.currentMonthDate,
+//                onDayTap: { tapped in
+//                    selectedDay = IdentDate(tapped)
+//                },
+//                itemsProvider: { date in
+//                    viewModel.items(on: date).map { $0 as CalendarGridDayContext }
+//                },
+//                selectedDate: selectedDay?.date   // ← добавили
+//            )
             .padding(.vertical)
 
         }
