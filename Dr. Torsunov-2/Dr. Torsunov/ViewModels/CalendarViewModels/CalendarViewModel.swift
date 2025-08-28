@@ -58,30 +58,6 @@ enum DateUtils {
 }
 
 // MARK: - Models
-
-//struct Workout: Identifiable, Codable, Equatable {
-//    var id: String
-//    var name: String
-//    var description: String?
-//    var duration: Int
-//    var date: Date
-//    /// Тип активности для planned (из бэкенда)
-//    var activityType: String?  // "run" | "swim" | "bike" | "yoga" | "other"
-//
-//    enum CodingKeys: String, CodingKey {
-//        case id, name, description, duration, date, activityType
-//    }
-//}
-//
-//struct WorkoutDay: Identifiable {
-//    let id = UUID()
-//    let date: Date
-//    let dots: [Color]
-//}
-
-// Ответ планировщика (диапазон/день). Это то, что реально приходит из /workout_calendar.
-// Ответ планировщика (диапазон/день). Это то, что реально приходит из /workout_calendar.
-// Ответ планировщика (диапазон/день). Это то, что реально приходит из /workout_calendar.
 private struct PlannerItemDTO: Codable {
     let date: String?
     let startDate: String?
@@ -143,7 +119,6 @@ private struct PlannerItemDTO: Codable {
         try c.encodeIfPresent(description,     forKey: .description)
         try c.encodeIfPresent(durationHours,   forKey: .durationHours)
         try c.encodeIfPresent(durationMinutes, forKey: .durationMinutes)
-        // пишем в "activity" (можно в "activity_type" — обе стороны нам теперь понятны)
         try c.encodeIfPresent(activityType,    forKey: .activityLower)
         try c.encodeIfPresent(type,            forKey: .type)
         try c.encodeIfPresent(name,            forKey: .name)
@@ -295,6 +270,35 @@ final class CalendarViewModel: ObservableObject {
 
 
     /// ✅ НЕ теряем тип активности; если бэк не прислал, выводим из текстовых полей
+    // В CalendarViewModel.swift
+
+    /// Универсальный детектор типа по нескольким строкам (учитываем синонимы/локали)
+    private static func inferTypeKey(from strings: [String?]) -> String? {
+        // Склеим все кандидаты в одну нижний-регистр строку
+        let hay = strings.compactMap { $0?.lowercased() }.joined(separator: " | ")
+
+        // Плавание
+        if hay.contains("swim") || hay.contains("плав") || hay.contains("water") { return "swim" }
+
+        // Бег/ходьба
+        if hay.contains("run") || hay.contains("бег")
+            || hay.contains("walk") || hay.contains("ход") { return "run" }
+
+        // Велосипед
+        if hay.contains("bike") || hay.contains("velo") || hay.contains("вел")
+            || hay.contains("cycl") { return "bike" }
+
+        // Йога / силовые
+        if hay.contains("yoga") || hay.contains("йога")
+            || hay.contains("strength") || hay.contains("сил") { return "yoga" }
+
+        // Другие явные типы — можно добавить по мере встречаемости:
+        // sauna/баня/хаммам -> отнесём к "other", отдельного цвета для них в календаре нет
+
+        return nil
+    }
+
+    /// ✅ НЕ теряем тип активности; если бэк не прислал — выводим из текстовых полей
     private static func workout(from dto: PlannerItemDTO) -> Workout? {
         let rawDate = dto.date ?? dto.startDate ?? dto.plannedDate ?? dto.workoutDate
         guard let d = DateUtils.parse(rawDate) else { return nil }
@@ -302,28 +306,16 @@ final class CalendarViewModel: ObservableObject {
         let minutes = (dto.durationHours ?? 0) * 60 + (dto.durationMinutes ?? 0)
         let id = dto.workoutUuid ?? dto.workoutKey ?? dto.id ?? UUID().uuidString
 
-        // Видимое имя (для UI)
+        // Что показывать в UI как название:
         let visibleName = dto.name ?? dto.type ?? dto.description ?? "Тренировка"
 
-        // 🔹 Тип из бэка (activity_type / activityType), в нижнем регистре
-        let backendType = dto.activityType?.lowercased()
+        // 1) Прямой тип от бэка (мы уже поддерживаем и "activity", и "activity_type" в DTO)
+        let fromBackend = dto.activityType?.lowercased()
 
-        // 🔹 Если backendType пусто — пытаемся вывести тип из текстовых полей
-        let inferredType: String? = {
-            let candidates = [backendType,
-                              dto.type?.lowercased(),
-                              dto.name?.lowercased(),
-                              dto.description?.lowercased()]
-            // первый непустой и «узнаваемый»
-            for c in candidates {
-                guard let s = c, !s.isEmpty else { continue }
-                if s.contains("yoga") || s.contains("йога") { return "yoga" }
-                if s.contains("run")  || s.contains("walk") || s.contains("бег") || s.contains("ход") { return "run" }
-                if s.contains("swim") || s.contains("water") || s.contains("плав") || s.contains("вода") { return "swim" }
-                if s.contains("bike") || s.contains("cycl") || s.contains("вел") || s.contains("velo") { return "bike" }
-            }
-            return backendType // может быть nil — это ок, далее будет fallback по name
-        }()
+        // 2) Если нет — пробуем выводить из текста (type/name/description)
+        let inferred = inferTypeKey(from: [dto.activityType, dto.type, dto.name, dto.description])
+
+        let finalType = fromBackend?.isEmpty == false ? fromBackend : inferred
 
         return Workout(
             id: id,
@@ -331,9 +323,10 @@ final class CalendarViewModel: ObservableObject {
             description: dto.description,
             duration: minutes,
             date: d,
-            activityType: inferredType
+            activityType: finalType // ← сюда кладём "run/swim/yoga/bike" если смогли определить
         )
     }
+
 
 
     /// Дедупликатор планов: вначале по id, если их нет — по ключу (ymd+lowercased name)

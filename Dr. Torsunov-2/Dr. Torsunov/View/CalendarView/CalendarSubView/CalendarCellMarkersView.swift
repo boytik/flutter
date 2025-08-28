@@ -17,23 +17,30 @@ public struct CalendarCellMarkersView: View {
 
     // палитра — как во Flutter
     private enum Palette {
-        static let blue   = Color(red: 0.38, green: 0.57, blue: 0.97) // swim
-        static let purple = Color(red: 0.73, green: 0.54, blue: 1.00) // run / walk
-        static let yellow = Color(red: 0.99, green: 0.84, blue: 0.24) // bike
-        static let green  = Color(red: 0.36, green: 0.84, blue: 0.39) // yoga / other / strength
-
         static func color(for raw: String) -> Color {
             let key = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            if key == "swim"  || key.contains("swim")  || key.contains("плав") { return blue }
-            if key == "run"   || key.contains("run")   || key.contains("бег")
-               || key == "walk" || key.contains("walk") || key.contains("ход") { return purple }
-            if key == "bike"  || key.contains("bike")  || key.contains("cycl") || key.contains("вел") { return yellow }
-            if key == "yoga"  || key.contains("yoga")  || key.contains("йога")
-               || key.contains("strength") || key.contains("сил") { return green }
-            if key == "other" { return green }
-            return green
+
+            if key == "water" || key == "swim" || key.contains("water") || key.contains("swim")
+                || key.contains("вода") || key.contains("плав") { return .blue }
+
+            if key == "run" || key == "walk" || key.contains("run") || key.contains("walk")
+                || key.contains("ход") || key.contains("бег")
+                || key.contains("walking/running") { return .orange }
+
+            if key == "yoga" || key.contains("yoga") || key.contains("йога") { return .purple }
+
+            if key == "sauna" || key.contains("sauna") || key.contains("баня") || key.contains("хаммам") { return .red }
+
+            if key == "fast" || key == "fasting" || key.contains("fast") || key.contains("пост") || key.contains("голод") {
+                return .yellow
+            }
+
+            if key == "other" || key.contains("strength") || key.contains("сил") { return .green }
+
+            return .green
         }
     }
+
 
     private let markers: [Marker]
     private let linesPerRow: Int

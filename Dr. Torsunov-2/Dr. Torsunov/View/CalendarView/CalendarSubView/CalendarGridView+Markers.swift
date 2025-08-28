@@ -14,8 +14,6 @@ public struct CalendarGridMarkersAdapter {
     public func markers(from items: [CalendarGridDayContext]) -> [CalendarCellMarkersView.Marker] {
         
         items.map { item in
-            print("👇👇👇MARKER → typeKey=\(item.workoutTypeKey), planned=\(item.isPlanned), done=\(item.isDone)")
-            // цвет теперь считается ВНУТРИ CalendarCellMarkersView по workoutType
             return CalendarCellMarkersView.Marker(
                 workoutType: item.workoutTypeKey,
                 isSolid: item.isDone   // done = сплошная, planned = пунктир
