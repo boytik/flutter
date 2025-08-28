@@ -787,7 +787,7 @@ private struct ChartSectionView: View {
 }
 
 // MARK: - Локальные фото: две плитки
-private struct PhotoPickRow: View {
+ struct PhotoPickRow: View {
     @Binding var beforeImage: UIImage?
     @Binding var afterImage: UIImage?
     let onPickBefore: () -> Void
