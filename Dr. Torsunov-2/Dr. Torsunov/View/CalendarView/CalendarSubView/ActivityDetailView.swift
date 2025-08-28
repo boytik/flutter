@@ -22,6 +22,15 @@ struct ActivityDetailView: View {
     @StateObject private var vm: WorkoutDetailViewModel
     @State private var syncEnabled = false
 
+    // общий старт/диапазон времени для всех графиков
+    @State private var chartStart = Date()
+    private var totalSeconds: Double {
+        if let t = vm.timeSeries, let last = t.last { return max(1, last) }
+        if let m = vm.preferredDurationMinutes { return Double(max(1, m) * 60) }
+        let c = max(vm.heartRateSeries?.count ?? 0, vm.speedSeries?.count ?? 0)
+        return max(1, Double(c))
+    }
+
     init(activity: Activity, role: PersonalViewModel.Role) {
         self.activity = activity
         self.role = role
@@ -78,6 +87,7 @@ struct ActivityDetailView: View {
         .onAppear { comment = activity.description ?? "" }
         .task {
             await vm.load()
+            chartStart = Date() // единый старт оси X
 #if DEBUG
             debugPrintActivity(activity)
             debugListVMSets(vm)
@@ -102,7 +112,7 @@ struct ActivityDetailView: View {
                 .tint(.green)
                 .foregroundColor(.white)
 
-            // 1) ЧСС
+            // 1) ЧСС — КРАСНЫЙ
             if let hr = vm.heartRateSeries, !hr.isEmpty {
                 NumericChartSectionView(
                     title: "Диаграмма частоты сердцебиения",
@@ -114,7 +124,10 @@ struct ActivityDetailView: View {
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
-                    preferredHeight: 240
+                    preferredHeight: 240,
+                    color: .red,
+                    start: chartStart,
+                    totalSeconds: totalSeconds
                 )
             } else if let url = vm.diagramImageURLs.first(where: {
                 $0.absoluteString.localizedCaseInsensitiveContains("heart") ||
@@ -124,7 +137,7 @@ struct ActivityDetailView: View {
                 FixedRemoteImage(url: url, aspect: 3/4, corner: 12)
             }
 
-            // 2) Второй график «как во Flutter»
+            // 2) Второй график «как во Flutter» (цвет задаём тут)
             switch secondChartChoice() {
             case .none:
                 EmptyView()
@@ -140,7 +153,10 @@ struct ActivityDetailView: View {
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
-                    preferredHeight: 220
+                    preferredHeight: 220,
+                    color: cfg.color,
+                    start: chartStart,
+                    totalSeconds: totalSeconds
                 )
 
             case .categorical(let cfg):
@@ -154,15 +170,27 @@ struct ActivityDetailView: View {
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
-                    preferredHeight: 220
+                    preferredHeight: 220,
+                    color: cfg.color,
+                    start: chartStart,
+                    totalSeconds: totalSeconds
                 )
             }
         }
     }
 
     private enum SecondChart {
-        struct NumericCfg { let title, unit, seriesName: String; let values: [Double] }
-        struct CategoricalCfg { let title, seriesName: String; let indices: [Double]; let labels: [String] }
+        struct NumericCfg {
+            let title, unit, seriesName: String
+            let values: [Double]
+            let color: Color
+        }
+        struct CategoricalCfg {
+            let title, seriesName: String
+            let indices: [Double]
+            let labels: [String]
+            let color: Color
+        }
         case numeric(NumericCfg)
         case categorical(CategoricalCfg)
         case none
@@ -177,33 +205,65 @@ struct ActivityDetailView: View {
             if let (idx, labels) = findYogaPositions(in: vm) {
                 return .categorical(.init(title: "Диаграмма позиций йоги",
                                           seriesName: "Position",
-                                          indices: idx, labels: labels))
+                                          indices: idx, labels: labels,
+                                          color: .purple))
             }
             if let v = vm.waterTempSeries, !v.isEmpty {
-                return .numeric(.init(title: "Диаграмма температуры воды", unit: "°C", seriesName: "Температура воды", values: v))
+                return .numeric(.init(title: "Диаграмма температуры воды",
+                                      unit: "°C",
+                                      seriesName: "Температура воды",
+                                      values: v,
+                                      color: .blue))
             }
             return .none
         }
 
         if ["run", "walk", "run_walk", "bike"].contains(t) {
             if let v = vm.speedSeries, !v.isEmpty {
-                return .numeric(.init(title: "Скорость", unit: "km/h", seriesName: "Скорость", values: v))
+                return .numeric(.init(title: "Скорость",
+                                      unit: "km/h",
+                                      seriesName: "Скорость",
+                                      values: v,
+                                      color: .pink))            // ЯРКО-РОЗОВЫЙ
             }
             if let v = vm.waterTempSeries, !v.isEmpty {
-                return .numeric(.init(title: "Диаграмма температуры воды", unit: "°C", seriesName: "Температура воды", values: v))
+                return .numeric(.init(title: "Диаграмма температуры воды",
+                                      unit: "°C",
+                                      seriesName: "Температура воды",
+                                      values: v,
+                                      color: .blue))
             }
             return .none
         }
 
-        if ["water", "swim", "sauna"].contains(t) {
+        if ["water", "swim"].contains(t) {
             if let v = vm.waterTempSeries, !v.isEmpty {
-                return .numeric(.init(title: "Диаграмма температуры воды", unit: "°C", seriesName: "Температура воды", values: v))
+                return .numeric(.init(title: "Диаграмма температуры воды",
+                                      unit: "°C",
+                                      seriesName: "Температура воды",
+                                      values: v,
+                                      color: .blue))           // СИНИЙ
+            }
+            return .none
+        }
+
+        if ["sauna"].contains(t) {
+            if let v = vm.waterTempSeries, !v.isEmpty {
+                return .numeric(.init(title: "Диаграмма температуры воды",
+                                      unit: "°C",
+                                      seriesName: "Температура воды",
+                                      values: v,
+                                      color: .yellow))         // ДЛЯ БАНИ — ЖЁЛТЫЙ
             }
             return .none
         }
 
         if let v = vm.speedSeries, !v.isEmpty {
-            return .numeric(.init(title: "Скорость", unit: "km/h", seriesName: "Скорость", values: v))
+            return .numeric(.init(title: "Скорость",
+                                  unit: "km/h",
+                                  seriesName: "Скорость",
+                                  values: v,
+                                  color: .pink))
         }
         return .none
     }
@@ -461,6 +521,9 @@ private struct NumericChartSectionView: View {
     let subLayerProgress: String?
 
     var preferredHeight: CGFloat = 220
+    var color: Color = .green       // цвет серии
+    var start: Date = Date()        // общий старт оси X
+    var totalSeconds: Double = 1    // общий диапазон по X
 
     @State private var selectedIndex: Int? = nil
     @State private var showFull = false
@@ -517,24 +580,26 @@ private struct NumericChartSectionView: View {
             ForEach(pts) { p in
                 AreaMark(x: .value("t", p.time), y: .value("v", p.value))
                     .interpolationMethod(.monotone)
-                    .foregroundStyle(.linearGradient(colors: [.green.opacity(0.22), .clear], startPoint: .top, endPoint: .bottom))
+                    .foregroundStyle(.linearGradient(colors: [color.opacity(0.22), .clear],
+                                                    startPoint: .top, endPoint: .bottom))
                 LineMark(x: .value("t", p.time), y: .value("v", p.value))
                     .interpolationMethod(.monotone)
                     .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(color)
             }
 
-            // пунктирные сетки (RuleMark вместо lineStyle у Axis)
-            if let first = pts.first?.time, let last = pts.last?.time {
-                let total = last.timeIntervalSince(first)
-                let xMarks = [0.0, 0.25, 0.5, 0.75, 1.0].map { first.addingTimeInterval(total * $0) }
-                ForEach(xMarks, id: \.self) { d in
-                    RuleMark(x: .value("t", d))
-                        .foregroundStyle(Color.white.opacity(0.12))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4,3]))
-                }
+            // пунктирные сетки (RuleMark вместо lineStyle у Axis) — по общему диапазону
+            let first = start
+            let last  = start.addingTimeInterval(totalSeconds)
+            let total = max(1, last.timeIntervalSince(first))
+            let xMarks = [0.0, 0.25, 0.5, 0.75, 1.0].map { first.addingTimeInterval(total * $0) }
+            ForEach(xMarks, id: \.self) { d in
+                RuleMark(x: .value("t", d))
+                    .foregroundStyle(Color.white.opacity(0.12))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4,3]))
             }
-            let yVals = stride(from: yDomain.lowerBound, through: yDomain.upperBound, by: max( (yDomain.upperBound - yDomain.lowerBound)/4, 0.0001))
+            let yVals = stride(from: yDomain.lowerBound, through: yDomain.upperBound,
+                               by: max((yDomain.upperBound - yDomain.lowerBound)/4, 0.0001))
             ForEach(Array(yVals), id: \.self) { y in
                 RuleMark(y: .value("v", y))
                     .foregroundStyle(Color.white.opacity(0.12))
@@ -546,10 +611,11 @@ private struct NumericChartSectionView: View {
                 let sp = pts[idx]
                 RuleMark(x: .value("t", sp.time)).foregroundStyle(Color.white.opacity(0.55))
                 PointMark(x: .value("t", sp.time), y: .value("v", sp.value))
-                    .symbolSize(80).foregroundStyle(.green)
+                    .symbolSize(80).foregroundStyle(color)
             }
         }
         .chartYScale(domain: yDomain)
+        .chartXScale(domain: start...start.addingTimeInterval(totalSeconds)) // единый домен X
         .chartXAxis {
             AxisMarks(values: xAxisMarks()) { v in
                 AxisGridLine().foregroundStyle(Color.white.opacity(0.12))
@@ -591,13 +657,12 @@ private struct NumericChartSectionView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(boldLeft ? .subheadline.bold() : .subheadline).foregroundColor(.white.opacity(0.75))
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(value).font(.body.weight(.semibold)).foregroundColor(highlight ? .green : (subdued ? .white.opacity(0.6) : .white))
+                Text(value).font(.body.weight(.semibold)).foregroundColor(highlight ? color : (subdued ? .white.opacity(0.6) : .white))
                 if let unitSuffix { Text(unitSuffix).font(.caption).foregroundColor(.white.opacity(0.7)) }
             }
         }
     }
     private func makePoints() -> [ChartPoint] {
-        let start = Date()
         if let t = timeOffsets, !t.isEmpty {
             let n = min(t.count, values.count)
             return (0..<n).map { i in ChartPoint(time: start.addingTimeInterval(t[i]), value: values[i]) }
@@ -606,21 +671,20 @@ private struct NumericChartSectionView: View {
         }
     }
     private func xAxisMarks() -> [Date] {
-        let pts = makePoints()
-        guard let first = pts.first?.time, let last = pts.last?.time, last > first else { return pts.map{$0.time} }
-        let total = last.timeIntervalSince(first)
+        let first = start
+        let last  = start.addingTimeInterval(totalSeconds)
+        let total = max(1, last.timeIntervalSince(first))
         return [0,0.25,0.5,0.75,1].map { first.addingTimeInterval(total * Double($0)) }
     }
     private func elapsedText(for date: Date) -> String {
-        let pts = makePoints()
-        guard let first = pts.first?.time else { return "0:00" }
-        let sec = Int(max(0, date.timeIntervalSince(first)))
+        let sec = Int(max(0, date.timeIntervalSince(start)))
         return formatElapsed(seconds: sec)
     }
     private func selectedElapsedTimeString() -> String? {
+        guard let idx = selectedIndex else { return nil }
         let pts = makePoints()
-        guard let idx = selectedIndex, pts.indices.contains(idx), let first = pts.first?.time else { return nil }
-        let sec = Int(max(0, pts[idx].time.timeIntervalSince(first)))
+        guard pts.indices.contains(idx) else { return nil }
+        let sec = Int(max(0, pts[idx].time.timeIntervalSince(start)))
         return formatElapsed(seconds: sec)
     }
     private func formatDuration(_ minutes: Int?) -> String {
@@ -669,6 +733,9 @@ private struct CategoricalChartSectionView: View {
     let subLayer: Int?
     let subLayerProgress: String?
     var preferredHeight: CGFloat = 220
+    var color: Color = .purple
+    var start: Date = Date()
+    var totalSeconds: Double = 1
 
     @State private var selectedIndex: Int? = nil
     @State private var showFull = false
@@ -723,24 +790,25 @@ private struct CategoricalChartSectionView: View {
             ForEach(pts) { p in
                 AreaMark(x: .value("t", p.time), y: .value("v", p.value))
                     .interpolationMethod(.stepCenter)
-                    .foregroundStyle(.linearGradient(colors: [.purple.opacity(0.22), .clear], startPoint: .top, endPoint: .bottom))
+                    .foregroundStyle(.linearGradient(colors: [color.opacity(0.22), .clear],
+                                                    startPoint: .top, endPoint: .bottom))
             }
             ForEach(pts) { p in
                 LineMark(x: .value("t", p.time), y: .value("v", p.value))
                     .interpolationMethod(.stepCenter)
                     .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(color)
             }
 
-            // сетка: вертикальные деления + горизонтали по категориям
-            if let first = pts.first?.time, let last = pts.last?.time {
-                let total = last.timeIntervalSince(first)
-                let xMarks = [0.0, 0.25, 0.5, 0.75, 1.0].map { first.addingTimeInterval(total * $0) }
-                ForEach(xMarks, id: \.self) { d in
-                    RuleMark(x: .value("t", d))
-                        .foregroundStyle(Color.white.opacity(0.12))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4,3]))
-                }
+            // сетка: вертикальные деления + горизонтали по категориям — по общему диапазону
+            let first = start
+            let last  = start.addingTimeInterval(totalSeconds)
+            let total = max(1, last.timeIntervalSince(first))
+            let xMarks = [0.0, 0.25, 0.5, 0.75, 1.0].map { first.addingTimeInterval(total * $0) }
+            ForEach(xMarks, id: \.self) { d in
+                RuleMark(x: .value("t", d))
+                    .foregroundStyle(Color.white.opacity(0.12))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4,3]))
             }
             ForEach(Array(0..<max(labels.count, 1)), id: \.self) { i in
                 RuleMark(y: .value("v", Double(i)))
@@ -753,10 +821,11 @@ private struct CategoricalChartSectionView: View {
                 let sp = pts[idx]
                 RuleMark(x: .value("t", sp.time)).foregroundStyle(Color.white.opacity(0.55))
                 PointMark(x: .value("t", sp.time), y: .value("v", sp.value))
-                    .symbolSize(80).foregroundStyle(.purple)
+                    .symbolSize(80).foregroundStyle(color)
             }
         }
         .chartYScale(domain: yDomain)
+        .chartXScale(domain: start...start.addingTimeInterval(totalSeconds))
         .chartXAxis {
             AxisMarks(values: xAxisMarks()) { v in
                 AxisGridLine().foregroundStyle(Color.white.opacity(0.12))
@@ -802,13 +871,12 @@ private struct CategoricalChartSectionView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(boldLeft ? .subheadline.bold() : .subheadline).foregroundColor(.white.opacity(0.75))
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(value).font(.body.weight(.semibold)).foregroundColor(highlight ? .green : (subdued ? .white.opacity(0.6) : .white))
+                Text(value).font(.body.weight(.semibold)).foregroundColor(highlight ? color : (subdued ? .white.opacity(0.6) : .white))
                 if let unitSuffix { Text(unitSuffix).font(.caption).foregroundColor(.white.opacity(0.7)) }
             }
         }
     }
     private func makePoints() -> [ChartPoint] {
-        let start = Date()
         let vals = indices.map { round($0) }
         if let t = timeOffsets, !t.isEmpty {
             let n = min(t.count, vals.count)
@@ -818,21 +886,20 @@ private struct CategoricalChartSectionView: View {
         }
     }
     private func xAxisMarks() -> [Date] {
-        let pts = makePoints()
-        guard let first = pts.first?.time, let last = pts.last?.time, last > first else { return pts.map{$0.time} }
-        let total = last.timeIntervalSince(first)
+        let first = start
+        let last  = start.addingTimeInterval(totalSeconds)
+        let total = max(1, last.timeIntervalSince(first))
         return [0,0.25,0.5,0.75,1].map { first.addingTimeInterval(total * Double($0)) }
     }
     private func elapsedText(for date: Date) -> String {
-        let pts = makePoints()
-        guard let first = pts.first?.time else { return "0:00" }
-        let sec = Int(max(0, date.timeIntervalSince(first)))
+        let sec = Int(max(0, date.timeIntervalSince(start)))
         return formatElapsed(seconds: sec)
     }
     private func selectedElapsedTimeString() -> String? {
+        guard let idx = selectedIndex else { return nil }
         let pts = makePoints()
-        guard let idx = selectedIndex, pts.indices.contains(idx), let first = pts.first?.time else { return nil }
-        let sec = Int(max(0, pts[idx].time.timeIntervalSince(first)))
+        guard pts.indices.contains(idx) else { return nil }
+        let sec = Int(max(0, pts[idx].time.timeIntervalSince(start)))
         return formatElapsed(seconds: sec)
     }
     private func formatDuration(_ minutes: Int?) -> String {
@@ -846,7 +913,11 @@ private struct CategoricalChartSectionView: View {
         var lo = 0, hi = times.count - 1
         while lo < hi {
             let mid = (lo + hi) / 2
-            if times[mid] < t.timeIntervalSinceReferenceDate { lo = mid + 1 } else { hi = mid }
+            if times[mid] < t.timeIntervalSinceReferenceDate { // <-- тут исправлено
+                lo = mid + 1
+            } else {
+                hi = mid
+            }
         }
         let i = lo
         if i == 0 { return 0 }
@@ -854,6 +925,7 @@ private struct CategoricalChartSectionView: View {
         let a = times[i - 1], b = times[i]
         return (abs(a - t.timeIntervalSinceReferenceDate) <= abs(b - t.timeIntervalSinceReferenceDate)) ? (i - 1) : i
     }
+
     private func formatElapsed(seconds: Int) -> String {
         let h = seconds / 3600
         let m = (seconds % 3600) / 60
