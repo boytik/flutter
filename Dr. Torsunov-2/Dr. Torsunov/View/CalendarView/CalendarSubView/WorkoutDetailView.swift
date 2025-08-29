@@ -71,7 +71,7 @@ struct WorkoutDetailView: View {
             if !isPlanned {                      // если вдруг это Activity — грузим метрики
                 await vm.load()
                 #if DEBUG
-                await MainActor.run { debugListVMSets(vm) }
+//                await MainActor.run { debugListVMSets(vm) }
                 #endif
             }
         }
