@@ -5,10 +5,13 @@ public struct CalendarCellMarkersView: View {
     public struct Marker: Identifiable, Hashable {
         public let id = UUID()
         public let workoutType: String
-        public let isSolid: Bool   // true = завершено (сплошная), false = запланировано (пунктир)
-        public init(workoutType: String, isSolid: Bool) {
+        public let isSolid: Bool          // true = завершено (сплошная), false = план (точки)
+        public let filledCount: Int?      // для плана: сколько «ярких» точек из totalDots
+
+        public init(workoutType: String, isSolid: Bool, filledCount: Int? = nil) {
             self.workoutType = workoutType
             self.isSolid = isSolid
+            self.filledCount = filledCount
         }
     }
 
@@ -39,6 +42,7 @@ public struct CalendarCellMarkersView: View {
 
 
     private let markers: [Marker]
+    /// Максимум 5 точек для планов по ТЗ
     private let linesPerRow: Int
     private let segmentHeight: CGFloat
     private let rowSpacing: CGFloat
@@ -49,7 +53,7 @@ public struct CalendarCellMarkersView: View {
 
     public init(
         markers: [Marker],
-        linesPerRow: Int = 6,
+        linesPerRow: Int = 5,
         segmentHeight: CGFloat = 3,
         rowSpacing: CGFloat = 3,
         segmentSpacing: CGFloat = 2,
@@ -58,7 +62,8 @@ public struct CalendarCellMarkersView: View {
         bottomInset: CGFloat = 0
     ) {
         self.markers = Array(markers.prefix(4))
-        self.linesPerRow = max(3, min(8, linesPerRow))
+        // несмотря на параметр, гарантируем не больше 5 по ТЗ
+        self.linesPerRow = min(5, max(3, linesPerRow))
         self.segmentHeight = segmentHeight
         self.rowSpacing = rowSpacing
         self.segmentSpacing = segmentSpacing
@@ -72,14 +77,18 @@ public struct CalendarCellMarkersView: View {
             ForEach(markers) { m in
                 let color = Palette.color(for: m.workoutType)
                 if m.isSolid {
+                    // Завершённая — сплошная линия (как и было)
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(color)
                         .frame(height: segmentHeight)
                 } else {
+                    // План — 5 «точек»: первые N = яркие, остальные = приглушённые
+                    let filled = max(0, min(linesPerRow, m.filledCount ?? 1))
                     HStack(spacing: segmentSpacing) {
-                        ForEach(0..<linesPerRow, id: \.self) { _ in
+                        ForEach(0..<linesPerRow, id: \.self) { idx in
+                            let opaque: Double = idx < filled ? 1.0 : 0.25
                             RoundedRectangle(cornerRadius: cornerRadius)
-                                .fill(color)
+                                .fill(color.opacity(opaque))
                                 .frame(height: segmentHeight)
                         }
                     }

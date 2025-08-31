@@ -11,9 +11,15 @@ struct Workout: Identifiable, Codable, Equatable {
     var date: Date
     /// Тип активности для окраски planned (из ScheduledWorkoutDTO.activityType)
     var activityType: String?  // "run" | "swim" | "bike" | "yoga" | "other"
+    
+    /// Кол-во слоёв плана (если не вода)
+    var plannedLayers: Int?    // ← новое поле
+    /// Для воды — массив слоёв (кол-во подпланов). Кол-во точек = swimLayers.count
+    var swimLayers: [Int]?     // ← новое поле
 
     enum CodingKeys: String, CodingKey {
         case id, name, description, duration, date, activityType
+        case plannedLayers, swimLayers
     }
 }
 
@@ -38,8 +44,8 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
     let type: String?
     let breakDuration: Int?
     let breaks: Int?
-    let layers: Int?
-    let swimLayers: [Int]?
+    let layers: Int?           // ← слои для обычных типов
+    let swimLayers: [Int]?     // ← слои для воды
     let protocolName: String?
 
     var id: String { workoutUuid ?? UUID().uuidString }
@@ -179,7 +185,7 @@ private let _isoShort: DateFormatter = {
     return f
 }()
 
-// MARK: - Маппинг ScheduledWorkoutDTO → Workout (не теряем activityType)
+// MARK: - Маппинг ScheduledWorkoutDTO → Workout (не теряем activityType и слои)
 extension Workout {
     init(from dto: ScheduledWorkoutDTO) {
         let parsedDate =
@@ -194,18 +200,19 @@ extension Workout {
             description: dto.description,
             duration: minutes,
             date: parsedDate,
-            activityType: dto.activityType?.lowercased()   // ← КЛЮЧЕВОЕ
+            activityType: dto.activityType?.lowercased(),   // ← КЛЮЧЕВОЕ
+            plannedLayers: dto.layers,
+            swimLayers: dto.swimLayers
         )
     }
 }
 
 // Удобный сборщик CalendarItem из массива DTO планов
-// там же, где у тебя уже есть:
 extension CalendarItem {
     static func fromScheduledDTOs(_ list: [ScheduledWorkoutDTO]) -> [CalendarItem] {
         // 👇 разовый лог — видно, что приходит от бэка
         if let sample = list.first {
-            print("👇👇👇DTO sample → activityType=\(sample.activityType ?? "nil"), protocol=\(sample.protocolName ?? "nil")")
+            print("👇👇👇DTO sample → activityType=\(sample.activityType ?? "nil"), protocol=\(sample.protocolName ?? "nil"), layers=\(sample.layers.map(String.init) ?? "nil"), swimLayers=\(sample.swimLayers?.description ?? "nil")")
         }
         return list.map { .workout(Workout(from: $0)) }
     }

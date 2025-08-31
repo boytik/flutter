@@ -430,9 +430,9 @@
 		3EADE77A2E3A23A0002A2D67 /* View */ = {
 			isa = PBXGroup;
 			children = (
-				3E7045662E4A1970005EDE48 /* Auth */,
 				3EADE77E2E3A2577002A2D67 /* TapBarView.swift */,
 				3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */,
+				3E7045662E4A1970005EDE48 /* Auth */,
 				3E70456B2E4A2233005EDE48 /* CalendarView */,
 				3E70456C2E4A224E005EDE48 /* ProfileView */,
 			);
@@ -452,10 +452,13 @@
 			isa = PBXGroup;
 			children = (
 				3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */,
+				3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */,
+				3E327F1A2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift */,
+				3E327F1E2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift */,
+				3E327F1C2E5C9072000A7D33 /* CalendarGridView+Markers.swift */,
 				3E8F8A562E438EEB00CE00CB /* WorkoutDetailView.swift */,
 				3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */,
 				3E8599E52E452D8900FA1FAB /* ActivityDetailView.swift */,
-				3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */,
 				3E8F8A582E43A28900CE00CB /* ImagePicker.swift */,
 				3E7045692E4A1BD1005EDE48 /* InspectorView.swift */,
 				3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */,
@@ -463,9 +466,6 @@
 				3E61247B2E5716D500B2B1E0 /* PhotoCompareGrid.swift */,
 				3E327F162E5C8E8D000A7D33 /* FullScreenChartsView.swift */,
 				3E327F182E5C8F61000A7D33 /* ChartsFullScreenButton.swift */,
-				3E327F1A2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift */,
-				3E327F1C2E5C9072000A7D33 /* CalendarGridView+Markers.swift */,
-				3E327F1E2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift */,
 				3E327F222E5CD15A000A7D33 /* debugDumpVM.swift */,
 			);
 			path = CalendarSubView;
@@ -868,7 +868,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.revive.main;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -909,7 +909,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.revive.main;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

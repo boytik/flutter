@@ -12,12 +12,20 @@ public struct CalendarGridMarkersAdapter {
     public init() {}
 
     public func markers(from items: [CalendarGridDayContext]) -> [CalendarCellMarkersView.Marker] {
-        
         items.map { item in
-            return CalendarCellMarkersView.Marker(
-                workoutType: item.workoutTypeKey,
-                isSolid: item.isDone   
-            )
+            if item.isDone {
+                return CalendarCellMarkersView.Marker(
+                    workoutType: item.workoutTypeKey,
+                    isSolid: true,
+                    filledCount: nil
+                )
+            } else {
+                return CalendarCellMarkersView.Marker(
+                    workoutType: item.workoutTypeKey,
+                    isSolid: false,
+                    filledCount: max(0, min(5, item.plannedLayers))
+                )
+            }
         }
     }
 }
@@ -36,9 +44,9 @@ public struct CalendarGridMarkersLayer: View {
 
     public init(
         items: [CalendarGridDayContext],
-        maxRows: Int = 3,
+        maxRows: Int = 5,
         segmentHeight: CGFloat = 3,
-        linesPerRow: Int = 6,
+        linesPerRow: Int = 5,
         segmentSpacing: CGFloat = 2,
         rowSpacing: CGFloat = 3,
         horizontalInset: CGFloat = 2,

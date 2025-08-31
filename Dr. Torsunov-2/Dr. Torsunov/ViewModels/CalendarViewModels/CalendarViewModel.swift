@@ -57,7 +57,7 @@ enum DateUtils {
     }
 }
 
-// MARK: - Models
+// MARK: - Models returned by backend
 private struct PlannerItemDTO: Codable {
     let date: String?
     let startDate: String?
@@ -66,12 +66,16 @@ private struct PlannerItemDTO: Codable {
     let description: String?
     let durationHours: Int?
     let durationMinutes: Int?
-    let activityType: String?   // <- итоговое поле; берём из "activity" или "activity_type"
+    let activityType: String?   // итоговое поле; берём из "activity" или "activity_type"
     let type: String?
     let name: String?
     let workoutUuid: String?
     let workoutKey: String?
     let id: String?
+
+    // ⬇️ Доп. поля для протоколов/слоёв
+    let layers: Int?            // общее количество слоёв (например, сауна)
+    let swimLayers: [Int]?      // водные слои слева/справа
 
     private enum CodingKeys: String, CodingKey {
         case date, description, type, name, id
@@ -85,6 +89,9 @@ private struct PlannerItemDTO: Codable {
         case activitySnake    = "activity_type"
         case workoutUuid      = "workout_uuid"
         case workoutKey       = "workout_key"
+        // новые
+        case layers
+        case swimLayers       = "swim_layers"
     }
 
     init(from decoder: Decoder) throws {
@@ -97,7 +104,6 @@ private struct PlannerItemDTO: Codable {
         durationHours   = try c.decodeIfPresent(Int.self,    forKey: .durationHours)
         durationMinutes = try c.decodeIfPresent(Int.self,    forKey: .durationMinutes)
 
-        // ✅ читаем оба возможных ключа
         let actLower = try c.decodeIfPresent(String.self, forKey: .activityLower)
         let actSnake = try c.decodeIfPresent(String.self, forKey: .activitySnake)
         activityType  = (actLower ?? actSnake)
@@ -107,9 +113,11 @@ private struct PlannerItemDTO: Codable {
         workoutUuid   = try c.decodeIfPresent(String.self, forKey: .workoutUuid)
         workoutKey    = try c.decodeIfPresent(String.self, forKey: .workoutKey)
         id            = try c.decodeIfPresent(String.self, forKey: .id)
+
+        layers        = try c.decodeIfPresent(Int.self, forKey: .layers)
+        swimLayers    = try c.decodeIfPresent([Int].self, forKey: .swimLayers)
     }
 
-    // Нужен для кэшера (T: Codable). Кодируем обратно в один из поддерживаемых форматов.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encodeIfPresent(date,            forKey: .date)
@@ -124,10 +132,10 @@ private struct PlannerItemDTO: Codable {
         try c.encodeIfPresent(name,            forKey: .name)
         try c.encodeIfPresent(workoutUuid,     forKey: .workoutUuid)
         try c.encodeIfPresent(workoutKey,      forKey: .workoutKey)
-        try c.encodeIfPresent(id,              forKey: .id)
+        try c.encodeIfPresent(layers,          forKey: .layers)
+        try c.encodeIfPresent(swimLayers,      forKey: .swimLayers)
     }
 }
-
 
 // MARK: - ViewModel
 
@@ -213,7 +221,7 @@ final class CalendarViewModel: ObservableObject {
 
         // 1) Планы по диапазону
         let rangeDTOs = try? await fetchPlannerRange(email: email, start: gridStart, end: gridEnd)
-        let rangePlanned = (rangeDTOs ?? []).compactMap { Self.workout(from: $0) }
+        let rangePlanned = (rangeDTOs ?? []).flatMap { Self.workouts(from: $0) }
 
         // 2) Fallback подневно для прошедших дней без планов
         var plannedDict = Dictionary(uniqueKeysWithValues: rangePlanned.map { ($0.id, $0) })
@@ -223,7 +231,7 @@ final class CalendarViewModel: ObservableObject {
             if !hasForDay {
                 if let arr = try? await fetchPlannerDay(email: email, date: d) {
                     for dto in arr {
-                        if let w = Self.workout(from: dto) {
+                        for w in Self.workouts(from: dto) {
                             plannedDict[w.id] = w // de-dup by id
                         }
                     }
@@ -274,66 +282,94 @@ final class CalendarViewModel: ObservableObject {
         return try await client.request(url, ttl: 60)
     }
 
-
-    /// ✅ НЕ теряем тип активности; если бэк не прислал, выводим из текстовых полей
-    // В CalendarViewModel.swift
-
     /// Универсальный детектор типа по нескольким строкам (учитываем синонимы/локали)
     private static func inferTypeKey(from strings: [String?]) -> String? {
-        // Склеим все кандидаты в одну нижний-регистр строку
         let hay = strings.compactMap { $0?.lowercased() }.joined(separator: " | ")
-
-        // Плавание
         if hay.contains("swim") || hay.contains("плав") || hay.contains("water") { return "swim" }
-
-        // Бег/ходьба
-        if hay.contains("run") || hay.contains("бег")
-            || hay.contains("walk") || hay.contains("ход") { return "run" }
-
-        // Велосипед
-        if hay.contains("bike") || hay.contains("velo") || hay.contains("вел")
-            || hay.contains("cycl") { return "bike" }
-
-        // Йога / силовые
-        if hay.contains("yoga") || hay.contains("йога")
-            || hay.contains("strength") || hay.contains("сил") { return "yoga" }
-
-        // Другие явные типы — можно добавить по мере встречаемости:
-        // sauna/баня/хаммам -> отнесём к "other", отдельного цвета для них в календаре нет
-
+        if hay.contains("run") || hay.contains("бег") || hay.contains("walk") || hay.contains("ход") { return "run" }
+        if hay.contains("bike") || hay.contains("velo") || hay.contains("вел") || hay.contains("cycl") { return "bike" }
+        if hay.contains("yoga") || hay.contains("йога") || hay.contains("strength") || hay.contains("сил") { return "yoga" }
+        if hay.contains("sauna") || hay.contains("баня") || hay.contains("хаммам") { return "sauna" }
         return nil
     }
 
-    /// ✅ НЕ теряем тип активности; если бэк не прислал — выводим из текстовых полей
-    private static func workout(from dto: PlannerItemDTO) -> Workout? {
+    /// Маппинг PlannerItemDTO → [Workout] с поддержкой протоколов (вода → баня → вода)
+    private static func workouts(from dto: PlannerItemDTO) -> [Workout] {
         let rawDate = dto.date ?? dto.startDate ?? dto.plannedDate ?? dto.workoutDate
-        guard let d = DateUtils.parse(rawDate) else { return nil }
+        guard let d = DateUtils.parse(rawDate) else { return [] }
 
         let minutes = (dto.durationHours ?? 0) * 60 + (dto.durationMinutes ?? 0)
-        let id = dto.workoutUuid ?? dto.workoutKey ?? dto.id ?? UUID().uuidString
+        let baseID = dto.workoutUuid ?? dto.workoutKey ?? dto.id ?? UUID().uuidString
 
-        // Что показывать в UI как название:
         let visibleName = dto.name ?? dto.type ?? dto.description ?? "Тренировка"
 
-        // 1) Прямой тип от бэка (мы уже поддерживаем и "activity", и "activity_type" в DTO)
         let fromBackend = dto.activityType?.lowercased()
-
-        // 2) Если нет — пробуем выводить из текста (type/name/description)
         let inferred = inferTypeKey(from: [dto.activityType, dto.type, dto.name, dto.description])
+        let finalType = (fromBackend?.isEmpty == false ? fromBackend : inferred) ?? "other"
 
-        let finalType = fromBackend?.isEmpty == false ? fromBackend : inferred
+        // --- ПРОТОКОЛ: баня + вода слева/справа
+        let waterArr = dto.swimLayers ?? []
+        let saunaL = dto.layers ?? 0
+        let isSaunaProtocol = finalType.contains("sauna") || finalType.contains("баня")
 
-        return Workout(
-            id: id,
+        if isSaunaProtocol && (saunaL > 0 || !waterArr.isEmpty) {
+            var res: [Workout] = []
+
+            if let w1 = waterArr.first, w1 > 0 {
+                res.append(Workout(
+                    id: baseID + "|water1",
+                    name: visibleName,
+                    description: dto.description,
+                    duration: minutes,
+                    date: d,
+                    activityType: "water",
+                    plannedLayers: min(5, w1),
+                    swimLayers: nil
+                ))
+            }
+
+            if saunaL > 0 {
+                res.append(Workout(
+                    id: baseID + "|sauna",
+                    name: visibleName,
+                    description: dto.description,
+                    duration: minutes,
+                    date: d,
+                    activityType: "sauna",
+                    plannedLayers: min(5, saunaL),
+                    swimLayers: nil
+                ))
+            }
+
+            if waterArr.count > 1, let w2 = waterArr.dropFirst().first, w2 > 0 {
+                res.append(Workout(
+                    id: baseID + "|water2",
+                    name: visibleName,
+                    description: dto.description,
+                    duration: minutes,
+                    date: d,
+                    activityType: "water",
+                    plannedLayers: min(5, w2),
+                    swimLayers: nil
+                ))
+            }
+
+            if !res.isEmpty { return res }
+        }
+
+        // Обычный (не протокол) — один элемент
+        let single = Workout(
+            id: baseID,
             name: visibleName,
             description: dto.description,
             duration: minutes,
             date: d,
-            activityType: finalType // ← сюда кладём "run/swim/yoga/bike" если смогли определить
+            activityType: finalType,
+            plannedLayers: dto.layers,
+            swimLayers: dto.swimLayers
         )
+        return [single]
     }
-
-
 
     /// Дедупликатор планов: вначале по id, если их нет — по ключу (ymd+lowercased name)
     private static func dedup(_ plans: [Workout]) -> [Workout] {
@@ -416,7 +452,6 @@ final class CalendarViewModel: ObservableObject {
             arr.sorted { (a, b) in (order.firstIndex(of: a) ?? 99) < (order.firstIndex(of: b) ?? 99) }
         }
 
-        // ✅ Цвет planned берём по activityType, fallback — по name
         for w in planned {
             let day = isoCal.startOfDay(for: w.date)
             let color = Self.color(for: w)
@@ -444,7 +479,6 @@ final class CalendarViewModel: ObservableObject {
 
     // MARK: Цвета для «точек» месяца
 
-    /// Основной вход: по Workout (учитывает activityType)
     private static func color(for w: Workout) -> Color {
         if let t = w.activityType, !t.isEmpty {
             return color(forTypeKey: t)
@@ -452,7 +486,6 @@ final class CalendarViewModel: ObservableObject {
         return color(forName: w.name)
     }
 
-    /// Fallback: по названию (если activityType отсутствует)
     private static func color(forName name: String) -> Color {
         let s = name.lowercased()
         if s.contains("yoga") || s.contains("йога") { return .purple }
@@ -463,13 +496,13 @@ final class CalendarViewModel: ObservableObject {
         return .green
     }
 
-    /// По ключу типа из бэка (run/swim/bike/yoga/…)
     private static func color(forTypeKey keyRaw: String) -> Color {
         let key = keyRaw.lowercased()
         if key.contains("yoga") { return .purple }
         if key.contains("run")  || key.contains("walk") { return .orange }
         if key.contains("swim") || key.contains("water") { return .blue }
         if key.contains("bike") || key.contains("cycl") || key.contains("вел") { return .yellow }
+        if key.contains("sauna") || key.contains("баня") { return .red }
         return .green
     }
 

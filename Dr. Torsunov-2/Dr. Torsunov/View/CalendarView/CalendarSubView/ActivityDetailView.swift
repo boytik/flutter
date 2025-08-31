@@ -88,7 +88,7 @@ struct ActivityDetailView: View {
         .task {
             await vm.load()
             chartStart = Date() // единый старт оси X
-            debugYogaDiagnostics(vm: vm)
+//            debugYogaDiagnostics(vm: vm)
 
 
         }
@@ -1065,98 +1065,98 @@ private extension Array {
 
 // ===== DEBUG =====
 // ===== DEBUG (внутри ActivityDetailView) =====
-#if DEBUG
-extension ActivityDetailView {
+//#if DEBUG
+//extension ActivityDetailView {
+//
+//    @MainActor func debugListVMSets(_ vm: WorkoutDetailViewModel) {
+//        print("⚙️ VM series available:")
+//        let mir = Mirror(reflecting: vm)
+//        for ch in mir.children {
+//            guard let label = ch.label else { continue }
+//            if let arr = asDoubleArray(ch.value), !arr.isEmpty {
+//                print(" • \(label): \(arr.count) points")
+//            } else if let urls = ch.value as? [URL], !urls.isEmpty {
+//                print(" • \(label): \(urls.count) urls")
+//            }
+//        }
+//        print(" • timeSeries.count:", vm.timeSeries?.count as Any)
+//        print(" • preferredDurationMinutes:", vm.preferredDurationMinutes as Any)
+//        print(" • currentLayerCheckedInt:", vm.currentLayerCheckedInt as Any)
+//        print(" • currentSubLayerCheckedInt:", vm.currentSubLayerCheckedInt as Any)
+//        print(" • subLayerProgressText:", vm.subLayerProgressText as Any)
+//    }
+//
+//    func debugPrintActivity(_ a: Activity) {
+//        print("""
+//        === ACTIVITY ===
+//          id=\(a.id)
+//          name=\(a.name ?? "nil")
+//          isCompleted=\(a.isCompleted)
+//          createdAt=\(String(describing: a.createdAt))
+//          userEmail=\(a.userEmail ?? "nil")
+//        """)
+//    }
+//
+//    @MainActor func debugPrintKnownSeries(_ vm: WorkoutDetailViewModel) {
+//        let hr = vm.heartRateSeries?.count ?? 0
+//        let wt = vm.waterTempSeries?.count ?? 0
+//        let sp = vm.speedSeries?.count ?? 0
+//        let urls = vm.diagramImageURLs.count
+//        print("""
+//        📊📊📊 Known series:
+//          heartRateSeries.count=\(hr)
+//          waterTempSeries.count=\(wt)
+//          speedSeries.count=\(sp)
+//          diagramImageURLs.count=\(urls)
+//          timeSeries.count=\(vm.timeSeries?.count ?? 0)
+//          preferredDurationMinutes=\(vm.preferredDurationMinutes as Any)
+//          currentLayerCheckedInt=\(vm.currentLayerCheckedInt as Any)
+//          currentSubLayerCheckedInt=\(vm.currentSubLayerCheckedInt as Any)
+//          subLayerProgressText=\(vm.subLayerProgressText as Any)
+//        """)
+//    }
 
-    @MainActor func debugListVMSets(_ vm: WorkoutDetailViewModel) {
-        print("⚙️ VM series available:")
-        let mir = Mirror(reflecting: vm)
-        for ch in mir.children {
-            guard let label = ch.label else { continue }
-            if let arr = asDoubleArray(ch.value), !arr.isEmpty {
-                print(" • \(label): \(arr.count) points")
-            } else if let urls = ch.value as? [URL], !urls.isEmpty {
-                print(" • \(label): \(urls.count) urls")
-            }
-        }
-        print(" • timeSeries.count:", vm.timeSeries?.count as Any)
-        print(" • preferredDurationMinutes:", vm.preferredDurationMinutes as Any)
-        print(" • currentLayerCheckedInt:", vm.currentLayerCheckedInt as Any)
-        print(" • currentSubLayerCheckedInt:", vm.currentSubLayerCheckedInt as Any)
-        print(" • subLayerProgressText:", vm.subLayerProgressText as Any)
-    }
-
-    func debugPrintActivity(_ a: Activity) {
-        print("""
-        === ACTIVITY ===
-          id=\(a.id)
-          name=\(a.name ?? "nil")
-          isCompleted=\(a.isCompleted)
-          createdAt=\(String(describing: a.createdAt))
-          userEmail=\(a.userEmail ?? "nil")
-        """)
-    }
-
-    @MainActor func debugPrintKnownSeries(_ vm: WorkoutDetailViewModel) {
-        let hr = vm.heartRateSeries?.count ?? 0
-        let wt = vm.waterTempSeries?.count ?? 0
-        let sp = vm.speedSeries?.count ?? 0
-        let urls = vm.diagramImageURLs.count
-        print("""
-        📊📊📊 Known series:
-          heartRateSeries.count=\(hr)
-          waterTempSeries.count=\(wt)
-          speedSeries.count=\(sp)
-          diagramImageURLs.count=\(urls)
-          timeSeries.count=\(vm.timeSeries?.count ?? 0)
-          preferredDurationMinutes=\(vm.preferredDurationMinutes as Any)
-          currentLayerCheckedInt=\(vm.currentLayerCheckedInt as Any)
-          currentSubLayerCheckedInt=\(vm.currentSubLayerCheckedInt as Any)
-          subLayerProgressText=\(vm.subLayerProgressText as Any)
-        """)
-    }
-
-    /// Полная диагностика для йоги: кандидаты + итог `findYogaPositions`
-    @MainActor func debugYogaDiagnostics(vm: WorkoutDetailViewModel) {
-        print("🧘——— YOGA DIAGNOSTICS ———")
-        let mir = Mirror(reflecting: vm)
-        var anyFound = false
-
-        for ch in mir.children {
-            guard let name = ch.label?.lowercased() else { continue }
-
-            if let arr = asDoubleArray(ch.value), !arr.isEmpty {
-                let rounded = arr.map { Int(round($0)) }
-                let uniq = Array(Set(rounded)).sorted()
-                if uniq.count >= 2 && uniq.count <= 16 {
-                    anyFound = true
-                    let sample = rounded.prefix(20).map(String.init).joined(separator: ",")
-                    print("🧘 numeric candidate '\(name)' — \(arr.count) pts; uniq=\(uniq); sample=[\(sample)]")
-                }
-            } else if let s = ch.value as? [String], !s.isEmpty {
-                let uniq = Array(Set(s))
-                if uniq.count <= 24 {
-                    anyFound = true
-                    let sample = s.prefix(12).joined(separator: " | ")
-                    print("🧘 string candidate '\(name)' — \(s.count) pts; uniqCount=\(uniq.count); sample=[\(sample)]")
-                }
-            }
-        }
-
-        if !anyFound {
-            print("🧘 no explicit yoga-like fields found — will rely on soft step-like inference")
-        }
-
-        if let (indices, labels) = self.findYogaPositions(in: vm) {
-            let ints = indices.map { Int(round($0)) }
-            print("✅ findYogaPositions -> indices.count=\(indices.count), labels.count=\(labels.count)")
-            print("   labels: \(labels)")
-            print("   first 20 idx:", Array(ints.prefix(20)))
-        } else {
-            print("❌ findYogaPositions returned nil — second chart will be hidden for yoga")
-            if let t = vm.timeSeries { print("   timeSeries.count=\(t.count)") }
-        }
-        print("———————————————")
-    }
-}
-#endif
+//    /// Полная диагностика для йоги: кандидаты + итог `findYogaPositions`
+//    @MainActor func debugYogaDiagnostics(vm: WorkoutDetailViewModel) {
+//        print("🧘——— YOGA DIAGNOSTICS ———")
+//        let mir = Mirror(reflecting: vm)
+//        var anyFound = false
+//
+//        for ch in mir.children {
+//            guard let name = ch.label?.lowercased() else { continue }
+//
+//            if let arr = asDoubleArray(ch.value), !arr.isEmpty {
+//                let rounded = arr.map { Int(round($0)) }
+//                let uniq = Array(Set(rounded)).sorted()
+//                if uniq.count >= 2 && uniq.count <= 16 {
+//                    anyFound = true
+//                    let sample = rounded.prefix(20).map(String.init).joined(separator: ",")
+//                    print("🧘 numeric candidate '\(name)' — \(arr.count) pts; uniq=\(uniq); sample=[\(sample)]")
+//                }
+//            } else if let s = ch.value as? [String], !s.isEmpty {
+//                let uniq = Array(Set(s))
+//                if uniq.count <= 24 {
+//                    anyFound = true
+//                    let sample = s.prefix(12).joined(separator: " | ")
+//                    print("🧘 string candidate '\(name)' — \(s.count) pts; uniqCount=\(uniq.count); sample=[\(sample)]")
+//                }
+//            }
+//        }
+//
+//        if !anyFound {
+//            print("🧘 no explicit yoga-like fields found — will rely on soft step-like inference")
+//        }
+//
+//        if let (indices, labels) = self.findYogaPositions(in: vm) {
+//            let ints = indices.map { Int(round($0)) }
+//            print("✅ findYogaPositions -> indices.count=\(indices.count), labels.count=\(labels.count)")
+//            print("   labels: \(labels)")
+//            print("   first 20 idx:", Array(ints.prefix(20)))
+//        } else {
+//            print("❌ findYogaPositions returned nil — second chart will be hidden for yoga")
+//            if let t = vm.timeSeries { print("   timeSeries.count=\(t.count)") }
+//        }
+//        print("———————————————")
+//    }
+//}
+//#endif
