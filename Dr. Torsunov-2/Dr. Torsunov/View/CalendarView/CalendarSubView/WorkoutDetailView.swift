@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import Charts
 
-@inline(__always) private func L(_ key: String) -> String { NSLocalizedString(key, comment: "") }
+
 extension Notification.Name { static let workoutApproved = Notification.Name("workoutApproved") }
 
 struct WorkoutDetailView: View {

@@ -15,6 +15,14 @@
 		3E327F1F2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F1E2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift */; };
 		3E327F212E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */; };
 		3E327F232E5CD15A000A7D33 /* debugDumpVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F222E5CD15A000A7D33 /* debugDumpVM.swift */; };
+		3E375E272E65D86700989A37 /* ActivityChartsSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E375E1E2E65D86700989A37 /* ActivityChartsSectionView.swift */; };
+		3E375E282E65D86700989A37 /* NumericChartSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E375E1C2E65D86700989A37 /* NumericChartSectionView.swift */; };
+		3E375E292E65D86700989A37 /* ADUIKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E375E232E65D86700989A37 /* ADUIKit.swift */; };
+		3E375E2A2E65D86700989A37 /* SecondChartFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E375E202E65D86700989A37 /* SecondChartFactory.swift */; };
+		3E375E2B2E65D86700989A37 /* ActivityHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E375E1F2E65D86700989A37 /* ActivityHeaderView.swift */; };
+		3E375E2C2E65D86700989A37 /* CategoricalChartSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E375E1B2E65D86700989A37 /* CategoricalChartSectionView.swift */; };
+		3E375E2D2E65D86700989A37 /* ActivityDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E375E252E65D86700989A37 /* ActivityDetailView.swift */; };
+		3E375E2E2E65D86700989A37 /* ActivityAnalysisUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E375E222E65D86700989A37 /* ActivityAnalysisUtils.swift */; };
 		3E3BAF062E3B6C1A0013DE9B /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */; };
 		3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */; };
 		3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */; };
@@ -64,7 +72,6 @@
 		3E8599D92E44E9B500FA1FAB /* WorkoutRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599D82E44E9B500FA1FAB /* WorkoutRepositoryImpl.swift */; };
 		3E8599E22E44F31500FA1FAB /* ActivityRepositoryImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599E12E44F31500FA1FAB /* ActivityRepositoryImpl.swift */; };
 		3E8599E42E45203100FA1FAB /* CalendarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599E32E45203100FA1FAB /* CalendarItem.swift */; };
-		3E8599E62E452D8900FA1FAB /* ActivityDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8599E52E452D8900FA1FAB /* ActivityDetailView.swift */; };
 		3E8F8A502E43646000CE00CB /* EditFieldSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8F8A4F2E43646000CE00CB /* EditFieldSheet.swift */; };
 		3E8F8A532E436F9F00CE00CB /* PersonalViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8F8A522E436F9F00CE00CB /* PersonalViewModel.swift */; };
 		3E8F8A552E4371F200CE00CB /* ExtensionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8F8A542E4371F200CE00CB /* ExtensionView.swift */; };
@@ -99,6 +106,14 @@
 		3E327F1E2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarItem+CalendarGridDayContext.swift"; sourceTree = "<group>"; };
 		3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutDetailViewModel+Metrics.swift"; sourceTree = "<group>"; };
 		3E327F222E5CD15A000A7D33 /* debugDumpVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = debugDumpVM.swift; sourceTree = "<group>"; };
+		3E375E1B2E65D86700989A37 /* CategoricalChartSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoricalChartSectionView.swift; sourceTree = "<group>"; };
+		3E375E1C2E65D86700989A37 /* NumericChartSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumericChartSectionView.swift; sourceTree = "<group>"; };
+		3E375E1E2E65D86700989A37 /* ActivityChartsSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityChartsSectionView.swift; sourceTree = "<group>"; };
+		3E375E1F2E65D86700989A37 /* ActivityHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityHeaderView.swift; sourceTree = "<group>"; };
+		3E375E202E65D86700989A37 /* SecondChartFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondChartFactory.swift; sourceTree = "<group>"; };
+		3E375E222E65D86700989A37 /* ActivityAnalysisUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityAnalysisUtils.swift; sourceTree = "<group>"; };
+		3E375E232E65D86700989A37 /* ADUIKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ADUIKit.swift; sourceTree = "<group>"; };
+		3E375E252E65D86700989A37 /* ActivityDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDetailView.swift; sourceTree = "<group>"; };
 		3E3BAF052E3B6C1A0013DE9B /* TrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingView.swift; sourceTree = "<group>"; };
 		3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGridView.swift; sourceTree = "<group>"; };
 		3E3BAF092E3BB26C0013DE9B /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
@@ -155,7 +170,6 @@
 		3E8599D82E44E9B500FA1FAB /* WorkoutRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRepositoryImpl.swift; sourceTree = "<group>"; };
 		3E8599E12E44F31500FA1FAB /* ActivityRepositoryImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepositoryImpl.swift; sourceTree = "<group>"; };
 		3E8599E32E45203100FA1FAB /* CalendarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarItem.swift; sourceTree = "<group>"; };
-		3E8599E52E452D8900FA1FAB /* ActivityDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDetailView.swift; sourceTree = "<group>"; };
 		3E8F8A4F2E43646000CE00CB /* EditFieldSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFieldSheet.swift; sourceTree = "<group>"; };
 		3E8F8A522E436F9F00CE00CB /* PersonalViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalViewModel.swift; sourceTree = "<group>"; };
 		3E8F8A542E4371F200CE00CB /* ExtensionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionView.swift; sourceTree = "<group>"; };
@@ -195,6 +209,45 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3E375E1D2E65D86700989A37 /* Charts */ = {
+			isa = PBXGroup;
+			children = (
+				3E375E1B2E65D86700989A37 /* CategoricalChartSectionView.swift */,
+				3E375E1C2E65D86700989A37 /* NumericChartSectionView.swift */,
+			);
+			path = Charts;
+			sourceTree = "<group>";
+		};
+		3E375E212E65D86700989A37 /* Sections */ = {
+			isa = PBXGroup;
+			children = (
+				3E375E1E2E65D86700989A37 /* ActivityChartsSectionView.swift */,
+				3E375E1F2E65D86700989A37 /* ActivityHeaderView.swift */,
+				3E375E202E65D86700989A37 /* SecondChartFactory.swift */,
+			);
+			path = Sections;
+			sourceTree = "<group>";
+		};
+		3E375E242E65D86700989A37 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				3E375E222E65D86700989A37 /* ActivityAnalysisUtils.swift */,
+				3E375E232E65D86700989A37 /* ADUIKit.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		3E375E262E65D86700989A37 /* ActivityDetailRefactored_fixed6 */ = {
+			isa = PBXGroup;
+			children = (
+				3E375E1D2E65D86700989A37 /* Charts */,
+				3E375E212E65D86700989A37 /* Sections */,
+				3E375E242E65D86700989A37 /* Shared */,
+				3E375E252E65D86700989A37 /* ActivityDetailView.swift */,
+			);
+			path = ActivityDetailRefactored_fixed6;
+			sourceTree = "<group>";
+		};
 		3E670BD52E5603F9007E5AA2 /* Push */ = {
 			isa = PBXGroup;
 			children = (
@@ -452,13 +505,13 @@
 		3EADE7822E3A2E29002A2D67 /* CalendarSubView */ = {
 			isa = PBXGroup;
 			children = (
+				3E375E262E65D86700989A37 /* ActivityDetailRefactored_fixed6 */,
 				3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */,
 				3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */,
 				3E327F1A2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift */,
 				3E327F1E2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift */,
 				3E327F1C2E5C9072000A7D33 /* CalendarGridView+Markers.swift */,
 				3E8F8A562E438EEB00CE00CB /* WorkoutDetailView.swift */,
-				3E8599E52E452D8900FA1FAB /* ActivityDetailView.swift */,
 				3E8F8A582E43A28900CE00CB /* ImagePicker.swift */,
 				3E7045692E4A1BD1005EDE48 /* InspectorView.swift */,
 				3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */,
@@ -630,7 +683,6 @@
 				3E31C8CE2E4C876700527C76 /* WorkoutDetailViewModel.swift in Sources */,
 				3E70455B2E4A054C005EDE48 /* SignInView.swift in Sources */,
 				3E7045762E4A2317005EDE48 /* ChatViewModel.swift in Sources */,
-				3E8599E62E452D8900FA1FAB /* ActivityDetailView.swift in Sources */,
 				3EADE77D2E3A2558002A2D67 /* ProfileView.swift in Sources */,
 				3E7B17792E424F4D001AF947 /* ToggleSectionView.swift in Sources */,
 				3E8599E42E45203100FA1FAB /* CalendarItem.swift in Sources */,
@@ -652,6 +704,14 @@
 				3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */,
 				3E61247C2E5716D500B2B1E0 /* PhotoCompareGrid.swift in Sources */,
 				3E8599D02E44DFC500FA1FAB /* ProfilePhotoView.swift in Sources */,
+				3E375E272E65D86700989A37 /* ActivityChartsSectionView.swift in Sources */,
+				3E375E282E65D86700989A37 /* NumericChartSectionView.swift in Sources */,
+				3E375E292E65D86700989A37 /* ADUIKit.swift in Sources */,
+				3E375E2A2E65D86700989A37 /* SecondChartFactory.swift in Sources */,
+				3E375E2B2E65D86700989A37 /* ActivityHeaderView.swift in Sources */,
+				3E375E2C2E65D86700989A37 /* CategoricalChartSectionView.swift in Sources */,
+				3E375E2D2E65D86700989A37 /* ActivityDetailView.swift in Sources */,
+				3E375E2E2E65D86700989A37 /* ActivityAnalysisUtils.swift in Sources */,
 				3EADE7812E3A2A5C002A2D67 /* CalendarViewModel.swift in Sources */,
 				3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */,
 				3EADE78B2E3A54A0002A2D67 /* CalendarItemCellView.swift in Sources */,
