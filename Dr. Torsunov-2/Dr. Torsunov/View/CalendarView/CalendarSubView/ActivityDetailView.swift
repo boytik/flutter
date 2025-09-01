@@ -88,9 +88,6 @@ struct ActivityDetailView: View {
         .task {
             await vm.load()
             chartStart = Date() // единый старт оси X
-//            debugYogaDiagnostics(vm: vm)
-
-
         }
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -134,7 +131,7 @@ struct ActivityDetailView: View {
                 FixedRemoteImage(url: url, aspect: 3/4, corner: 12)
             }
 
-            // 2) Второй график «как во Flutter» (цвет задаём тут)
+            // 2) Второй график
             switch secondChartChoice() {
             case .none:
                 EmptyView()
@@ -199,47 +196,41 @@ struct ActivityDetailView: View {
         let t = canonicalType(inferType(from: base))
 
         if ["yoga", "meditation"].contains(t) {
-            // 1) Основной вариант — позы
-            if let (idx, labels) = findYogaPositions(in: vm) {
-                #if DEBUG
-                print("🧘 secondChart(yoga): using POSITIONS — count=\(idx.count)")
-                #endif
+            // >>> СНАЧАЛА — явные поля VM, которые мы добавили <<<
+            if !vm.yogaPoseIndices.isEmpty, !vm.yogaPoseLabels.isEmpty {
                 return .categorical(.init(title: "Диаграмма позиций йоги",
-                                          seriesName: "Поза",
+                                          seriesName: "Position",
+                                          indices: vm.yogaPoseIndices.map { round($0) },
+                                          labels: vm.yogaPoseLabels,
+                                          color: .purple))
+            }
+
+            // Далее — мягкий поиск (рефлексия/строки)
+            if let (idx, labels) = findYogaPositionsSoft(in: vm) {
+                return .categorical(.init(title: "Диаграмма позиций йоги",
+                                          seriesName: "Position",
                                           indices: idx,
                                           labels: labels,
                                           color: .purple))
             }
-            // 2) Фолбэк №1 — скорость (если вдруг есть)
+
+            // Фолбэки (как было)
             if let v = vm.speedSeries, !v.isEmpty {
-                #if DEBUG
-                print("🧘 secondChart(yoga): fallback SPEED — count=\(v.count)")
-                #endif
                 return .numeric(.init(title: "Скорость",
                                       unit: "km/h",
                                       seriesName: "Скорость",
                                       values: v,
                                       color: .pink))
             }
-            // 3) Фолбэк №2 — температура воды (если есть)
             if let v = vm.waterTempSeries, !v.isEmpty {
-                #if DEBUG
-                print("🧘 secondChart(yoga): fallback WATER TEMP — count=\(v.count)")
-                #endif
                 return .numeric(.init(title: "Диаграмма температуры воды",
                                       unit: "°C",
                                       seriesName: "Температура воды",
                                       values: v,
                                       color: .blue))
             }
-
-            #if DEBUG
-            print("🧘 secondChart(yoga): no data for positions/speed/water — returning .none")
-            #endif
             return .none
         }
-
-
 
         if ["run", "walk", "run_walk", "bike"].contains(t) {
             if let v = vm.speedSeries, !v.isEmpty {
@@ -247,7 +238,7 @@ struct ActivityDetailView: View {
                                       unit: "km/h",
                                       seriesName: "Скорость",
                                       values: v,
-                                      color: .pink))            // ЯРКО-РОЗОВЫЙ
+                                      color: .pink))
             }
             if let v = vm.waterTempSeries, !v.isEmpty {
                 return .numeric(.init(title: "Диаграмма температуры воды",
@@ -265,7 +256,7 @@ struct ActivityDetailView: View {
                                       unit: "°C",
                                       seriesName: "Температура воды",
                                       values: v,
-                                      color: .blue))           // СИНИЙ
+                                      color: .blue))
             }
             return .none
         }
@@ -276,7 +267,7 @@ struct ActivityDetailView: View {
                                       unit: "°C",
                                       seriesName: "Температура воды",
                                       values: v,
-                                      color: .yellow))         // ДЛЯ БАНИ — ЖЁЛТЫЙ
+                                      color: .yellow))
             }
             return .none
         }
@@ -291,14 +282,14 @@ struct ActivityDetailView: View {
         return .none
     }
 
-    private func findYogaPositions(in vm: WorkoutDetailViewModel) -> (indices: [Double], labels: [String])? {
+    // МЯГКИЙ поиск поз через рефлексию (оставлен как fallback)
+    private func findYogaPositionsSoft(in vm: WorkoutDetailViewModel) -> (indices: [Double], labels: [String])? {
         let mir = Mirror(reflecting: vm)
 
         var numericCandidate: [Double]? = nil
         var stringCandidate: [String]? = nil
         var labelsCandidate: [String]? = nil
 
-        // 1) Ищем по “говорящим” именам полей
         for ch in mir.children {
             guard let name = ch.label?.lowercased() else { continue }
             let hitsName = ["pose","position","yoga","asana","posture","step","stage","state","label","class","category"]
@@ -308,82 +299,62 @@ struct ActivityDetailView: View {
                 if let arr = asDoubleArray(ch.value), !arr.isEmpty {
                     numericCandidate = arr
                 } else if let arrS = ch.value as? [String], !arrS.isEmpty {
-                    // Если это явно лейблы (уникальные без таймлайна) — запомним как labels
                     if Set(arrS).count == arrS.count && arrS.count <= 24 {
                         labelsCandidate = arrS
                     } else {
-                        // Это, похоже, строковый таймлайн поз
                         stringCandidate = arrS
                     }
                 }
             }
         }
 
-        // 2) Если нашли строковый таймлайн — маппим в индексы
         if let s = stringCandidate {
             let (idx, labs) = mapStringSeriesToIndices(s, preferredLabels: labelsCandidate)
             return (!idx.isEmpty) ? (idx, labs) : nil
         }
-
-        // 3) Если числовой ряд не найден по именам — ищем «ступенчатый» во всей VM
         if numericCandidate == nil {
             numericCandidate = firstStepLikeSeries(in: vm)
         }
-
         if let idx = numericCandidate, !idx.isEmpty {
             return (idx.map { round($0) }, labelsCandidate ?? defaultYogaLabels())
         }
-
         return nil
     }
+
     private func defaultYogaLabels() -> [String] {
-        // можно расширять, если на сервере больше уровней
         ["Lotus", "Half lotus", "Diamond", "Standing", "Kneeling", "Butterfly", "Other"]
     }
-    // Конвертируем строковый ряд поз в индексы (0..N-1), лейблы — в порядке первого появления.
-    // Если передали preferredLabels — используем их порядок, а незнакомые добавляем в конец.
     private func mapStringSeriesToIndices(_ series: [String], preferredLabels: [String]?) -> ([Double],[String]) {
         var labels: [String] = preferredLabels ?? []
         var indexByLabel: [String:Int] = [:]
-
         func index(for label: String) -> Int {
             if let i = indexByLabel[label] { return i }
             if let i = labels.firstIndex(of: label) {
-                indexByLabel[label] = i
-                return i
+                indexByLabel[label] = i; return i
             }
             labels.append(label)
             let i = labels.count - 1
             indexByLabel[label] = i
             return i
         }
-
         let indices = series.map { Double(index(for: $0)) }
         return (indices, labels)
     }
-
-    // Более «мягкий» поиск ступенчатого числового ряда во всей VM
     private func firstStepLikeSeries(in vm: WorkoutDetailViewModel) -> [Double]? {
         let mir = Mirror(reflecting: vm)
         var candidates: [[Double]] = []
-
         for ch in mir.children {
             guard let arr = asDoubleArray(ch.value), arr.count >= 4 else { continue }
-
             let rounded = arr.map { round($0) }
             let uniq = Set(rounded)
             let integerish = zip(arr, rounded).allSatisfy { abs($0.0 - $0.1) < 0.001 }
-            // допускаем до 16 разных поз, как во Flutter-проектах
             if integerish && uniq.count >= 2 && uniq.count <= 16 {
-                // проверим, что ряд действительно ступенчатый (есть повторяющиеся соседние значения или уникальных меньше длины)
                 let hasSteps = (1..<rounded.count).contains { rounded[$0] == rounded[$0-1] } || uniq.count < rounded.count
                 if hasSteps { candidates.append(rounded) }
             }
         }
-
         return candidates.max(by: { $0.count < $1.count })
     }
-
 
     // MARK: Header
 
@@ -651,7 +622,6 @@ private struct NumericChartSectionView: View {
         Chart {
             let pts = makePoints()
 
-            // данные
             ForEach(pts) { p in
                 AreaMark(x: .value("t", p.time), y: .value("v", p.value))
                     .interpolationMethod(.monotone)
@@ -663,7 +633,6 @@ private struct NumericChartSectionView: View {
                     .foregroundStyle(color)
             }
 
-            // пунктирные сетки (RuleMark вместо lineStyle у Axis) — по общему диапазону
             let first = start
             let last  = start.addingTimeInterval(totalSeconds)
             let total = max(1, last.timeIntervalSince(first))
@@ -681,7 +650,6 @@ private struct NumericChartSectionView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4,3]))
             }
 
-            // курсор
             if let idx = selectedIndex, pts.indices.contains(idx) {
                 let sp = pts[idx]
                 RuleMark(x: .value("t", sp.time)).foregroundStyle(Color.white.opacity(0.55))
@@ -690,7 +658,7 @@ private struct NumericChartSectionView: View {
             }
         }
         .chartYScale(domain: yDomain)
-        .chartXScale(domain: start...start.addingTimeInterval(totalSeconds)) // единый домен X
+        .chartXScale(domain: start...start.addingTimeInterval(totalSeconds))
         .chartXAxis {
             AxisMarks(values: xAxisMarks()) { v in
                 AxisGridLine().foregroundStyle(Color.white.opacity(0.12))
@@ -727,7 +695,6 @@ private struct NumericChartSectionView: View {
         .chartScrollableAxes(.horizontal)
     }
 
-    // helpers (numeric)
     private func metric(_ title: String, _ value: String, boldLeft: Bool = false, highlight: Bool = false, subdued: Bool = false, unitSuffix: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(boldLeft ? .subheadline.bold() : .subheadline).foregroundColor(.white.opacity(0.75))
@@ -815,9 +782,7 @@ private struct CategoricalChartSectionView: View {
     @State private var selectedIndex: Int? = nil
     @State private var showFull = false
 
-    private var yDomain: ClosedRange<Double> {
-        (-0.5)...(Double(max(labels.count-1, 0)) + 0.5)
-    }
+    private var yDomain: ClosedRange<Double> { (-0.5)...(Double(max(labels.count-1, 0)) + 0.5) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -861,7 +826,6 @@ private struct CategoricalChartSectionView: View {
         Chart {
             let pts = makePoints()
 
-            // данные
             ForEach(pts) { p in
                 AreaMark(x: .value("t", p.time), y: .value("v", p.value))
                     .interpolationMethod(.stepCenter)
@@ -875,7 +839,6 @@ private struct CategoricalChartSectionView: View {
                     .foregroundStyle(color)
             }
 
-            // сетка: вертикальные деления + горизонтали по категориям — по общему диапазону
             let first = start
             let last  = start.addingTimeInterval(totalSeconds)
             let total = max(1, last.timeIntervalSince(first))
@@ -891,7 +854,6 @@ private struct CategoricalChartSectionView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4,3]))
             }
 
-            // курсор
             if let idx = selectedIndex, pts.indices.contains(idx) {
                 let sp = pts[idx]
                 RuleMark(x: .value("t", sp.time)).foregroundStyle(Color.white.opacity(0.55))
@@ -941,7 +903,6 @@ private struct CategoricalChartSectionView: View {
         .chartScrollableAxes(.horizontal)
     }
 
-    // helpers (categorical)
     private func metric(_ title: String, _ value: String, boldLeft: Bool = false, highlight: Bool = false, subdued: Bool = false, unitSuffix: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(boldLeft ? .subheadline.bold() : .subheadline).foregroundColor(.white.opacity(0.75))
@@ -988,11 +949,7 @@ private struct CategoricalChartSectionView: View {
         var lo = 0, hi = times.count - 1
         while lo < hi {
             let mid = (lo + hi) / 2
-            if times[mid] < t.timeIntervalSinceReferenceDate { // <-- тут исправлено
-                lo = mid + 1
-            } else {
-                hi = mid
-            }
+            if times[mid] < t.timeIntervalSinceReferenceDate { lo = mid + 1 } else { hi = mid }
         }
         let i = lo
         if i == 0 { return 0 }
@@ -1000,7 +957,6 @@ private struct CategoricalChartSectionView: View {
         let a = times[i - 1], b = times[i]
         return (abs(a - t.timeIntervalSinceReferenceDate) <= abs(b - t.timeIntervalSinceReferenceDate)) ? (i - 1) : i
     }
-
     private func formatElapsed(seconds: Int) -> String {
         let h = seconds / 3600
         let m = (seconds % 3600) / 60
@@ -1062,101 +1018,3 @@ private extension Array {
         indices.contains(i) ? self[i] : nil
     }
 }
-
-// ===== DEBUG =====
-// ===== DEBUG (внутри ActivityDetailView) =====
-//#if DEBUG
-//extension ActivityDetailView {
-//
-//    @MainActor func debugListVMSets(_ vm: WorkoutDetailViewModel) {
-//        print("⚙️ VM series available:")
-//        let mir = Mirror(reflecting: vm)
-//        for ch in mir.children {
-//            guard let label = ch.label else { continue }
-//            if let arr = asDoubleArray(ch.value), !arr.isEmpty {
-//                print(" • \(label): \(arr.count) points")
-//            } else if let urls = ch.value as? [URL], !urls.isEmpty {
-//                print(" • \(label): \(urls.count) urls")
-//            }
-//        }
-//        print(" • timeSeries.count:", vm.timeSeries?.count as Any)
-//        print(" • preferredDurationMinutes:", vm.preferredDurationMinutes as Any)
-//        print(" • currentLayerCheckedInt:", vm.currentLayerCheckedInt as Any)
-//        print(" • currentSubLayerCheckedInt:", vm.currentSubLayerCheckedInt as Any)
-//        print(" • subLayerProgressText:", vm.subLayerProgressText as Any)
-//    }
-//
-//    func debugPrintActivity(_ a: Activity) {
-//        print("""
-//        === ACTIVITY ===
-//          id=\(a.id)
-//          name=\(a.name ?? "nil")
-//          isCompleted=\(a.isCompleted)
-//          createdAt=\(String(describing: a.createdAt))
-//          userEmail=\(a.userEmail ?? "nil")
-//        """)
-//    }
-//
-//    @MainActor func debugPrintKnownSeries(_ vm: WorkoutDetailViewModel) {
-//        let hr = vm.heartRateSeries?.count ?? 0
-//        let wt = vm.waterTempSeries?.count ?? 0
-//        let sp = vm.speedSeries?.count ?? 0
-//        let urls = vm.diagramImageURLs.count
-//        print("""
-//        📊📊📊 Known series:
-//          heartRateSeries.count=\(hr)
-//          waterTempSeries.count=\(wt)
-//          speedSeries.count=\(sp)
-//          diagramImageURLs.count=\(urls)
-//          timeSeries.count=\(vm.timeSeries?.count ?? 0)
-//          preferredDurationMinutes=\(vm.preferredDurationMinutes as Any)
-//          currentLayerCheckedInt=\(vm.currentLayerCheckedInt as Any)
-//          currentSubLayerCheckedInt=\(vm.currentSubLayerCheckedInt as Any)
-//          subLayerProgressText=\(vm.subLayerProgressText as Any)
-//        """)
-//    }
-
-//    /// Полная диагностика для йоги: кандидаты + итог `findYogaPositions`
-//    @MainActor func debugYogaDiagnostics(vm: WorkoutDetailViewModel) {
-//        print("🧘——— YOGA DIAGNOSTICS ———")
-//        let mir = Mirror(reflecting: vm)
-//        var anyFound = false
-//
-//        for ch in mir.children {
-//            guard let name = ch.label?.lowercased() else { continue }
-//
-//            if let arr = asDoubleArray(ch.value), !arr.isEmpty {
-//                let rounded = arr.map { Int(round($0)) }
-//                let uniq = Array(Set(rounded)).sorted()
-//                if uniq.count >= 2 && uniq.count <= 16 {
-//                    anyFound = true
-//                    let sample = rounded.prefix(20).map(String.init).joined(separator: ",")
-//                    print("🧘 numeric candidate '\(name)' — \(arr.count) pts; uniq=\(uniq); sample=[\(sample)]")
-//                }
-//            } else if let s = ch.value as? [String], !s.isEmpty {
-//                let uniq = Array(Set(s))
-//                if uniq.count <= 24 {
-//                    anyFound = true
-//                    let sample = s.prefix(12).joined(separator: " | ")
-//                    print("🧘 string candidate '\(name)' — \(s.count) pts; uniqCount=\(uniq.count); sample=[\(sample)]")
-//                }
-//            }
-//        }
-//
-//        if !anyFound {
-//            print("🧘 no explicit yoga-like fields found — will rely on soft step-like inference")
-//        }
-//
-//        if let (indices, labels) = self.findYogaPositions(in: vm) {
-//            let ints = indices.map { Int(round($0)) }
-//            print("✅ findYogaPositions -> indices.count=\(indices.count), labels.count=\(labels.count)")
-//            print("   labels: \(labels)")
-//            print("   first 20 idx:", Array(ints.prefix(20)))
-//        } else {
-//            print("❌ findYogaPositions returned nil — second chart will be hidden for yoga")
-//            if let t = vm.timeSeries { print("   timeSeries.count=\(t.count)") }
-//        }
-//        print("———————————————")
-//    }
-//}
-//#endif

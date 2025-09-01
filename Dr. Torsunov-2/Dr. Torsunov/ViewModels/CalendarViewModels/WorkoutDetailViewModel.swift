@@ -66,6 +66,11 @@ final class WorkoutDetailViewModel: ObservableObject {
     @Published var metadata: [String: JSONValue] = [:]
     @Published var metrics:  [String: JSONValue] = [:]
 
+    // === ДОБАВЛЕНО: серии для поз йоги (их читает ActivityDetailView через reflection) ===
+    @Published var yogaPoseTimeline: [String] = []   // таймлайн поз (строки)
+    @Published var yogaPoseLabels: [String]   = []   // список лейблов (уникальные)
+    @Published var yogaPoseIndices: [Double]  = []   // индексы поз по шкале 0..N-1
+
     private let client: CacheRequesting = CacheJSONClient()
     private let workoutID: String
 
@@ -90,7 +95,6 @@ final class WorkoutDetailViewModel: ObservableObject {
         }
     }
 
-
     func load() async {
         guard let email = TokenStorage.shared.currentEmail(), !email.isEmpty else {
             errorMessage = "No email"
@@ -111,6 +115,8 @@ final class WorkoutDetailViewModel: ObservableObject {
         if let m: [String: JSONValue] = try? KVStore.shared.get([String: JSONValue].self,
                                                                 namespace: ns, key: kvKeyMetr) {
             self.metrics = m
+            // из офлайна тоже пересоберём производные серии
+            self.rebuildDerivedSeries()
         }
 
         let metaPrimary   = ApiRoutes.Workouts.metadata(workoutKey: workoutID, email: email)
@@ -148,6 +154,8 @@ final class WorkoutDetailViewModel: ObservableObject {
             self.metrics = metrObj
             try? KVStore.shared.put(metrObj, namespace: ns, key: kvKeyMetr, ttl: kvTTLMetr)
             log.info("[METRICS] OK (primary) → cached")
+            // === ДОБАВЛЕНО: пересборка серий после свежей загрузки ===
+            self.rebuildDerivedSeries()
         } catch {
             let se = Self.shortError(error)
             log.error("[METRICS] Primary failed: \(se, privacy: .public) → fallback")
@@ -157,6 +165,8 @@ final class WorkoutDetailViewModel: ObservableObject {
                 self.metrics = metrObj
                 try? KVStore.shared.put(metrObj, namespace: ns, key: kvKeyMetr, ttl: kvTTLMetr)
                 log.info("[METRICS] OK (fallback) → cached")
+                // === ДОБАВЛЕНО: пересборка серий после фолбэка ===
+                self.rebuildDerivedSeries()
             } catch {
                 let se2 = Self.shortError(error)
                 log.error("[METRICS] Fallback failed: \(se2, privacy: .public)")
