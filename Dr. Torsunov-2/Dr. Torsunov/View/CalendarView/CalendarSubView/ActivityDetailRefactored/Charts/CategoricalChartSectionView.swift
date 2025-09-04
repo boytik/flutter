@@ -1,3 +1,4 @@
+// DROP-IN REPLACEMENT
 import SwiftUI
 import Charts
 
@@ -24,7 +25,7 @@ struct CategoricalChartSectionView: View {
     let seriesName: String
     let indices: [Double]
     let labels: [String]
-    let timeOffsets: [Double]?        // Flutter minutes → seconds
+    let timeOffsets: [Double]?        // минуты → секунды
     let totalMinutes: Int?
     let layer: Int?
     let subLayer: Int?
@@ -37,43 +38,80 @@ struct CategoricalChartSectionView: View {
     var totalSeconds: Double = 1
 
     @State private var selectedIndex: Int? = nil
+    @State private var showFull = false
 
     private var offsetsSeconds: [Double]? {
         guard let t = timeOffsets, !t.isEmpty else { return nil }
         if let mx = t.max(), mx > 10_000 { return t.map { $0 / 1000.0 } } // ms→s
-        return t.map { $0 * 60.0 }                                        // minutes→seconds
+        return t.map { $0 * 60.0 }                                        // min→s
     }
     private var effectiveTotalSeconds: Double {
-        var candidates: [Double] = []
-        if totalSeconds > 1 { candidates.append(totalSeconds) }
-        if let t = offsetsSeconds, let last = t.last { candidates.append(last) }
-        if let m = totalMinutes, m > 0 { candidates.append(Double(m) * 60.0) }
-        return max(60, candidates.max() ?? 60)
+        var c: [Double] = []
+        if totalSeconds > 1 { c.append(totalSeconds) }
+        if let t = offsetsSeconds, let last = t.last { c.append(last) }
+        if let m = totalMinutes, m > 0 { c.append(Double(m) * 60.0) }
+        return max(60, c.max() ?? 60)
     }
 
     var body: some View {
         let T = effectiveTotalSeconds
         VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.bottom, 2)
+
             header(T: T)
+
             ZStack(alignment: .topTrailing) {
                 chart(T: T)
                     .frame(height: preferredHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.03)))
+
+                Button {
+                    showFull = true
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .padding(8)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .padding(8)
+                .accessibilityLabel("Открыть во весь экран")
             }
+        }
+        .sheet(isPresented: $showFull) {
+            FullscreenCategoricalChart(
+                title: title,
+                seriesName: seriesName,
+                indices: indices,
+                labels: labels,
+                timeOffsets: timeOffsets,
+                color: color,
+                start: start,
+                effectiveTotalSeconds: T,
+                transitions: transitions
+            )
+            .preferredColorScheme(.dark)
         }
         .id("cat-\(Int(T.rounded()))")
     }
 
     private func header(T: Double) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.headline)
-            HStack(spacing: 16) {
-                metric("Время", selectedElapsedTimeString() ?? totalMinutesText(T: T), boldLeft: true)
-                metric("Слой", layer.map { "\($0)" } ?? "—")
-                metric("Подслой", subLayer.map { "\($0)" } ?? "—")
-                metric(seriesName, currentLabelText(), highlight: true)
+        HStack(spacing: 16) {
+            metric("Время", selectedElapsedTimeString(T: T) ?? totalMinutesText(T: T), boldLeft: true)
+
+            let (L, sL, sTotal) = layerInfo(atSeconds: selectedSeconds(T: T))
+            metric("Слой", L.map { "\($0)" } ?? "—")
+            if let sL = sL, let sTotal = sTotal {
+                metric("Подслой", "\(sL)/\(sTotal)")
+            } else {
+                metric("Подслой", "—")
             }
+
+            metric(seriesName, currentLabelText(), highlight: true)
         }
     }
 
@@ -214,9 +252,9 @@ struct CategoricalChartSectionView: View {
         return h > 0 ? String(format: "%d:%02d", h, m) : String(format: "%02d", m)
     }
 
-    private func selectedElapsedTimeString() -> String? {
+    private func selectedElapsedTimeString(T: Double) -> String? {
         guard let idx = selectedIndex else { return nil }
-        let pts = makePoints(T: effectiveTotalSeconds)
+        let pts = makePoints(T: T)
         guard pts.indices.contains(idx) else { return nil }
         let sec = Int(max(0, pts[idx].time.timeIntervalSince(start)))
         return formatElapsed(seconds: sec)
@@ -232,6 +270,41 @@ struct CategoricalChartSectionView: View {
             return labels[i]
         }
         return "—"
+    }
+
+    // MARK: - Слой/подслой
+
+    private func selectedSeconds(T: Double) -> Double? {
+        if let idx = selectedIndex {
+            let pts = makePoints(T: T)
+            guard pts.indices.contains(idx) else { return nil }
+            return max(0, pts[idx].time.timeIntervalSince(start))
+        }
+        return nil
+    }
+
+    private func layerInfo(atSeconds t: Double?) -> (Int?, Int?, Int?) {
+        guard let t = t, !transitions.isEmpty else { return (nil, nil, nil) }
+        let ts = transitions.sorted { $0.timeSeconds < $1.timeSeconds }
+        var layer = 0
+        var lastLayerStartIdx: Int? = nil
+        for (i, tr) in ts.enumerated() where tr.timeSeconds <= t {
+            if tr.isFirstLayer {
+                layer += 1
+                lastLayerStartIdx = i
+            }
+        }
+        var subTotal = 1
+        var subIndex = 1
+        if let startIdx = lastLayerStartIdx {
+            var j = startIdx + 1
+            while j < ts.count && !ts[j].isFirstLayer { subTotal += 1; j += 1 }
+            j = startIdx + 1
+            while j < ts.count && ts[j].timeSeconds <= t && !ts[j].isFirstLayer { subIndex += 1; j += 1 }
+        } else {
+            layer = 0; subIndex = 0; subTotal = 0
+        }
+        return (layer > 0 ? layer : nil, subIndex > 0 ? subIndex : nil, subTotal > 0 ? subTotal : nil)
     }
 
     private func nearestIndex(in points: [CPoint], to t: Date) -> Int? {
@@ -256,5 +329,46 @@ struct CategoricalChartSectionView: View {
         let s = seconds % 60
         if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
         return String(format: "%02d:%02d", m, s)
+    }
+}
+
+// Полноэкранный вариант (sheet), автономный
+fileprivate struct FullscreenCategoricalChart: View {
+    let title: String
+    let seriesName: String
+    let indices: [Double]
+    let labels: [String]
+    let timeOffsets: [Double]?
+    let color: Color
+    let start: Date
+    let effectiveTotalSeconds: Double
+    let transitions: [StateTransition]
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            CategoricalChartSectionView(
+                title: title,
+                seriesName: seriesName,
+                indices: indices,
+                labels: labels,
+                timeOffsets: timeOffsets,
+                totalMinutes: Int(effectiveTotalSeconds/60),
+                layer: nil,
+                subLayer: nil,
+                subLayerProgress: nil,
+                transitions: transitions,
+                preferredHeight: 420,
+                color: color,
+                start: start,
+                totalSeconds: effectiveTotalSeconds
+            )
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Закрыть") { dismiss() } } }
+            .padding()
+            .background(Color.black.ignoresSafeArea())
+        }
     }
 }
