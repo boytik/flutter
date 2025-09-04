@@ -1,7 +1,6 @@
 import SwiftUI
 
 @MainActor
-
 struct ActivityChartsSectionView: View {
     let activity: Activity
     @ObservedObject var vm: WorkoutDetailViewModel
@@ -17,6 +16,14 @@ struct ActivityChartsSectionView: View {
         self.totalSeconds = totalSeconds
     }
 
+    // Автоподбор длительности как во Flutter: максимум из totalSeconds, последнего timeOffset и минут
+    private var effectiveTotalSeconds: Double {
+        let minutes = Double(vm.preferredDurationMinutes ?? 0) * 60.0
+        let lastOffset = vm.timeSeries?.last ?? 0
+        let candidates = [totalSeconds, minutes, lastOffset].filter { $0 > 0 }
+        return max(60, candidates.max() ?? 0)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             if vm.isLoading { ProgressView().tint(.white) }
@@ -29,6 +36,7 @@ struct ActivityChartsSectionView: View {
                 .tint(.green)
                 .foregroundColor(.white)
 
+            // Пульс
             if let hr = vm.heartRateSeries, !hr.isEmpty {
                 NumericChartSectionView(
                     title: "Диаграмма частоты сердцебиения",
@@ -40,10 +48,11 @@ struct ActivityChartsSectionView: View {
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
+                    transitions: vm.stateTransitions,
                     preferredHeight: 240,
                     color: .red,
                     start: chartStart,
-                    totalSeconds: totalSeconds
+                    totalSeconds: effectiveTotalSeconds   // ← используем эффективную длительность
                 )
             } else if let url = vm.diagramImageURLs.first(where: {
                 $0.absoluteString.localizedCaseInsensitiveContains("heart") ||
@@ -53,6 +62,7 @@ struct ActivityChartsSectionView: View {
                 ADFixedRemoteImage(url: url, aspect: 3/4, corner: 12)
             }
 
+            // Второй график
             switch SecondChartFactory.choice(for: activity, vm: vm) {
             case .none:
                 EmptyView()
@@ -67,10 +77,11 @@ struct ActivityChartsSectionView: View {
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
+                    transitions: vm.stateTransitions,
                     preferredHeight: 220,
                     color: cfg.color,
                     start: chartStart,
-                    totalSeconds: totalSeconds
+                    totalSeconds: effectiveTotalSeconds
                 )
             case .categorical(let cfg):
                 CategoricalChartSectionView(
@@ -83,12 +94,35 @@ struct ActivityChartsSectionView: View {
                     layer: vm.currentLayerCheckedInt,
                     subLayer: vm.currentSubLayerCheckedInt,
                     subLayerProgress: vm.subLayerProgressText,
+                    transitions: vm.stateTransitions,
                     preferredHeight: 220,
                     color: cfg.color,
                     start: chartStart,
-                    totalSeconds: totalSeconds
+                    totalSeconds: effectiveTotalSeconds
                 )
             }
         }
+        .onAppear { debugLog(tag: "onAppear") }
+        .onChange(of: vm.metrics, perform: { _ in debugLog(tag: "onChange metrics") })
+        .onChange(of: vm.heartRateSeries, perform: { _ in debugLog(tag: "onChange heartRateSeries") })
+        .onChange(of: vm.timeSeries, perform: { _ in debugLog(tag: "onChange timeSeries") })
+        .onChange(of: vm.preferredDurationMinutes, perform: { _ in debugLog(tag: "onChange preferredMinutes") })
+    }
+
+    private func debugLog(tag: String) {
+        print("=== Charts debug [\(tag)] ===")
+        print("chartStart =", chartStart)
+        print("incoming totalSeconds =", totalSeconds)
+        print("preferredMinutes =", vm.preferredDurationMinutes ?? -1, "→ seconds =", Double(vm.preferredDurationMinutes ?? 0) * 60.0)
+        if let ts = vm.timeSeries {
+            let first = Array(ts.prefix(5)).map { String(format: "%.1f", $0) }
+            let last  = Array(ts.suffix(5)).map { String(format: "%.1f", $0) }
+            print("timeSeries count =", ts.count, "first =", first, "last =", last, "lastOffset =", ts.last ?? -1)
+        } else {
+            print("timeSeries = nil")
+        }
+        print("effectiveTotalSeconds =", effectiveTotalSeconds)
+        let transSample = vm.stateTransitions.prefix(5).map { ($0.timeSeconds, $0.stateKey, $0.isFirstLayer) }
+        print("transitions sample =", transSample)
     }
 }

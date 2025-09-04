@@ -38,6 +38,9 @@
 		3E670BD72E56042F007E5AA2 /* AppDelegate+Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */; };
 		3E670BD92E560450007E5AA2 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */; };
 		3E670BDB2E560463007E5AA2 /* NotificationCategoryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */; };
+		3E672BFF2E695133003E2594 /* WorkoutDetailViewModel+States.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */; };
+		3E672C012E6953A0003E2594 /* ChartStatesTimeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672C002E6953A0003E2594 /* ChartStatesTimeOverlay.swift */; };
+		3E672C032E697D7D003E2594 /* StatesJSONHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */; };
 		3E70454D2E49F6D2005EDE48 /* Inspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454C2E49F6D2005EDE48 /* Inspector.swift */; };
 		3E7045502E49F6FD005EDE48 /* Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454F2E49F6FD005EDE48 /* Calendar.swift */; };
 		3E7045572E4A009D005EDE48 /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */; };
@@ -129,6 +132,9 @@
 		3E670BD62E56042F007E5AA2 /* AppDelegate+Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Notifications.swift"; sourceTree = "<group>"; };
 		3E670BD82E560450007E5AA2 /* PushNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationManager.swift; sourceTree = "<group>"; };
 		3E670BDA2E560463007E5AA2 /* NotificationCategoryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCategoryFactory.swift; sourceTree = "<group>"; };
+		3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutDetailViewModel+States.swift"; sourceTree = "<group>"; };
+		3E672C002E6953A0003E2594 /* ChartStatesTimeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartStatesTimeOverlay.swift; sourceTree = "<group>"; };
+		3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatesJSONHelpers.swift; sourceTree = "<group>"; };
 		3E70454C2E49F6D2005EDE48 /* Inspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Inspector.swift; sourceTree = "<group>"; };
 		3E70454F2E49F6FD005EDE48 /* Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calendar.swift; sourceTree = "<group>"; };
 		3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
@@ -237,15 +243,17 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
-		3E375E262E65D86700989A37 /* ActivityDetailRefactored_fixed6 */ = {
+		3E375E262E65D86700989A37 /* ActivityDetailRefactored */ = {
 			isa = PBXGroup;
 			children = (
+				3E375E252E65D86700989A37 /* ActivityDetailView.swift */,
+				3E327F182E5C8F61000A7D33 /* ChartsFullScreenButton.swift */,
 				3E375E1D2E65D86700989A37 /* Charts */,
 				3E375E212E65D86700989A37 /* Sections */,
 				3E375E242E65D86700989A37 /* Shared */,
-				3E375E252E65D86700989A37 /* ActivityDetailView.swift */,
+				3E327F162E5C8E8D000A7D33 /* FullScreenChartsView.swift */,
 			);
-			path = ActivityDetailRefactored_fixed6;
+			path = ActivityDetailRefactored;
 			sourceTree = "<group>";
 		};
 		3E670BD52E5603F9007E5AA2 /* Push */ = {
@@ -316,13 +324,16 @@
 		3E7045742E4A22E7005EDE48 /* CalendarViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */,
 				3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */,
 				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
 				3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */,
+				3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
 				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
 				3E7045672E4A1BA7005EDE48 /* InspectorViewModel.swift */,
 				3E7045752E4A2317005EDE48 /* ChatViewModel.swift */,
+				3E672C002E6953A0003E2594 /* ChartStatesTimeOverlay.swift */,
 			);
 			path = CalendarViewModels;
 			sourceTree = "<group>";
@@ -505,7 +516,7 @@
 		3EADE7822E3A2E29002A2D67 /* CalendarSubView */ = {
 			isa = PBXGroup;
 			children = (
-				3E375E262E65D86700989A37 /* ActivityDetailRefactored_fixed6 */,
+				3E375E262E65D86700989A37 /* ActivityDetailRefactored */,
 				3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */,
 				3E3BAF072E3B6D7B0013DE9B /* CalendarGridView.swift */,
 				3E327F1A2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift */,
@@ -517,8 +528,6 @@
 				3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */,
 				3EE502BC2E50C70500BBE86F /* InspectorPhotosView.swift */,
 				3E61247B2E5716D500B2B1E0 /* PhotoCompareGrid.swift */,
-				3E327F162E5C8E8D000A7D33 /* FullScreenChartsView.swift */,
-				3E327F182E5C8F61000A7D33 /* ChartsFullScreenButton.swift */,
 				3E327F222E5CD15A000A7D33 /* debugDumpVM.swift */,
 			);
 			path = CalendarSubView;
@@ -668,6 +677,7 @@
 				3E8F8A532E436F9F00CE00CB /* PersonalViewModel.swift in Sources */,
 				3E7045842E4A42E5005EDE48 /* DeepLinkRouter.swift in Sources */,
 				3EADE77F2E3A2577002A2D67 /* TapBarView.swift in Sources */,
+				3E672C032E697D7D003E2594 /* StatesJSONHelpers.swift in Sources */,
 				3E70454D2E49F6D2005EDE48 /* Inspector.swift in Sources */,
 				3E327F1D2E5C9072000A7D33 /* CalendarGridView+Markers.swift in Sources */,
 				3E327F1B2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift in Sources */,
@@ -688,7 +698,9 @@
 				3E8599E42E45203100FA1FAB /* CalendarItem.swift in Sources */,
 				3EE502BB2E50C66A00BBE86F /* WorkoutMediaRepository.swift in Sources */,
 				3E6124782E57068B00B2B1E0 /* BLEUploadPump.swift in Sources */,
+				3E672BFF2E695133003E2594 /* WorkoutDetailViewModel+States.swift in Sources */,
 				3EADE7772E3A2396002A2D67 /* Dr__TorsunovApp.swift in Sources */,
+				3E672C012E6953A0003E2594 /* ChartStatesTimeOverlay.swift in Sources */,
 				3E8599E22E44F31500FA1FAB /* ActivityRepositoryImpl.swift in Sources */,
 				3E7045612E4A1154005EDE48 /* StartScreen.swift in Sources */,
 				3E7045732E4A22B0005EDE48 /* AudioRecorder.swift in Sources */,

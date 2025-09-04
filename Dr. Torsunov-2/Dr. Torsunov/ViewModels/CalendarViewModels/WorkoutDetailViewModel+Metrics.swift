@@ -1,6 +1,6 @@
 //
 //  WorkoutDetailViewModel+Metrics.swift
-//  Фикс: позы йоги + недостающие хелперы, без дубликатов методов.
+//  Фикс: позы йоги + время/длительность для слоёв (совместимо с Flutter).
 //
 
 import Foundation
@@ -16,7 +16,7 @@ private final class _MetricsCache {
     var subLayerProgress: String?
 }
 
-// Универсальный JSON экстрактор — String / Int / Double / NSNumber / Bool
+// Универсальный JSON экстрактор
 private enum __JV {
     static func int(_ v: Any?) -> Int? {
         if let x = v as? Int { return x }
@@ -53,7 +53,6 @@ private enum __JV {
 extension WorkoutDetailViewModel {
 
     // MARK: Published access
-    // Пытаемся достать Published-поля как Any; дальше идём рекурсией, без завязки на внутренности Published.
     private var _metricsAny: Any?  { __readPublishedAny(labelContains: "_metrics") }
     private var _metadataAny: Any? { __readPublishedAny(labelContains: "_metadata") }
 
@@ -65,25 +64,21 @@ extension WorkoutDetailViewModel {
     }
 
     // === КАК ВО FLUTTER ===
-    /// Минуты из metadata/metrics: durationHours + durationMinutes (если есть), либо durationMinutes, либо durationText.
+    // Минуты из metadata/metrics → предпочтительный источник длительности
     var dtoDurationMinutes: Int? {
         if let cached = __cache.dtoMinutes { return cached }
-        // Иногда хранят просто "duration" числом в минутах.
         if let v = __findInt(keys: ["duration","workout_duration","duration_min_total"]) {
             let res = max(0, v); __cache.dtoMinutes = res; return res
         }
-        // Явные минутки
         if let m = __findInt(keys: ["durationMinutes","duration_min","minutes","mins"]) {
             let res = max(0, m); __cache.dtoMinutes = res; return res
         }
-        // Hours + Minutes
         let hrs = __findInt(keys: ["durationHours","duration_hours","hours","hrs","h"])
         let min = __findInt(keys: ["durationMinutes","duration_min","minutes","mins","m"])
         if hrs != nil || min != nil {
             let total = (hrs ?? 0) * 60 + (min ?? 0)
             if total > 0 { __cache.dtoMinutes = total; return total }
         }
-        // Текст duration ("HH:mm", "H:mm:ss", "1ч 30м", "105 мин")
         if let s = __findString(keys: ["durationText","durationString","timeText","totalTimeText","duration_label","durationHuman","duration_human"]),
            let parsed = __parseDurationString(s) {
             __cache.dtoMinutes = parsed; return parsed
@@ -92,7 +87,7 @@ extension WorkoutDetailViewModel {
         return nil
     }
 
-    /// Минуты по timeSeries (fallback): поддержка массивов секунд/миллисекунд/Date.
+    /// Δt по timeSeries (секунды)
     var timeSeriesDurationMinutes: Int? {
         if let cached = __cache.tsMinutes { return cached }
         guard let sec = __anyTimeSeriesDeltaSeconds() else { __cache.tsMinutes = nil; return nil }
@@ -101,26 +96,24 @@ extension WorkoutDetailViewModel {
         return __cache.tsMinutes
     }
 
-    /// Главный геттер для UI: предпочитаем значения из DTO/metadata, иначе считаем по timeSeries.
+    /// Главный источник длительности для UI/оси времени
     var preferredDurationMinutes: Int? {
         if let cached = __cache.preferredMinutes { return cached }
         if let m = dtoDurationMinutes { __cache.preferredMinutes = m; return m }
-        if let m = durationMinutesInt /* исторический */ { __cache.preferredMinutes = m; return m }
+        if let m = durationMinutesInt { __cache.preferredMinutes = m; return m }
         let v = timeSeriesDurationMinutes
         __cache.preferredMinutes = v
         return v
     }
 
-    /// Исторический геттер (оставлено как было) …
+    // Исторический геттер (оставлен)
     var durationMinutesInt: Int? {
-        // 1) Минуты напрямую (ищем на любом уровне)
         if let d = __findInt(keys: [
             "durationMinutes","duration_min","totalMinutes","total_min",
             "minutes","mins","time_total_minutes","workout_time_minutes",
             "duration_in_minutes","durationMin","min_total"
         ]) { return d }
 
-        // 2) Секунды/миллисекунды
         if let s = __findInt(keys: ["durationSeconds","totalSeconds","seconds","sec","duration_in_seconds"]) {
             return max(0, Int((Double(s) / 60.0).rounded(.down)))
         }
@@ -128,27 +121,24 @@ extension WorkoutDetailViewModel {
             return max(0, Int((Double(ms) / 60000.0).rounded(.down)))
         }
 
-        // 3) Текст "HH:mm" / "H:mm:ss" / "1ч 30м" / "105 мин"
         if let s = __findString(keys: ["durationText","durationString","timeText","totalTimeText","duration_label","durationHuman","duration_human"]),
            let v = __parseDurationString(s) {
             return v
         }
 
-        // 4) Start / End
         if let start = __findDate(keys: ["startTime","startDate","begin","from","started_at","start_ts","start_timestamp"]),
            let end   = __findDate(keys: ["endTime","endDate","finish","to","ended_at","end_ts","end_timestamp"]) {
             let mins = Int(end.timeIntervalSince(start) / 60.0)
             if mins > 0 { return mins }
         }
 
-        // 5) Любой временной ряд → Δt секунд → минуты
         if let sec = __anyTimeSeriesDeltaSeconds() {
             return Int((sec / 60.0).rounded(.down))
         }
         return nil
     }
 
-    /// Текущий слой
+    // Слои (текущий/подслой/прогресс) — без изменений логики
     var currentLayerCheckedInt: Int? {
         if let cached = __cache.layer { return cached }
         if let v = __findInt(keys: ["currentLayerChecked","currentLayer","layer_checked","layer","layerIndex","layer_now","stage","phase"]) {
@@ -160,7 +150,6 @@ extension WorkoutDetailViewModel {
         __cache.layer = nil; return nil
     }
 
-    /// Текущий подслой
     var currentSubLayerCheckedInt: Int? {
         if let cached = __cache.subLayer { return cached }
         if let v = __findInt(keys: ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now","subStage","subPhase"]) {
@@ -172,7 +161,6 @@ extension WorkoutDetailViewModel {
         __cache.subLayer = nil; return nil
     }
 
-    /// Прогресс подслоя "6/7"
     var subLayerProgressText: String? {
         if let cached = __cache.subLayerProgress { return cached }
         if let s = __findString(keys: ["subLayerProgress","sub_layer_progress","progress_subLayer","subLayerText","subprogress"]) {
@@ -186,7 +174,7 @@ extension WorkoutDetailViewModel {
         __cache.subLayerProgress = nil; return nil
     }
 
-    // MARK: - Удобные форматтеры для UI
+    // Удобные форматтеры
     var durationHumanized: String? {
         guard let m = preferredDurationMinutes else { return nil }
         let h = m / 60, mm = m % 60
@@ -194,20 +182,64 @@ extension WorkoutDetailViewModel {
         if h > 0 { return "\(h) ч" }
         return "\(mm) мин"
     }
-
     var durationHHmm: String? {
         guard let m = preferredDurationMinutes else { return nil }
         let h = m / 60, mm = m % 60
         return String(format: "%02d:%02d", h, mm)
     }
 
-    // MARK: - Публишды доступ (служебное)
+    // === Позы йоги (оставлено как у вас) ===
+    func rebuildDerivedSeries() {
+        guard let rows = self.metricObjectsArray else {
+            self.yogaPoseTimeline = []
+            self.yogaPoseLabels   = []
+            self.yogaPoseIndices  = []
+            return
+        }
+        let poseKeys = [
+            "bodyPosition","body_position","position","pose","yogaPose","yoga_pose",
+            "asana","posture","state","class","category","label"
+        ]
+        var labels: [String] = ["Lotus","Half lotus","Diamond","Standing","Kneeling","Butterfly","Other"]
+        var timeline: [String] = []; timeline.reserveCapacity(rows.count)
+        var last: String? = nil
+        for row in rows {
+            var s: String? = nil
+            for key in poseKeys {
+                if let v = value(for: [key], in: row) {
+                    switch v {
+                    case .string(let str): s = str.trimmingCharacters(in: .whitespacesAndNewlines)
+                    case .number(let d):
+                        let i = Int(round(d))
+                        if labels.indices.contains(i) { s = labels[i] } else { s = "\(i)" }
+                    default: break
+                    }
+                    if s != nil { break }
+                }
+            }
+            if s == nil { s = last ?? "Other" }
+            if let s = s, !s.isEmpty {
+                if !labels.contains(s) { labels.append(s) }
+                timeline.append(s); last = s
+            } else {
+                timeline.append(last ?? "Other")
+            }
+        }
+        let indexBy = Dictionary(uniqueKeysWithValues: labels.enumerated().map { ($1, $0) })
+        let indices = timeline.map { Double(indexBy[$0] ?? 0) }
+
+        self.yogaPoseTimeline = timeline
+        self.yogaPoseLabels   = labels
+        self.yogaPoseIndices  = indices
+    }
+
+    // ===== Служебные методы =====
+
     fileprivate func __readPublishedAny(labelContains: String) -> Any? {
         let mirror = Mirror(reflecting: self)
         return mirror.children.first(where: { ($0.label ?? "").lowercased().contains(labelContains.lowercased()) })?.value
     }
 
-    // MARK: - Рекурсивный поиск в JSON (служебное)
     fileprivate func __findInt(keys: [String]) -> Int? {
         if let any = __findValue(for: keys) { return __JV.int(any) }
         return nil
@@ -232,7 +264,6 @@ extension WorkoutDetailViewModel {
         if let any = _metadataAny, let v = __searchJSON(any, keyMatches: { lowered.contains($0.lowercased()) }) { return v }
         return nil
     }
-
     fileprivate func __searchJSON(_ any: Any, keyMatches: (String) -> Bool, depth: Int = 0) -> Any? {
         if depth > 10 { return nil }
         let m = Mirror(reflecting: any)
@@ -262,7 +293,6 @@ extension WorkoutDetailViewModel {
         }
         return nil
     }
-
     fileprivate func __unwrapJSONEnum(_ any: Any) -> Any {
         if let v = any as? JSONValue {
             switch v {
@@ -277,7 +307,6 @@ extension WorkoutDetailViewModel {
         return any
     }
 
-    // MARK: - Вспомогательные ISO8601 парсеры
     fileprivate var __iso8601Full: ISO8601DateFormatter {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -289,128 +318,43 @@ extension WorkoutDetailViewModel {
         return f
     }
 
-    // MARK: - ДОБАВЛЕНО: извлечение поз йоги
-    /// Пересобирает производные серии на основе `metrics`:
-    /// - yogaPoseTimeline: [String] таймлайн поз
-    /// - yogaPoseLabels:   [String] уникальные лейблы (дефолтный порядок как во Flutter)
-    /// - yogaPoseIndices:  [Double] индексы по шкале 0..N-1
-    func rebuildDerivedSeries() {
-        guard let rows = self.metricObjectsArray else {
-            self.yogaPoseTimeline = []
-            self.yogaPoseLabels   = []
-            self.yogaPoseIndices  = []
-            return
-        }
-
-        // Ключи, где может лежать поза в точке метрики
-        let poseKeys = [
-            "bodyPosition","body_position","position","pose","yogaPose","yoga_pose",
-            "asana","posture","state","class","category","label"
-        ]
-
-        // Базовые лейблы как во Flutter (если сервер пришлёт другие — добавим в конец по мере появления)
-        var labels: [String] = ["Lotus","Half lotus","Diamond","Standing","Kneeling","Butterfly","Other"]
-
-        var timeline: [String] = []
-        timeline.reserveCapacity(rows.count)
-
-        var last: String? = nil
-        for row in rows {
-            var s: String? = nil
-            for key in poseKeys {
-                if let v = value(for: [key], in: row) {
-                    switch v {
-                    case .string(let str):
-                        s = str.trimmingCharacters(in: .whitespacesAndNewlines)
-                    case .number(let d):
-                        // если пришёл индекс — попробуем маппнуть в лейбл
-                        let i = Int(round(d))
-                        if labels.indices.contains(i) { s = labels[i] } else { s = "\(i)" }
-                    default:
-                        break
-                    }
-                    if s != nil { break }
-                }
-            }
-            if s == nil { s = last ?? "Other" }
-            if let s = s, !s.isEmpty {
-                if !labels.contains(s) { labels.append(s) } // новые лейблы — в конец
-                timeline.append(s)
-                last = s
-            } else {
-                timeline.append(last ?? "Other")
-            }
-        }
-
-        let indexBy = Dictionary(uniqueKeysWithValues: labels.enumerated().map { ($1, $0) })
-        let indices = timeline.map { Double(indexBy[$0] ?? 0) }
-
-        self.yogaPoseTimeline = timeline
-        self.yogaPoseLabels   = labels
-        self.yogaPoseIndices  = indices
-    }
-
-    // ===== Ниже — служебные методы, использующиеся выше =====
-
-    /// Разбор строк длительности: "HH:mm", "H:mm:ss", "1ч 30м", "105 мин" и пр.
+    /// Разбор строк длительности
     fileprivate func __parseDurationString(_ s: String) -> Int? {
         let str = s.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // "HH:mm[:ss]"
         let parts = str.split(separator: ":").map { String($0) }
         if parts.count == 2 || parts.count == 3,
-           let h = Int(parts[0]), let m = Int(parts[1]) {
-            return h * 60 + m
-        }
+           let h = Int(parts[0]), let m = Int(parts[1]) { return h * 60 + m }
 
-        // "1ч 30м", "2 h 5 m", "90 мин"
         let digits = str.replacingOccurrences(of: ",", with: ".")
-        // "90 мин"
-        if let n = Int(digits.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()), str.contains("мин") || str.contains("min") || str.contains("m ") {
-            return n
-        }
-        // "1ч 30м" / "1h 30m"
+        if let n = Int(digits.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()),
+           str.contains("мин") || str.contains("min") || str.contains("m ") { return n }
+
         let hMatch = digits.range(of: #"(\d+)\s*(ч|h)"#, options: .regularExpression)
         let mMatch = digits.range(of: #"(\d+)\s*(м|min|m)"#, options: .regularExpression)
         var total = 0
-        if let r = hMatch, let v = Int(String(digits[r]).components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) {
-            total += v * 60
-        }
-        if let r = mMatch, let v = Int(String(digits[r]).components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) {
-            total += v
-        }
+        if let r = hMatch, let v = Int(String(digits[r]).components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) { total += v * 60 }
+        if let r = mMatch, let v = Int(String(digits[r]).components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) { total += v }
         return total > 0 ? total : nil
     }
 
-    /// Δt по timeSeries (секунды). Использует self.timeSeries, если доступна.
+    /// Δt по timeSeries (секунды)
     fileprivate func __anyTimeSeriesDeltaSeconds() -> Double? {
         guard let xs = self.timeSeries, xs.count >= 2 else { return nil }
-        // допускаем, что это секунды или минуты — если диапазон маленький, попробуем угадать
-        let first = xs.first!
-        let last  = xs.last!
+        let first = xs.first!, last = xs.last!
         var delta = last - first
         if delta <= 0 { return nil }
-        // если выглядит как минуты (например, < 24*60), но пульс есть на каждую секунду — оставим как есть,
-        // иначе, если явно миллисекунды — нормализуем
         if delta > 10_000 { delta = delta / 1000.0 } // мс → сек
-        // если это минуты (разумное допущение): много точек и малый диапазон — но не трогаем.
         return delta
     }
 
-    /// Чтение целого поля из self по известным именам (через Mirror), если где-то Published уже хранит слой.
     fileprivate func __lookupIntOnSelf(keys: [String]) -> Int? {
         let wanted = Set(keys.map { $0.lowercased() })
         let m = Mirror(reflecting: self)
         for c in m.children {
             guard let label = c.label?.lowercased() else { continue }
-            if wanted.contains(label) {
-                return __JV.int(c.value)
-            }
-            // Распакуем Published
+            if wanted.contains(label) { return __JV.int(c.value) }
             let inner = Mirror(reflecting: c.value).children.first?.value
-            if let v = inner, wanted.contains(label) {
-                return __JV.int(v)
-            }
+            if let v = inner, wanted.contains(label) { return __JV.int(v) }
         }
         return nil
     }

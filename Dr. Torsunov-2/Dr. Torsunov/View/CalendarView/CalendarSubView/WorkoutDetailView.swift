@@ -707,7 +707,7 @@ private struct ChartSectionView: View {
                 PointMark(x: .value("t", sp.time), y: .value("v", sp.value)).symbolSize(80)
             }
         }
-        .chartScrollableAxes(.horizontal)
+        
         .chartOverlay { proxy in
             GeometryReader { geo in
                 Rectangle().fill(.clear).contentShape(Rectangle())
