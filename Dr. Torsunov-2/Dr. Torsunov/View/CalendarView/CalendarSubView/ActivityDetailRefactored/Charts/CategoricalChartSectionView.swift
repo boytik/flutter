@@ -2,14 +2,14 @@
 import SwiftUI
 import Charts
 
-fileprivate func __stateColor(_ key: String) -> Color {
-    switch key {
-    case "1": return Color(red: 0.31, green: 0.84, blue: 0.39)
-    case "2": return .yellow.opacity(0.9)
-    case "3": return .orange
-    case "4": return Color(red: 1.0, green: 0.35, blue: 0.35)
-    case "5": return .red
-    default:  return .gray.opacity(0.7)
+fileprivate func __colorForLayer(_ layer: Int) -> Color {
+    switch layer {
+    case 1: return Color(red: 0.31, green: 0.84, blue: 0.39)
+    case 2: return .yellow.opacity(0.9)
+    case 3: return .orange
+    case 4: return Color(red: 1.0, green: 0.35, blue: 0.35)
+    case 5: return .red
+    default: return .gray.opacity(0.6)
     }
 }
 
@@ -21,29 +21,32 @@ fileprivate struct CPoint: Identifiable, Hashable {
 
 @MainActor
 struct CategoricalChartSectionView: View {
+    // ДАННЫЕ
     let title: String
     let seriesName: String
     let indices: [Double]
     let labels: [String]
-    let timeOffsets: [Double]?        // минуты → секунды
+    let timeOffsets: [Double]?
     let totalMinutes: Int?
-    let layer: Int?
-    let subLayer: Int?
-    let subLayerProgress: String?
-    let transitions: [StateTransition]
 
+    // ОФОРМЛЕНИЕ
     var preferredHeight: CGFloat = 220
     var color: Color = .blue
     var start: Date = Date()
     var totalSeconds: Double = 1
 
-    @State private var selectedIndex: Int? = nil
-    @State private var showFull = false
+    // VM для слоёв
+    @ObservedObject var vm: WorkoutDetailViewModel
 
+    // КУРСОР
+    @State private var selectedIndex: Int? = nil
+    @State private var cursorX01: Double? = nil
+
+    // ===== нормализация времени =====
     private var offsetsSeconds: [Double]? {
         guard let t = timeOffsets, !t.isEmpty else { return nil }
-        if let mx = t.max(), mx > 10_000 { return t.map { $0 / 1000.0 } } // ms→s
-        return t.map { $0 * 60.0 }                                        // min→s
+        if let mx = t.max(), mx > 10_000 { return t.map { $0 / 1000.0 } }
+        return t.map { $0 * 60.0 }
     }
     private var effectiveTotalSeconds: Double {
         var c: [Double] = []
@@ -56,10 +59,7 @@ struct CategoricalChartSectionView: View {
     var body: some View {
         let T = effectiveTotalSeconds
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding(.bottom, 2)
+            Text(title).font(.headline).foregroundColor(.white).padding(.bottom, 2)
 
             header(T: T)
 
@@ -68,58 +68,43 @@ struct CategoricalChartSectionView: View {
                     .frame(height: preferredHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.03)))
-
-                Button {
-                    showFull = true
-                } label: {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.9))
-                        .padding(8)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                }
-                .padding(8)
-                .accessibilityLabel("Открыть во весь экран")
             }
-        }
-        .sheet(isPresented: $showFull) {
-            FullscreenCategoricalChart(
-                title: title,
-                seriesName: seriesName,
-                indices: indices,
-                labels: labels,
-                timeOffsets: timeOffsets,
-                color: color,
-                start: start,
-                effectiveTotalSeconds: T,
-                transitions: transitions
-            )
-            .preferredColorScheme(.dark)
         }
         .id("cat-\(Int(T.rounded()))")
     }
 
+    // MARK: Header
+
     private func header(T: Double) -> some View {
-        HStack(spacing: 16) {
+        let (layerText, subText) = headerLayerTexts()
+        return HStack(spacing: 16) {
             metric("Время", selectedElapsedTimeString(T: T) ?? totalMinutesText(T: T), boldLeft: true)
-
-            let (L, sL, sTotal) = layerInfo(atSeconds: selectedSeconds(T: T))
-            metric("Слой", L.map { "\($0)" } ?? "—")
-            if let sL = sL, let sTotal = sTotal {
-                metric("Подслой", "\(sL)/\(sTotal)")
-            } else {
-                metric("Подслой", "—")
-            }
-
+            metric("Слой", layerText)
+            metric("Подслой", subText)
             metric(seriesName, currentLabelText(), highlight: true)
         }
     }
 
+    private func headerLayerTexts() -> (String, String) {
+        let total = vm.subLayerSeriesInt?.max() ?? 0
+        if let x = cursorX01 {
+            let l = vm.layerAtNormalizedX(x) ?? 0
+            let s = vm.subLayerAtNormalizedX(x) ?? 0
+            return ("\(l)", total > 0 ? "\(s)/\(total)" : "\(s)")
+        } else {
+            return ("0", total > 0 ? "0/\(total)" : "0")
+        }
+    }
+
+    // MARK: Chart
+
     private func chart(T: Double) -> some View {
         let pts = makePoints(T: T)
         let yDomain = makeYDomain(from: pts)
+        let transitions = vm.flutterLayerTransitions(isFullScreen: true)
 
         return Chart {
+            // ступенчатая линия/площадь
             ForEach(pts) { p in
                 AreaMark(x: .value("t", p.time), y: .value("v", p.value))
                     .interpolationMethod(.stepCenter)
@@ -133,31 +118,29 @@ struct CategoricalChartSectionView: View {
                     .foregroundStyle(color)
             }
 
+            // сетка
             let first = start
             let xMarks = [0.0, 0.25, 0.5, 0.75, 1.0].map { first.addingTimeInterval(T * $0) }
-            ForEach(Array(xMarks.enumerated()), id: \.offset) { (_, d) in
+            ForEach(xMarks, id: \.self) { d in
                 RuleMark(x: .value("t", d))
                     .foregroundStyle(Color.white.opacity(0.12))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4,3]))
             }
-            ForEach(Array((0..<max(labels.count, 1)).enumerated()), id: \.offset) { (_, i) in
+            ForEach(0..<max(labels.count, 1), id: \.self) { i in
                 RuleMark(y: .value("v", Double(i)))
                     .foregroundStyle(Color.white.opacity(0.12))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3,3]))
             }
 
-            ForEach(Array(transitions.enumerated()), id: \.offset) { (_, tr) in
-                let d = start.addingTimeInterval(tr.timeSeconds)
-                RuleMark(x: .value("t", d))
-                    .foregroundStyle(__stateColor(tr.stateKey).opacity(tr.isFirstLayer ? 0.95 : 0.55))
+            // Слои/подслои — Flutter transitions
+            ForEach(transitions, id: \.self) { tr in
+                RuleMark(x: .value("t", start.addingTimeInterval(tr.timeSeconds)))
+                    .foregroundStyle(__colorForLayer(tr.layer).opacity(tr.isFirstLayer ? 0.95 : 0.55))
                     .lineStyle(StrokeStyle(lineWidth: tr.isFirstLayer ? 1.6 : 1.0,
                                            dash: tr.isFirstLayer ? [] : [3,3]))
             }
 
-            RuleMark(y: .value("baseline", yDomain.lowerBound))
-                .foregroundStyle(Color.green)
-                .lineStyle(StrokeStyle(lineWidth: 1.4))
-
+            // курсор
             if let idx = selectedIndex, pts.indices.contains(idx) {
                 let sp = pts[idx]
                 RuleMark(x: .value("t", sp.time)).foregroundStyle(Color.white.opacity(0.55))
@@ -196,16 +179,21 @@ struct CategoricalChartSectionView: View {
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                let origin = geo[proxy.plotAreaFrame].origin
-                                let x = value.location.x - origin.x
-                                if let date: Date = proxy.value(atX: x) {
-                                    if let idx = nearestIndex(in: pts, to: date) { selectedIndex = idx }
+                                let frame = geo[proxy.plotAreaFrame]
+                                let xLocal = value.location.x - frame.minX
+                                let x01 = max(0, min(1, xLocal / max(1, frame.width)))
+                                self.cursorX01 = x01
+                                if let date: Date = proxy.value(atX: value.location.x - frame.minX) {
+                                    let pts = makePoints(T: T)
+                                    if let idx = nearestIndex(in: pts, to: date) { self.selectedIndex = idx }
                                 }
                             }
                     )
             }
         }
     }
+
+    // MARK: helpers
 
     private func makeYDomain(from pts: [CPoint]) -> ClosedRange<Double> {
         let minV = pts.map(\.value).min() ?? 0
@@ -272,41 +260,6 @@ struct CategoricalChartSectionView: View {
         return "—"
     }
 
-    // MARK: - Слой/подслой
-
-    private func selectedSeconds(T: Double) -> Double? {
-        if let idx = selectedIndex {
-            let pts = makePoints(T: T)
-            guard pts.indices.contains(idx) else { return nil }
-            return max(0, pts[idx].time.timeIntervalSince(start))
-        }
-        return nil
-    }
-
-    private func layerInfo(atSeconds t: Double?) -> (Int?, Int?, Int?) {
-        guard let t = t, !transitions.isEmpty else { return (nil, nil, nil) }
-        let ts = transitions.sorted { $0.timeSeconds < $1.timeSeconds }
-        var layer = 0
-        var lastLayerStartIdx: Int? = nil
-        for (i, tr) in ts.enumerated() where tr.timeSeconds <= t {
-            if tr.isFirstLayer {
-                layer += 1
-                lastLayerStartIdx = i
-            }
-        }
-        var subTotal = 1
-        var subIndex = 1
-        if let startIdx = lastLayerStartIdx {
-            var j = startIdx + 1
-            while j < ts.count && !ts[j].isFirstLayer { subTotal += 1; j += 1 }
-            j = startIdx + 1
-            while j < ts.count && ts[j].timeSeconds <= t && !ts[j].isFirstLayer { subIndex += 1; j += 1 }
-        } else {
-            layer = 0; subIndex = 0; subTotal = 0
-        }
-        return (layer > 0 ? layer : nil, subIndex > 0 ? subIndex : nil, subTotal > 0 ? subTotal : nil)
-    }
-
     private func nearestIndex(in points: [CPoint], to t: Date) -> Int? {
         guard !points.isEmpty else { return nil }
         let times = points.map { $0.time.timeIntervalSinceReferenceDate }
@@ -329,46 +282,5 @@ struct CategoricalChartSectionView: View {
         let s = seconds % 60
         if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
         return String(format: "%02d:%02d", m, s)
-    }
-}
-
-// Полноэкранный вариант (sheet), автономный
-fileprivate struct FullscreenCategoricalChart: View {
-    let title: String
-    let seriesName: String
-    let indices: [Double]
-    let labels: [String]
-    let timeOffsets: [Double]?
-    let color: Color
-    let start: Date
-    let effectiveTotalSeconds: Double
-    let transitions: [StateTransition]
-
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationView {
-            CategoricalChartSectionView(
-                title: title,
-                seriesName: seriesName,
-                indices: indices,
-                labels: labels,
-                timeOffsets: timeOffsets,
-                totalMinutes: Int(effectiveTotalSeconds/60),
-                layer: nil,
-                subLayer: nil,
-                subLayerProgress: nil,
-                transitions: transitions,
-                preferredHeight: 420,
-                color: color,
-                start: start,
-                totalSeconds: effectiveTotalSeconds
-            )
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Закрыть") { dismiss() } } }
-            .padding()
-            .background(Color.black.ignoresSafeArea())
-        }
     }
 }

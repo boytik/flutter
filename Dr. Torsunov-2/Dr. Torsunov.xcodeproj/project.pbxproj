@@ -41,6 +41,10 @@
 		3E672BFF2E695133003E2594 /* WorkoutDetailViewModel+States.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */; };
 		3E672C012E6953A0003E2594 /* ChartStatesTimeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672C002E6953A0003E2594 /* ChartStatesTimeOverlay.swift */; };
 		3E672C032E697D7D003E2594 /* StatesJSONHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */; };
+		3E672C392E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672C382E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift */; };
+		3E672C412E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672C402E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift */; };
+		3E672C472E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672C462E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift */; };
+		3E672C492E6A0B56003E2594 /* NumericChartSectionView+FlutterPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E672C482E6A0B56003E2594 /* NumericChartSectionView+FlutterPatch.swift */; };
 		3E70454D2E49F6D2005EDE48 /* Inspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454C2E49F6D2005EDE48 /* Inspector.swift */; };
 		3E7045502E49F6FD005EDE48 /* Calendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E70454F2E49F6FD005EDE48 /* Calendar.swift */; };
 		3E7045572E4A009D005EDE48 /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */; };
@@ -135,6 +139,10 @@
 		3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutDetailViewModel+States.swift"; sourceTree = "<group>"; };
 		3E672C002E6953A0003E2594 /* ChartStatesTimeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartStatesTimeOverlay.swift; sourceTree = "<group>"; };
 		3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatesJSONHelpers.swift; sourceTree = "<group>"; };
+		3E672C382E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailViewModelLayerLookup.swift; sourceTree = "<group>"; };
+		3E672C402E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailViewModelDerivedSeries.swift; sourceTree = "<group>"; };
+		3E672C462E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutDetailViewModel+FlutterPort.swift"; sourceTree = "<group>"; };
+		3E672C482E6A0B56003E2594 /* NumericChartSectionView+FlutterPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NumericChartSectionView+FlutterPatch.swift"; sourceTree = "<group>"; };
 		3E70454C2E49F6D2005EDE48 /* Inspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Inspector.swift; sourceTree = "<group>"; };
 		3E70454F2E49F6FD005EDE48 /* Calendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calendar.swift; sourceTree = "<group>"; };
 		3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
@@ -327,8 +335,12 @@
 				3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */,
 				3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */,
 				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
+				3E672C402E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift */,
+				3E672C382E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift */,
 				3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */,
 				3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */,
+				3E672C462E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift */,
+				3E672C482E6A0B56003E2594 /* NumericChartSectionView+FlutterPatch.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
 				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
 				3E7045672E4A1BA7005EDE48 /* InspectorViewModel.swift */,
@@ -685,12 +697,15 @@
 				3EADE7862E3A5332002A2D67 /* ExtensionsDate.swift in Sources */,
 				3E7045782E4A232D005EDE48 /* ChatView.swift in Sources */,
 				3EADE7762E3A2396002A2D67 /* CalendarView.swift in Sources */,
+				3E672C492E6A0B56003E2594 /* NumericChartSectionView+FlutterPatch.swift in Sources */,
+				3E672C392E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift in Sources */,
 				3E6124762E57065000B2B1E0 /* BluetoothManagerJSONAdapter.swift in Sources */,
 				3E327F212E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift in Sources */,
 				3E70456A2E4A1BD1005EDE48 /* InspectorView.swift in Sources */,
 				3E8F8A572E438EEB00CE00CB /* WorkoutDetailView.swift in Sources */,
 				3E8599C52E44CA2B00FA1FAB /* UserRepositoryImpl.swift in Sources */,
 				3E31C8CE2E4C876700527C76 /* WorkoutDetailViewModel.swift in Sources */,
+				3E672C412E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift in Sources */,
 				3E70455B2E4A054C005EDE48 /* SignInView.swift in Sources */,
 				3E7045762E4A2317005EDE48 /* ChatViewModel.swift in Sources */,
 				3EADE77D2E3A2558002A2D67 /* ProfileView.swift in Sources */,
@@ -729,6 +744,7 @@
 				3EADE78B2E3A54A0002A2D67 /* CalendarItemCellView.swift in Sources */,
 				3E7B17772E424F30001AF947 /* DataSectionView.swift in Sources */,
 				3E7045632E4A1363005EDE48 /* DemoPasswordView.swift in Sources */,
+				3E672C472E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift in Sources */,
 				3E70455D2E4A06E8005EDE48 /* AppAuthState.swift in Sources */,
 				3E670BDB2E560463007E5AA2 /* NotificationCategoryFactory.swift in Sources */,
 				3E3D33C52E40BF8E009A5DCD /* PersonalView.swift in Sources */,

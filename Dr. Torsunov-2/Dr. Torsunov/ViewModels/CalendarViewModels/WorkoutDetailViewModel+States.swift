@@ -9,9 +9,8 @@ public struct StateTransition: Hashable {
 
 extension WorkoutDetailViewModel {
 
-    // MARK: - Утилиты локально для этого файла (не конфликтуют с fileprivate из других файлов)
+    // === Вспомогательные утилиты для поиска значений в metrics/metadata ===
 
-    /// Преобразование нашего JSONValue → Foundation Any.
     private func __toAny(_ v: JSONValue) -> Any {
         switch v {
         case .string(let s): return s
@@ -29,7 +28,6 @@ extension WorkoutDetailViewModel {
     private var __metricsAny_forStates: Any?  { metrics.isEmpty ? nil : metrics.mapValues { __toAny($0) } }
     private var __metadataAny_forStates: Any? { metadata.isEmpty ? nil : metadata.mapValues { __toAny($0) } }
 
-    /// Рекурсивный поиск значения по ключам (без учёта регистра) в metrics/metadata.
     private func __states_findValue(keys: [String]) -> Any? {
         let wanted = keys.map { $0.lowercased() }
         func search(_ any: Any, depth: Int = 0) -> Any? {
@@ -66,11 +64,6 @@ extension WorkoutDetailViewModel {
         return nil
     }
 
-    private func __states_findInt(keys: [String]) -> Int? {
-        if let d = __states_findDouble(keys: keys) { return Int(d) }
-        return nil
-    }
-
     private func __states_findDate(keys: [String]) -> Date? {
         guard let any = __states_findValue(keys: keys) else { return nil }
         if let d = any as? Date { return d }
@@ -98,145 +91,82 @@ extension WorkoutDetailViewModel {
         return nil
     }
 
-    // MARK: - Нормализация времени (мин/сек/мс → сек)
-    private func __normalizeTimeToSeconds(value: Double, hintKey: String?) -> Double {
-        if let hint = hintKey?.lowercased() {
-            if hint.contains("min") { return value * 60.0 }
-            if hint.contains("sec") || hint == "t" || hint == "time" { return value } // предполагаем секунды
+    // Нормализация значения времени (мин/сек/мс → сек)
+    private func __normalizeToSeconds(_ any: Any) -> Double? {
+        func norm(_ d: Double) -> Double {
+            if d > 12 * 3600 { return d / 1000.0 } // похоже на миллисекунды
+            if d > 360.0     { return d }          // секунды
+            return d * 60.0                         // минуты
         }
-        // эвристика по величине
-        if value > 12 * 3600 { return value / 1000.0 } // миллисекунды
-        if value > 360.0     { return value }          // секунды (больше 6 минут)
-        return value * 60.0                             // минуты
+        if let d = any as? Double { return norm(d) }
+        if let i = any as? Int    { return norm(Double(i)) }
+        if let n = any as? NSNumber { return norm(n.doubleValue) }
+        if let s = any as? String, let d = Double(s.replacingOccurrences(of: ",", with: ".")) { return norm(d) }
+        return nil
     }
 
-    // MARK: - Публичные свойства, которые дергают графики
-
-    /// Общая длительность тренировки (сек). Используем те же эвристики, что во Flutter + fallback по рядам.
+    // Общая длительность (сек) — с корректной нормализацией
     public var totalDurationSeconds: Double? {
-        // 1) явные секунды
-        if let s = __states_findDouble(keys: ["totalSeconds","durationSeconds","duration_sec","seconds_total"]) {
-            if s > 0 { return s }
-        }
-        // 2) миллисекунды
-        if let ms = __states_findDouble(keys: ["totalMs","durationMs","milliseconds","duration_in_ms"]) {
-            let s = ms / 1000.0
-            if s > 0 { return s }
-        }
-        // 3) минуты
-        if let m = __states_findDouble(keys: ["totalMinutes","durationMinutes","duration_min","minutes_total"]) {
-            let s = m * 60.0
-            if s > 0 { return s }
-        }
-        // 4) по старту/финишу
+        if let s = __states_findDouble(keys: ["totalSeconds","durationSeconds","duration_sec","seconds_total"]), s > 0 { return s }
+        if let ms = __states_findDouble(keys: ["totalMs","durationMs","milliseconds","duration_in_ms"]), (ms/1000.0) > 0 { return ms / 1000.0 }
+        if let m = __states_findDouble(keys: ["totalMinutes","durationMinutes","duration_min","minutes_total"]), (m*60.0) > 0 { return m * 60.0 }
         if let start = __states_findDate(keys: ["startTime","startDate","begin","from","started_at"]),
-           let end   = __states_findDate(keys:   ["endTime","endDate","finish","to","ended_at"]) {
-            let s = end.timeIntervalSince(start)
-            if s > 0 { return s }
+           let end   = __states_findDate(keys: ["endTime","endDate","finish","to","ended_at"]) {
+            let s = end.timeIntervalSince(start); if s > 0 { return s }
         }
-        // 5) по timeSeries массивам (если вдруг приходят уже как массивы)
         if let ts = __states_findValue(keys: ["timeSeries","time_series","times","timeline"]) as? [Any] {
-            let last = ts.compactMap { (x: Any) -> Double? in
-                if let d = x as? Double { return d }
-                if let i = x as? Int    { return Double(i) }
-                if let s = x as? String { return Double(s.replacingOccurrences(of: ",", with: ".")) }
-                if let n = x as? NSNumber { return n.doubleValue }
-                return nil
-            }.last
-            if let m = last, m > 0 { return m * 60.0 }
-        }
-        // 6) Fallback по рядам metricsObjectsArray (как во Flutter)
-        if let rows = self.metricObjectsArray {
-            let tKeys = ["time_numeric","timeNumeric","time","t","seconds","secs","minutes","mins"]
-            var times: [Double] = []
-            times.reserveCapacity(rows.count)
-            for row in rows {
-                if let v = self.value(for: tKeys, in: row),
-                   let raw = self.number(in: v) {
-                    // определим какой ключ сработал, чтобы подсказать единицы
-                    let hit = (tKeys.first { k in self.value(for: [k], in: row) == v })
-                    times.append(__normalizeTimeToSeconds(value: raw, hintKey: hit))
-                }
-            }
-            if let first = times.min(), let last = times.max(), last > first {
-                return last - first
+            if let lastSec = ts.compactMap({ __normalizeToSeconds($0) }).last, lastSec > 0 {
+                return lastSec
             }
         }
         return nil
     }
 
-    /// Переходы состояний (слоёв) во времени от старта (сек), как во Flutter.
+    /// Переходы СЛОЁВ (без подслоёв) во времени от старта (сек) — как во Flutter.
+    /// - Важно: учитываем смену только `layer`, подслои игнорируем;
+    /// - Антидребезг: смена слоя фиксируется, только если подтвердилась на следующей валидной точке,
+    ///   либо если это последняя точка (финальный слой).
     public var stateTransitions: [StateTransition] {
-        // ----------- Варианты A/B/C: ищем готовый таймлайн слоёв в данных -----------
-        if let rawStates = __states_findValue(keys: ["states","layers","stateTimeline","state_timeline","zones"]) {
 
-            func normalizedTimeSec(_ any: Any) -> Double? {
-                if let d = any as? Double {
-                    // Heuristics: значения в Flutter обычно в минутах; если явно большие — секунды/мс.
-                    if d > 12*3600 { return d / 1000.0 } // похоже на миллисекунды
-                    if d > 360.0   { return d }          // уже в секундах (более 6 минут)
-                    return d * 60.0                      // иначе трактуем как минуты
-                }
-                if let i = any as? Int { return normalizedTimeSec(Double(i)) }
-                if let s = any as? String, let d = Double(s.replacingOccurrences(of: ",", with: ".")) { return normalizedTimeSec(d) }
-                if let n = any as? NSNumber { return normalizedTimeSec(n.doubleValue) }
-                return nil
-            }
+        // ----------- Варианты A/B/C: готовые таймлайны из данных -----------
+        if let rawStates = __states_findValue(keys: ["states","layers","stateTimeline","state_timeline","zones"]) {
 
             var result: [StateTransition] = []
 
-            // Вариант A: словарь "state" -> [times]
             if let dict = rawStates as? [String: Any] {
                 var treatedAsA = true
-                // если ключи похожи на числа — это другой формат (В), ниже
                 for (k, v) in dict {
                     if Double(k) != nil { treatedAsA = false; break }
-                    // массив времен
                     if let arr = v as? [Any] {
-                        for (idx, tAny) in arr.enumerated() {
-                            if let t = normalizedTimeSec(tAny) {
-                                let isFirst = (idx == 0)
-                                result.append(StateTransition(stateKey: k, timeSeconds: t, isFirstLayer: isFirst))
+                        for (idx, tv) in arr.enumerated() {
+                            if let t = __normalizeToSeconds(tv) {
+                                result.append(StateTransition(stateKey: k, timeSeconds: t, isFirstLayer: idx == 0))
                             }
                         }
-                    } else if let one = normalizedTimeSec(v) {
+                    } else if let one = __normalizeToSeconds(v) {
                         result.append(StateTransition(stateKey: k, timeSeconds: one, isFirstLayer: true))
                     }
                 }
                 if treatedAsA == false {
-                    // Вариант B: словарь "time" -> {state: "..."} или {<state>: true}
                     for (k, v) in dict {
-                        guard let t = normalizedTimeSec(k) else { continue }
+                        guard let t = __normalizeToSeconds(k) else { continue }
                         if let obj = v as? [String: Any] {
                             if let state = obj["state"] as? String {
                                 result.append(StateTransition(stateKey: state, timeSeconds: t, isFirstLayer: true))
-                            } else {
-                                // ищем первый ключ с true
-                                if let (state, flag) = obj.first(where: { ($0.value as? Bool) == true }) {
-                                    _ = flag // unused
-                                    result.append(StateTransition(stateKey: state, timeSeconds: t, isFirstLayer: true))
-                                }
+                            } else if let (state, flag) = obj.first(where: { ($0.value as? Bool) == true }) {
+                                _ = flag
+                                result.append(StateTransition(stateKey: state, timeSeconds: t, isFirstLayer: true))
                             }
                         } else if let s = v as? String {
                             result.append(StateTransition(stateKey: s, timeSeconds: t, isFirstLayer: true))
                         }
                     }
                 }
-            }
-            // Вариант C: массив объектов [{state:"..", t: 12.0}, ...]
-            else if let arr = rawStates as? [Any] {
+            } else if let arr = rawStates as? [Any] {
                 for item in arr {
                     if let obj = item as? [String: Any] {
-                        let s = (obj["state"] as? String)
-                             ?? (obj["name"] as? String)
-                             ?? (obj["key"] as? String)
-                        let t = (obj["t"] ?? obj["time"] ?? obj["offset"] ?? obj["seconds"] ?? obj["min"]).flatMap { any -> Double? in
-                            if let d = any as? Double { return d }
-                            if let i = any as? Int    { return Double(i) }
-                            if let str = any as? String { return Double(str.replacingOccurrences(of: ",", with: ".")) }
-                            if let n = any as? NSNumber { return n.doubleValue }
-                            return nil
-                        }.flatMap { normalizedTimeSec($0) }
+                        let s = (obj["state"] as? String) ?? (obj["name"] as? String) ?? (obj["key"] as? String)
+                        let t = (obj["t"] ?? obj["time"] ?? obj["offset"] ?? obj["seconds"] ?? obj["min"]).flatMap { __normalizeToSeconds($0) }
                         if let s = s, let t = t {
                             result.append(StateTransition(stateKey: s, timeSeconds: t, isFirstLayer: true))
                         }
@@ -244,7 +174,6 @@ extension WorkoutDetailViewModel {
                 }
             }
 
-            // Постобработка: сортировка, проставление isFirst для первой встречи stateKey
             result.sort { $0.timeSeconds < $1.timeSeconds }
             var seen: Set<String> = []
             result = result.map { tr in
@@ -253,97 +182,135 @@ extension WorkoutDetailViewModel {
                 return StateTransition(stateKey: tr.stateKey, timeSeconds: tr.timeSeconds, isFirstLayer: first)
             }
 
-            // Обрезка по длительности
             if let total = totalDurationSeconds, total > 0 {
                 result = result.filter { $0.timeSeconds <= total + 1 }
             }
-
             if !result.isEmpty { return result }
-            // Иначе проваливаемся в фолбэк ниже
         }
 
-        // ----------- ФОЛБЭК ПО РЯДАМ (главный для вашего формата): строим из metricObjectsArray -----------
+        // ----------- ФОЛБЭК: строим из metricObjectsArray (слои без подслоёв) -----------
         guard let rows = self.metricObjectsArray, !rows.isEmpty else { return [] }
 
-        let tKeys    = ["time_numeric","timeNumeric","time","t","seconds","secs","minutes","mins"]
-        let layerK   = ["currentLayerChecked","currentLayer","layer_checked","layer","layerIndex","layer_now","stage","phase"]
-        let sublayerK = ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now","subStage","subPhase"]
+        let tKeys     = ["time_numeric","timeNumeric","time","t","seconds","secs","minutes","mins"]
+        let layerKeys = ["currentLayerChecked","currentLayer","layer_checked","layer","layerIndex","layer_now","stage","phase"]
+        let subKeys   = ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now","subStage","subPhase"]
 
-        // Составим упорядоченную по времени последовательность
         struct RowPoint { let t: Double; let layer: Int?; let sub: Int? }
         var points: [RowPoint] = []
         points.reserveCapacity(rows.count)
 
         for row in rows {
-            // время
-            guard let v = self.value(for: tKeys, in: row),
-                  let raw = self.number(in: v) else { continue }
-            // какой ключ сработал — чтобы понять единицы
-            let hitKey = (tKeys.first { k in self.value(for: [k], in: row) == v })
-            let tSec = __normalizeTimeToSeconds(value: raw, hintKey: hitKey)
-
-            // слой/подслой
+            guard let tv = self.value(for: tKeys, in: row), let tRaw = self.number(in: tv),
+                  let tSec = __normalizeToSeconds(tRaw) else { continue }
             var L: Int? = nil, S: Int? = nil
-            if let lv = self.value(for: layerK, in: row),
-               let l = self.number(in: lv) { L = Int(l.rounded()) }
-            if let sv = self.value(for: sublayerK, in: row),
-               let s = self.number(in: sv) { S = Int(s.rounded()) }
-
-            points.append(RowPoint(t: tSec, layer: L, sub: S))
+            if let lv = self.value(for: layerKeys, in: row), let l = self.number(in: lv) {
+                L = Int(l.rounded(.towardZero)) // ТОЛЬКО усечение, как во Flutter
+            }
+            if let sv = self.value(for: subKeys, in: row), let s = self.number(in: sv) {
+                S = Int(s.rounded(.towardZero))
+            }
+            points.append(.init(t: tSec, layer: L, sub: S))
         }
 
         guard !points.isEmpty else { return [] }
         points.sort { $0.t < $1.t }
 
-        // Проходим, фиксируем переходы слоя/подслоя
+        // --- считаем ТОЛЬКО границы СЛОЁВ + простой debounce ---
         var res: [StateTransition] = []
         var seen = Set<String>()
 
-        // Инициализация: найдём первый валидный слой
-        var idx = 0
-        while idx < points.count && points[idx].layer == nil { idx += 1 }
-        if idx == points.count { return [] } // слоёв нет
-        var prevLayer = points[idx].layer!
-        var prevSub   = points[idx].sub
+        // первая валидная точка слоя
+        var i = 0
+        while i < points.count && points[i].layer == nil { i += 1 }
+        guard i < points.count, let firstL = points[i].layer else { return [] }
 
-        let firstKey = String(prevLayer)
-        res.append(StateTransition(stateKey: firstKey, timeSeconds: max(0, points[idx].t), isFirstLayer: true))
+        var currLayer = firstL
+        let firstKey = String(currLayer)
+        res.append(StateTransition(stateKey: firstKey, timeSeconds: max(0, points[i].t), isFirstLayer: true))
         seen.insert(firstKey)
 
-        // дальше — обычные переходы
-        if idx + 1 < points.count {
-            for i in (idx+1)..<points.count {
-                guard let L = points[i].layer else { continue }
-                let S = points[i].sub
-                let changed = (L != prevLayer) || (S != prevSub && S != nil && prevSub != nil)
-                if changed {
-                    let key = String(L)
-                    let first = !seen.contains(key)
-                    if first { seen.insert(key) }
-                    res.append(StateTransition(stateKey: key, timeSeconds: max(0, points[i].t), isFirstLayer: first))
-                    prevLayer = L
-                    prevSub   = S
-                }
-            }
+        func nextValidLayerIndex(from idx: Int) -> Int? {
+            var j = idx + 1
+            while j < points.count && points[j].layer == nil { j += 1 }
+            return j < points.count ? j : nil
         }
 
-        // Обрезка по известной длительности (если есть)
+        while let j = nextValidLayerIndex(from: i) {
+            guard let cand = points[j].layer else { i = j; continue }
+            if cand != currLayer {
+                // Debounce: подтверждаем, что на следующей валидной точке слой остался cand
+                if let k = nextValidLayerIndex(from: j), let confirm = points[k].layer {
+                    if confirm == cand {
+                        currLayer = cand
+                        let key = String(cand)
+                        let first = !seen.contains(key)
+                        if first { seen.insert(key) }
+                        res.append(StateTransition(stateKey: key, timeSeconds: max(0, points[j].t), isFirstLayer: first))
+                        i = j
+                        continue
+                    } else {
+                        // дребезг — пропускаем
+                        i = j
+                        continue
+                    }
+                } else {
+                    // Нет следующей валидной точки (конец ряда): принимаем финальную смену
+                    currLayer = cand
+                    let key = String(cand)
+                    let first = !seen.contains(key)
+                    if first { seen.insert(key) }
+                    res.append(StateTransition(stateKey: key, timeSeconds: max(0, points[j].t), isFirstLayer: first))
+                    i = j
+                    continue
+                }
+            }
+            i = j
+        }
+
         if let total = totalDurationSeconds, total > 0 {
             res = res.filter { $0.timeSeconds <= total + 1 }
         }
-
-        // Уточняем сортировку/стабильность вывода
         res.sort { (a, b) in
             if a.timeSeconds == b.timeSeconds { return a.stateKey < b.stateKey }
             return a.timeSeconds < b.timeSeconds
         }
         return res
     }
-}
 
-// PATCH: expose workoutStartDate for chart date axis usage
-extension WorkoutDetailViewModel {
-    /// Старт тренировки (если есть в данных) — нужен для оси `Date`.
+    /// Отдельные переходы ПОДСЛОЁВ (не используются во всех UI, но доступны при желании).
+    public var subLayerTransitions: [StateTransition] {
+        guard let rows = self.metricObjectsArray, !rows.isEmpty else { return [] }
+        let tKeys   = ["time_numeric","timeNumeric","time","t","seconds","secs","minutes","mins"]
+        let subKeys = ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now","subStage","subPhase"]
+
+        struct P { let t: Double; let s: Int? }
+        var pts: [P] = []
+        for row in rows {
+            guard let tv = self.value(for: tKeys, in: row), let tRaw = self.number(in: tv),
+                  let tSec = __normalizeToSeconds(tRaw) else { continue }
+            var sub: Int? = nil
+            if let sv = self.value(for: subKeys, in: row), let s = self.number(in: sv) {
+                sub = Int(s.rounded(.towardZero))
+            }
+            pts.append(.init(t: tSec, s: sub))
+        }
+        pts.sort { $0.t < $1.t }
+        var out: [StateTransition] = []
+        var prev: Int? = nil
+        for p in pts {
+            guard let s = p.s else { continue }
+            if let pp = prev, pp != s {
+                out.append(StateTransition(stateKey: "sub-\(s)", timeSeconds: p.t, isFirstLayer: false))
+            }
+            prev = s
+        }
+        if let total = totalDurationSeconds, total > 0 {
+            out = out.filter { $0.timeSeconds <= total + 1 }
+        }
+        return out
+    }
+
+    /// Старт тренировки (если есть) — удобно для оси Date
     public var workoutStartDate: Date? {
         return __states_findDate(keys: ["startTime","startDate","begin","from","started_at"])
     }

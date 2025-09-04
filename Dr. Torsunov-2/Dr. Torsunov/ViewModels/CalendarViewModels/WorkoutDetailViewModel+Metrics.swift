@@ -1,6 +1,6 @@
 //
 //  WorkoutDetailViewModel+Metrics.swift
-//  Фикс: позы йоги + время/длительность для слоёв (совместимо с Flutter).
+//  Фикс: корректное усечение слоёв/подслоёв и прогресс из рядов (как во Flutter).
 //
 
 import Foundation
@@ -20,13 +20,23 @@ private final class _MetricsCache {
 private enum __JV {
     static func int(_ v: Any?) -> Int? {
         if let x = v as? Int { return x }
-        if let x = v as? Double { return Int(x.rounded()) }
-        if let x = v as? Float  { return Int(x.rounded()) }
-        if let x = v as? NSNumber { return x.intValue }
+        if let x = v as? Double {
+            // Усечение к нулю (как в Dart .toInt()): 3.9 -> 3
+            let y = x >= 0 ? floor(x) : ceil(x)
+            return Int(y)
+        }
+        if let x = v as? Float  {
+            let y = x >= 0 ? floor(Double(x)) : ceil(Double(x))
+            return Int(y)
+        }
+        if let x = v as? NSNumber { return Int(truncating: x) } // toward zero
         if let x = v as? String {
             let s = x.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
             if let n = Int(s) { return n }
-            if let d = Double(s) { return Int(d.rounded()) }
+            if let d = Double(s) {
+                let y = d >= 0 ? floor(d) : ceil(d)
+                return Int(y)
+            }
         }
         if let x = v as? Bool { return x ? 1 : 0 }
         return nil
@@ -138,7 +148,31 @@ extension WorkoutDetailViewModel {
         return nil
     }
 
-    // Слои (текущий/подслой/прогресс) — без изменений логики
+    // === СЕРИИ СЛОЁВ ДЛЯ КУРСОРА/ПРОГРЕССА ===
+    fileprivate func __seriesInt(for yKeys: [String]) -> [Int]? {
+        guard let rows = self.metricObjectsArray else { return nil }
+        let tKeys = ["time_numeric","timeNumeric","time","t","seconds","secs","minutes","mins"]
+        var pairs: [(Double, Int)] = []
+        pairs.reserveCapacity(rows.count)
+        for row in rows {
+            guard let tv = self.value(for: tKeys, in: row), let t = self.number(in: tv) else { continue }
+            guard let yv = self.value(for: yKeys, in: row), let y = self.number(in: yv) else { continue }
+            // Усечение, не округление (как во Flutter)
+            let yi = Int(y.rounded(.towardZero))
+            pairs.append((t, yi))
+        }
+        guard pairs.count >= 1 else { return nil }
+        pairs.sort { $0.0 < $1.0 }
+        return pairs.map { $0.1 }
+    }
+    var layerSeriesInt: [Int]? {
+        __seriesInt(for: ["currentLayerChecked","currentLayer","layer_checked","layer","layerIndex","layer_now","stage","phase"])
+    }
+    var subLayerSeriesInt: [Int]? {
+        __seriesInt(for: ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now","subStage","subPhase"])
+    }
+
+    // Слои (текущий/подслой/прогресс) для шапки — с фолбэком на серии
     var currentLayerCheckedInt: Int? {
         if let cached = __cache.layer { return cached }
         if let v = __findInt(keys: ["currentLayerChecked","currentLayer","layer_checked","layer","layerIndex","layer_now","stage","phase"]) {
@@ -147,6 +181,7 @@ extension WorkoutDetailViewModel {
         if let v = __lookupIntOnSelf(keys: ["currentLayerChecked","currentLayer","layer","layerIndex","stage","phase"]) {
             __cache.layer = v; return v
         }
+        if let last = self.layerSeriesInt?.last { __cache.layer = last; return last }
         __cache.layer = nil; return nil
     }
 
@@ -158,11 +193,24 @@ extension WorkoutDetailViewModel {
         if let v = __lookupIntOnSelf(keys: ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","subLayerIndex","subStage","subPhase"]) {
             __cache.subLayer = v; return v
         }
+        if let last = self.subLayerSeriesInt?.last { __cache.subLayer = last; return last }
         __cache.subLayer = nil; return nil
     }
 
+    /// Прогресс подслоя: приоритет как во Flutter — **серия**, потом метаданные
     var subLayerProgressText: String? {
         if let cached = __cache.subLayerProgress { return cached }
+
+        // 1) серия (даст, например, "2/7")
+        if let series = self.subLayerSeriesInt, !series.isEmpty {
+            let total = series.max() ?? 0
+            let done  = series.last ?? 0
+            if total > 0 {
+                let s = "\(done)/\(total)"
+                __cache.subLayerProgress = s; return s
+            }
+        }
+        // 2) метаданные (fallback)
         if let s = __findString(keys: ["subLayerProgress","sub_layer_progress","progress_subLayer","subLayerText","subprogress"]) {
             __cache.subLayerProgress = s; return s
         }
@@ -186,51 +234,6 @@ extension WorkoutDetailViewModel {
         guard let m = preferredDurationMinutes else { return nil }
         let h = m / 60, mm = m % 60
         return String(format: "%02d:%02d", h, mm)
-    }
-
-    // === Позы йоги (оставлено как у вас) ===
-    func rebuildDerivedSeries() {
-        guard let rows = self.metricObjectsArray else {
-            self.yogaPoseTimeline = []
-            self.yogaPoseLabels   = []
-            self.yogaPoseIndices  = []
-            return
-        }
-        let poseKeys = [
-            "bodyPosition","body_position","position","pose","yogaPose","yoga_pose",
-            "asana","posture","state","class","category","label"
-        ]
-        var labels: [String] = ["Lotus","Half lotus","Diamond","Standing","Kneeling","Butterfly","Other"]
-        var timeline: [String] = []; timeline.reserveCapacity(rows.count)
-        var last: String? = nil
-        for row in rows {
-            var s: String? = nil
-            for key in poseKeys {
-                if let v = value(for: [key], in: row) {
-                    switch v {
-                    case .string(let str): s = str.trimmingCharacters(in: .whitespacesAndNewlines)
-                    case .number(let d):
-                        let i = Int(round(d))
-                        if labels.indices.contains(i) { s = labels[i] } else { s = "\(i)" }
-                    default: break
-                    }
-                    if s != nil { break }
-                }
-            }
-            if s == nil { s = last ?? "Other" }
-            if let s = s, !s.isEmpty {
-                if !labels.contains(s) { labels.append(s) }
-                timeline.append(s); last = s
-            } else {
-                timeline.append(last ?? "Other")
-            }
-        }
-        let indexBy = Dictionary(uniqueKeysWithValues: labels.enumerated().map { ($1, $0) })
-        let indices = timeline.map { Double(indexBy[$0] ?? 0) }
-
-        self.yogaPoseTimeline = timeline
-        self.yogaPoseLabels   = labels
-        self.yogaPoseIndices  = indices
     }
 
     // ===== Служебные методы =====
