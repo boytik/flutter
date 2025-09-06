@@ -12,7 +12,7 @@ struct CalendarView: View {
     @State private var refreshToken: Int = 0
     @State private var didDebugPrintSamples = false
 
-    // ⬇️ Режим переноса по long-press
+    // Перенос по long-press/drag
     @State private var moveModeEnabled: Bool = false
     @State private var sourceDayForMove: Date?
     @State private var moveTarget: IdentDate?
@@ -52,7 +52,6 @@ struct CalendarView: View {
         .task(id: taskKey) {
             await viewModel.reload(role: currentRole)
         }
-        // Обычный лист выбранного дня
         .sheet(item: $selectedDay) { day in
             DayItemsSheet(
                 date: day.date,
@@ -64,7 +63,6 @@ struct CalendarView: View {
             .presentationCornerRadius(24)
             .presentationBackground(.black)
         }
-        // Лист переноса (источник фиксирован: sourceDayForMove)
         .sheet(item: $moveTarget) { day in
             if let src = sourceDayForMove {
                 MoveWorkoutsSheetFixedSource(
@@ -149,7 +147,6 @@ struct CalendarView: View {
                 Button(action: { viewModel.nextMonth() }) {
                     Image(systemName: "chevron.right").foregroundColor(.white)
                 }
-                // ⛔️ Кнопку «Перенести» УДАЛИЛИ — перенос запускается только long‑press’ом
             }
             .padding(.horizontal)
 
@@ -157,8 +154,7 @@ struct CalendarView: View {
                 monthDates: viewModel.monthDates,
                 displayMonth: viewModel.currentMonthDate,
                 onDayTap: { tapped in
-                    // В режиме переноса обычный тап игнорируем: цель выбирается отдельным хендлером
-                    if moveModeEnabled { return }
+                    if moveModeEnabled { return } // цель выбирается через drag/tap внутри подсвеченной недели
                     if !didDebugPrintSamples {
                         let items = viewModel.items(on: tapped)
                         if let w = items.compactMap({ $0.asWorkout }).first { print("=== SAMPLE WORKOUT ==="); dump(w) } else { print("=== SAMPLE WORKOUT: none on this day ===") }
@@ -168,7 +164,6 @@ struct CalendarView: View {
                     selectedDay = IdentDate(tapped)
                 },
                 onDayLongPress: { d in
-                    // старт переноса → подсветить неделю исходника
                     #if os(iOS)
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     #endif
@@ -176,7 +171,6 @@ struct CalendarView: View {
                     moveModeEnabled = true
                 },
                 onSelectMoveTarget: { d in
-                    // выбрали день в подсвеченной неделе → показать шит с тренировками исходного дня
                     moveTarget = IdentDate(d)
                 },
                 itemsProvider: { date in
@@ -184,7 +178,8 @@ struct CalendarView: View {
                 },
                 selectedDate: selectedDay?.date,
                 isMoveMode: moveModeEnabled,
-                moveHighlightWeekOf: sourceDayForMove
+                moveHighlightWeekOf: sourceDayForMove,
+                moveSourceDate: sourceDayForMove
             )
             .padding(.vertical)
         }
@@ -289,7 +284,6 @@ struct CalendarView: View {
     }
 }
 
-// MARK: - Контрастные «пилюли» фильтра
 private struct FilterChip: View {
     let text: String
     let selected: Bool
