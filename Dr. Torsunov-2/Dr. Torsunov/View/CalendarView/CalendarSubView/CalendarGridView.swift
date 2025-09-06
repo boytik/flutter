@@ -30,6 +30,7 @@ struct CalendarGridView: View {
 
     // Drag state
     @State private var cellFrames: [Date: CGRect] = [:]
+    @State private var frozenFrames: [Date: CGRect] = [:]      // ⬅️ freeze геометрию на время drag
     @State private var isDragging: Bool = false
     @State private var dragOffset: CGSize = .zero
     @State private var hoverDate: Date? = nil
@@ -104,7 +105,6 @@ struct CalendarGridView: View {
                 }
             }
 
-            // Фикс высоты: не даём гриду схлопнуться в ноль
             GeometryReader { geo in
                 ZStack(alignment: .topLeading) {
                     // Сетка
@@ -114,7 +114,7 @@ struct CalendarGridView: View {
                         }
                     }
 
-                    // Прозрачный ловец драга (не влияет на layout)
+                    // Прозрачный ловец drag (влияет только в move-режиме)
                     Color.clear
                         .contentShape(Rectangle())
                         .gesture(
@@ -122,11 +122,12 @@ struct CalendarGridView: View {
                                 .onChanged { value in
                                     guard isMoveMode,
                                           let src = moveSourceDate,
-                                          let frame = cellFrames[isoCal.startOfDay(for: src)] else { return }
+                                          let frame = activeFrames()[isoCal.startOfDay(for: src)] else { return }
                                     if !isDragging { isDragging = true }
                                     // смещаем призрак относительно центра исходной ячейки
                                     dragOffset = CGSize(width: value.location.x - frame.midX,
                                                         height: value.location.y - frame.midY)
+
                                     let newHover = date(at: value.location)
                                     if newHover != hoverDate {
                                         #if os(iOS)
@@ -146,27 +147,39 @@ struct CalendarGridView: View {
                                     hoverDate = nil
                                 }
                         )
-                        .allowsHitTesting(isMoveMode) // в обычном режиме не перехватываем касания
+                        .allowsHitTesting(isMoveMode)
 
                     // «Призрак»
                     if isMoveMode, isDragging, let src = moveSourceDate {
                         let key = isoCal.startOfDay(for: src)
-                        if let frame = cellFrames[key] {
+                        if let frame = activeFrames()[key] {
                             ghostCell(for: src, size: frame.size)
                                 .position(x: frame.midX + dragOffset.width,
                                           y: frame.midY + dragOffset.height)
+                                .drawingGroup() // offscreen рендер — плавнее
                                 .allowsHitTesting(false)
                         }
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
                 .coordinateSpace(name: spaceName)
+                .transaction { $0.animation = nil } // ⬅️ убираем имплицитные анимации у грида
             }
             .frame(minHeight: 260) // гарантированная минимальная высота грида
         }
         .padding(.horizontal)
         .onPreferenceChange(DayCellFrameKey.self) { frames in
-            self.cellFrames = frames
+            // Обновляем геометрию только если её не заморозили
+            if frozenFrames.isEmpty {
+                self.cellFrames = frames
+            }
+        }
+        .onChange(of: isMoveMode) { enabled in
+            if enabled {
+                frozenFrames = cellFrames // freeze на входе
+            } else {
+                frozenFrames = [:]        // unfreeze на выходе
+            }
         }
     }
 
@@ -200,7 +213,7 @@ struct CalendarGridView: View {
 
         let markers = CalendarGridMarkersLayer(items: itemsProvider(cell.date))
 
-        let v = VStack(alignment: .center) {
+        VStack(alignment: .center) {
             Text("\(Calendar.current.component(.day, from: cell.date))")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(cell.isCurrentMonth ? .white : .white.opacity(0.45))
@@ -224,11 +237,18 @@ struct CalendarGridView: View {
         .cornerRadius(12)
         .contentShape(Rectangle())
         .background(
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: DayCellFrameKey.self,
-                    value: [isoCal.startOfDay(for: cell.date): proxy.frame(in: .named(spaceName))]
-                )
+            // Во время move-режима не публикуем новые фреймы (заморожены)
+            Group {
+                if frozenFrames.isEmpty {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: DayCellFrameKey.self,
+                            value: [isoCal.startOfDay(for: cell.date): proxy.frame(in: .named(spaceName))]
+                        )
+                    }
+                } else {
+                    Color.clear
+                }
             }
         )
         .allowsHitTesting(!isMoveMode || isInMoveWeek || isSource)
@@ -247,8 +267,6 @@ struct CalendarGridView: View {
                     onDayLongPress?(cell.date)
                 }
         )
-
-        v
     }
 
     // MARK: - Внешний вид «призрака»
@@ -271,7 +289,7 @@ struct CalendarGridView: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green, lineWidth: 2))
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 3)
-        .scaleEffect(1.06)
+        .scaleEffect(1.04)
         .opacity(0.98)
     }
 
@@ -283,8 +301,12 @@ struct CalendarGridView: View {
 
     // MARK: - Helpers
 
+    private func activeFrames() -> [Date: CGRect] {
+        frozenFrames.isEmpty ? cellFrames : frozenFrames
+    }
+
     private func date(at point: CGPoint) -> Date? {
-        for (date, frame) in cellFrames where frame.contains(point) {
+        for (date, frame) in activeFrames() where frame.contains(point) {
             return date
         }
         return nil

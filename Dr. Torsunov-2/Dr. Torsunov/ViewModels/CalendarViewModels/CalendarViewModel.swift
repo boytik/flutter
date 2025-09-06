@@ -631,26 +631,23 @@ final class CalendarViewModel: ObservableObject {
 
     /// Реальный API-вызов переноса на сервере
     private func sendMoveRequest(email: String, targetDate: Date, selectedIDs: [String]) async throws {
-        struct MovePayload: Codable {
-            let email: String
-            let workouts: [WorkoutMove]
-            struct WorkoutMove: Codable {
-                let workout_uuid: String
-                let date: String // yyyy-MM-dd
-            }
+        struct MoveItem: Codable {
+            let workout_uuid: String
+            let date: String  // yyyy-MM-dd
         }
-
         let ymd = DateUtils.ymd.string(from: targetDate)
-        let payload = MovePayload(
-            email: email,
-            workouts: selectedIDs.map { MovePayload.WorkoutMove(workout_uuid: $0, date: ymd) }
-        )
 
-        let url = APIEnv.baseURL.appendingPathComponent("/workout_calendar/move")
+        // массив объектов, как у Flutter
+        let body: [MoveItem] = selectedIDs.map { .init(workout_uuid: $0, date: ymd) }
+
+        // ВАЖНО: post на тот же путь, что и get-планнер, с email в path
+        // (у тебя уже есть GET /workout_calendar/{email} — используем его же)
+        let url = APIEnv.baseURL.appendingPathComponent("/workout_calendar/\(email)")
+
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONEncoder().encode(payload)
+        req.httpBody = try JSONEncoder().encode(body)
 
         if let token = UserDefaults.standard.string(forKey: "auth_token") {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -658,9 +655,10 @@ final class CalendarViewModel: ObservableObject {
 
         let (data, resp) = try await URLSession.shared.data(for: req)
         if let http = resp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            let body = String(data: data, encoding: .utf8) ?? ""
+            let msg = String(data: data, encoding: .utf8) ?? ""
             throw NSError(domain: "MoveAPI", code: http.statusCode,
-                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(body)"])
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(msg)"])
         }
     }
+
 }
