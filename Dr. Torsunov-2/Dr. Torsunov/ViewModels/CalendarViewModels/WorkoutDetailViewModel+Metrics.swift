@@ -21,15 +21,14 @@ private enum __JV {
     static func int(_ v: Any?) -> Int? {
         if let x = v as? Int { return x }
         if let x = v as? Double {
-            // Усечение к нулю (как в Dart .toInt()): 3.9 -> 3
-            let y = x >= 0 ? floor(x) : ceil(x)
+            let y = x >= 0 ? floor(x) : ceil(x)   // toward zero, как Dart .toInt()
             return Int(y)
         }
         if let x = v as? Float  {
             let y = x >= 0 ? floor(Double(x)) : ceil(Double(x))
             return Int(y)
         }
-        if let x = v as? NSNumber { return Int(truncating: x) } // toward zero
+        if let x = v as? NSNumber { return Int(truncating: x) }
         if let x = v as? String {
             let s = x.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
             if let n = Int(s) { return n }
@@ -70,7 +69,9 @@ extension WorkoutDetailViewModel {
     private struct _AssociatedKeys { static var cache = "_metrics_cache_key" }
     private var __cache: _MetricsCache {
         if let c = objc_getAssociatedObject(self, &_AssociatedKeys.cache) as? _MetricsCache { return c }
-        let c = _MetricsCache(); objc_setAssociatedObject(self, &_AssociatedKeys.cache, c, .OBJC_ASSOCIATION_RETAIN_NONATOMIC); return c
+        let c = _MetricsCache()
+        objc_setAssociatedObject(self, &_AssociatedKeys.cache, c, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        return c
     }
 
     // === КАК ВО FLUTTER ===
@@ -148,28 +149,107 @@ extension WorkoutDetailViewModel {
         return nil
     }
 
-    // === СЕРИИ СЛОЁВ ДЛЯ КУРСОРА/ПРОГРЕССА ===
-    fileprivate func __seriesInt(for yKeys: [String]) -> [Int]? {
-        guard let rows = self.metricObjectsArray else { return nil }
-        let tKeys = ["time_numeric","timeNumeric","time","t","seconds","secs","minutes","mins"]
-        var pairs: [(Double, Int)] = []
-        pairs.reserveCapacity(rows.count)
-        for row in rows {
-            guard let tv = self.value(for: tKeys, in: row), let t = self.number(in: tv) else { continue }
-            guard let yv = self.value(for: yKeys, in: row), let y = self.number(in: yv) else { continue }
-            // Усечение, не округление (как во Flutter)
-            let yi = Int(y.rounded(.towardZero))
-            pairs.append((t, yi))
+    // === Вспомогательное: нормализация времени к секундам по имени ключа ===
+    fileprivate func __normalizeToSeconds(_ raw: Double, hintKey: String?) -> Double {
+        if let h = hintKey?.lowercased() {
+            if h.contains("min") { return raw * 60.0 }        // minutes → seconds
+            if h.contains("sec") { return raw }               // already seconds
+            if h == "t" || h == "time" {
+                if raw > 12 * 3600 { return raw / 1000.0 }    // ms
+                if raw > 360.0 { return raw }                 // seconds
+                return raw * 60.0                              // minutes
+            }
+            if h.contains("duration") || h.contains("from_start") {
+                return raw // уже секунды
+            }
         }
-        guard pairs.count >= 1 else { return nil }
+        // Fallback по величине
+        if raw > 12 * 3600 { return raw / 1000.0 } // ms → s
+        if raw > 360.0     { return raw }          // s
+        return raw * 60.0                          // min → s
+    }
+
+    // === Рекурсивный поиск внутри одного объекта JSONValue ===
+
+    /// Найти значение по списку ключей внутри одного `row` (с рекурсией).
+    fileprivate func __findValue(in row: [String: JSONValue], keys: [String]) -> JSONValue? {
+        let wanted = Set(keys.map { $0.lowercased() })
+
+        // прямой уровень
+        for (k, v) in row where wanted.contains(k.lowercased()) { return v }
+
+        // глубже по объектам/массивам
+        for (_, v) in row {
+            switch v {
+            case .object(let o):
+                if let hit = __findValue(in: o, keys: keys) { return hit }
+            case .array(let a):
+                for item in a {
+                    if case .object(let o) = item, let hit = __findValue(in: o, keys: keys) { return hit }
+                }
+            default: break
+            }
+        }
+        return nil
+    }
+
+    /// Время (секунды) и имя попавшего ключа времени (с рекурсией).
+    fileprivate func __timeValueAndKey(in row: [String: JSONValue]) -> (Double, String)? {
+        let tKeys = ["workoutDuration","workout_duration","durationFromStart","duration_from_start",
+                     "sec_from_start","seconds_from_start",
+                     "time_numeric","timeNumeric","time","t","seconds","secs","minutes","mins"]
+        for k in tKeys {
+            if let v = __findValue(in: row, keys: [k]), let t = self.number(in: v) {
+                return ( __normalizeToSeconds(t, hintKey: k), k )
+            }
+        }
+        return nil
+    }
+
+    // === СЕРИИ СЛОЁВ ДЛЯ КУРСОРА/ПРОГРЕССА ===
+
+    /// Собрать Int-серию по указанным Y-ключам (layer/subLayer). Ищет ключи рекурсивно.
+    fileprivate func __seriesInt(for yKeys: [String]) -> [Int]? {
+        // rows как [[String: JSONValue]] или [JSONValue(.object)]
+        var rowsObj: [[String: JSONValue]] = []
+
+        if let a = self.metricObjectsArray as? [[String: JSONValue]] {
+            rowsObj = a
+        } else if let b = self.metricObjectsArray as? [JSONValue] {
+            rowsObj = b.compactMap { if case .object(let o) = $0 { return o } else { return nil } }
+        } else {
+            return nil
+        }
+
+        var pairs: [(Double, Int)] = []
+        pairs.reserveCapacity(rowsObj.count)
+
+        for row in rowsObj {
+            guard let (tSec, _) = __timeValueAndKey(in: row) else { continue }
+            guard let yv = __findValue(in: row, keys: yKeys), let y = self.number(in: yv) else { continue }
+            let yi = y >= 0 ? Int(floor(y)) : Int(ceil(y))   // усечение как в Dart
+            pairs.append((tSec, yi))
+        }
+
+        guard !pairs.isEmpty else { return nil }
         pairs.sort { $0.0 < $1.0 }
         return pairs.map { $0.1 }
     }
+
     var layerSeriesInt: [Int]? {
         __seriesInt(for: ["currentLayerChecked","currentLayer","layer_checked","layer","layerIndex","layer_now","stage","phase"])
     }
+
     var subLayerSeriesInt: [Int]? {
-        __seriesInt(for: ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now","subStage","subPhase"])
+        // расширенные ключи для подслоёв (йога/позиции и др.)
+        __seriesInt(for: [
+            "currentsubLayerChecked","currentSubLayerChecked",
+            "subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now",
+            "subStage","subPhase",
+            "poseIndex","pose_index","pose",
+            "yogaPose","yoga_pose","yogaPoseIndex","yoga_pose_index",
+            "positionIndex","position_index","asanaIndex","asana_index"
+        ])
     }
 
     // Слои (текущий/подслой/прогресс) для шапки — с фолбэком на серии
@@ -187,30 +267,49 @@ extension WorkoutDetailViewModel {
 
     var currentSubLayerCheckedInt: Int? {
         if let cached = __cache.subLayer { return cached }
-        if let v = __findInt(keys: ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now","subStage","subPhase"]) {
+        if let v = __findInt(keys: [
+            "currentsubLayerChecked","currentSubLayerChecked",
+            "subLayer","sub_layer","sublayer","subLayerIndex","sublayer_now",
+            "subStage","subPhase",
+            "poseIndex","pose_index","pose",
+            "yogaPose","yoga_pose","yogaPoseIndex","yoga_pose_index",
+            "positionIndex","position_index","asanaIndex","asana_index"
+        ]) {
             __cache.subLayer = v; return v
         }
-        if let v = __lookupIntOnSelf(keys: ["currentsubLayerChecked","currentSubLayerChecked","subLayer","sub_layer","subLayerIndex","subStage","subPhase"]) {
+        if let v = __lookupIntOnSelf(keys: [
+            "currentsubLayerChecked","currentSubLayerChecked",
+            "subLayer","sub_layer","subLayerIndex","subStage","subPhase",
+            "poseIndex","pose_index","pose",
+            "yogaPose","yoga_pose","yogaPoseIndex","yoga_pose_index",
+            "positionIndex","position_index","asanaIndex","asana_index"
+        ]) {
             __cache.subLayer = v; return v
         }
         if let last = self.subLayerSeriesInt?.last { __cache.subLayer = last; return last }
         __cache.subLayer = nil; return nil
     }
 
-    /// Прогресс подслоя: приоритет как во Flutter — **серия**, потом метаданные
+    /// Прогресс подслоя: приоритет как во Flutter — серия → метаданные
     var subLayerProgressText: String? {
         if let cached = __cache.subLayerProgress { return cached }
 
-        // 1) серия (даст, например, "2/7")
         if let series = self.subLayerSeriesInt, !series.isEmpty {
-            let total = series.max() ?? 0
-            let done  = series.last ?? 0
-            if total > 0 {
-                let s = "\(done)/\(total)"
-                __cache.subLayerProgress = s; return s
+            let minV = series.min() ?? 0
+            let maxV = series.max() ?? 0
+            let isZeroBased = (minV == 0 && maxV >= 1)
+
+            let totalHuman = isZeroBased ? (maxV + 1) : maxV
+            let doneHuman  = isZeroBased ? ((series.last ?? 0) + 1) : (series.last ?? 0)
+
+            if totalHuman > 0 {
+                let s = "\(doneHuman)/\(totalHuman)"
+                __cache.subLayerProgress = s
+                return s
             }
         }
-        // 2) метаданные (fallback)
+
+        // fallback по метаданным — как было
         if let s = __findString(keys: ["subLayerProgress","sub_layer_progress","progress_subLayer","subLayerText","subprogress"]) {
             __cache.subLayerProgress = s; return s
         }
@@ -221,6 +320,7 @@ extension WorkoutDetailViewModel {
         }
         __cache.subLayerProgress = nil; return nil
     }
+
 
     // Удобные форматтеры
     var durationHumanized: String? {
@@ -240,7 +340,7 @@ extension WorkoutDetailViewModel {
 
     fileprivate func __readPublishedAny(labelContains: String) -> Any? {
         let mirror = Mirror(reflecting: self)
-        return mirror.children.first(where: { ($0.label ?? "").lowercased().contains(labelContains.lowercased()) })?.value
+        return mirror.children.first { ($0.label ?? "").lowercased().contains(labelContains.lowercased()) }?.value
     }
 
     fileprivate func __findInt(keys: [String]) -> Int? {
@@ -334,6 +434,7 @@ extension WorkoutDetailViewModel {
 
         let hMatch = digits.range(of: #"(\d+)\s*(ч|h)"#, options: .regularExpression)
         let mMatch = digits.range(of: #"(\d+)\s*(м|min|m)"#, options: .regularExpression)
+
         var total = 0
         if let r = hMatch, let v = Int(String(digits[r]).components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) { total += v * 60 }
         if let r = mMatch, let v = Int(String(digits[r]).components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) { total += v }

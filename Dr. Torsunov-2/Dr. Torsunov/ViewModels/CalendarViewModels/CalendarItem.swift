@@ -72,7 +72,7 @@ enum CalendarItem: Identifiable, Codable, Equatable {
     }
 
     // MARK: - Универсальный извлекатель даты из Workout
-    private static func extractDate(from workout: Workout) -> Date? {
+    static func extractDate(from workout: Workout) -> Date? {
         let mirror = Mirror(reflecting: workout)
         for child in mirror.children {
             guard let label = child.label?.lowercased() else { continue }

@@ -554,4 +554,113 @@ final class CalendarViewModel: ObservableObject {
         }
         return res
     }
+
+// MARK: - Move Workouts
+
+/// All dates (startOfDay) that have at least one planned workout
+    // MARK: - Move Workouts
+
+    /// Все даты (startOfDay), где есть плановые тренировки
+    func datesWithPlannedWorkouts() -> [Date] {
+        let dates = monthPlanned.map { isoCal.startOfDay(for: $0.date) }
+        return Array(Set(dates)).sorted()
+    }
+
+    /// Плановые тренировки на конкретный день
+    func plannedWorkouts(on date: Date) -> [Workout] {
+        let day = isoCal.startOfDay(for: date)
+        return monthPlanned.filter { isoCal.isDate($0.date, inSameDayAs: day) }
+    }
+
+    /// Переместить выбранные тренировки на дату targetDate (время = 00:00)
+    func moveWorkouts(withIDs ids: [String], to targetDate: Date) async {
+        guard !ids.isEmpty else { return }
+
+        let prevPlanned = monthPlanned
+        let newDate = isoCal.startOfDay(for: targetDate)
+
+        // базовый UUID без суффиксов протокола типа "|water1"
+        func baseID(from full: String) -> String {
+            full.split(separator: "|", maxSplits: 1).first.map(String.init) ?? full
+        }
+
+        // Оптимистичное обновление локального состояния
+        monthPlanned = monthPlanned.map { w in
+            guard ids.contains(w.id) else { return w }
+            return Workout(
+                id: w.id,
+                name: w.name,
+                description: w.description,
+                duration: w.duration,
+                date: newDate,
+                activityType: w.activityType,
+                plannedLayers: w.plannedLayers,
+                swimLayers: w.swimLayers
+            )
+        }
+        recomputeCalendarArtifacts()
+
+        // email из токен-хранилища или UserDefaults
+        let email = (TokenStorage.shared.currentEmail() ?? UserDefaults.standard.string(forKey: "profile_email")) ?? ""
+        guard !email.isEmpty else { return }
+
+        do {
+            try await sendMoveRequest(
+                email: email,
+                targetDate: newDate,
+                selectedIDs: ids.map(baseID)
+            )
+            // успех — ничего не делаем (UI уже обновлён)
+        } catch {
+            // откат
+            monthPlanned = prevPlanned
+            recomputeCalendarArtifacts()
+            log.error("Move API failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Пересборка monthDates и byDay
+    private func recomputeCalendarArtifacts() {
+        let (s, e) = visibleGridRange(for: currentMonthDate)
+        monthDates = buildMarkersGrid(from: s, to: e, planned: monthPlanned, done: monthActivities)
+
+        let workoutItems  = monthPlanned.map { CalendarItem.workout($0) }
+        let activityItems = monthActivities.map { CalendarItem.activity($0) }
+        byDay = Dictionary(grouping: (workoutItems + activityItems)) { isoCal.startOfDay(for: $0.date) }
+    }
+
+    /// Реальный API-вызов переноса на сервере
+    private func sendMoveRequest(email: String, targetDate: Date, selectedIDs: [String]) async throws {
+        struct MovePayload: Codable {
+            let email: String
+            let workouts: [WorkoutMove]
+            struct WorkoutMove: Codable {
+                let workout_uuid: String
+                let date: String // yyyy-MM-dd
+            }
+        }
+
+        let ymd = DateUtils.ymd.string(from: targetDate)
+        let payload = MovePayload(
+            email: email,
+            workouts: selectedIDs.map { MovePayload.WorkoutMove(workout_uuid: $0, date: ymd) }
+        )
+
+        let url = APIEnv.baseURL.appendingPathComponent("/workout_calendar/move")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONEncoder().encode(payload)
+
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        if let http = resp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            throw NSError(domain: "MoveAPI", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(body)"])
+        }
+    }
 }

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3E1B86892E6CAD52009803F9 /* MoveWorkoutsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E1B86882E6CAD52009803F9 /* MoveWorkoutsSheet.swift */; };
 		3E31C8CE2E4C876700527C76 /* WorkoutDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */; };
 		3E327F172E5C8E8D000A7D33 /* FullScreenChartsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F162E5C8E8D000A7D33 /* FullScreenChartsView.swift */; };
 		3E327F192E5C8F61000A7D33 /* ChartsFullScreenButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E327F182E5C8F61000A7D33 /* ChartsFullScreenButton.swift */; };
@@ -105,6 +106,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3E1B86882E6CAD52009803F9 /* MoveWorkoutsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveWorkoutsSheet.swift; sourceTree = "<group>"; };
 		3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailViewModel.swift; sourceTree = "<group>"; };
 		3E327F162E5C8E8D000A7D33 /* FullScreenChartsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenChartsView.swift; sourceTree = "<group>"; };
 		3E327F182E5C8F61000A7D33 /* ChartsFullScreenButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartsFullScreenButton.swift; sourceTree = "<group>"; };
@@ -228,6 +230,7 @@
 			children = (
 				3E375E1B2E65D86700989A37 /* CategoricalChartSectionView.swift */,
 				3E375E1C2E65D86700989A37 /* NumericChartSectionView.swift */,
+				3E672C482E6A0B56003E2594 /* NumericChartSectionView+FlutterPatch.swift */,
 			);
 			path = Charts;
 			sourceTree = "<group>";
@@ -340,7 +343,6 @@
 				3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */,
 				3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */,
 				3E672C462E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift */,
-				3E672C482E6A0B56003E2594 /* NumericChartSectionView+FlutterPatch.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
 				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
 				3E7045672E4A1BA7005EDE48 /* InspectorViewModel.swift */,
@@ -541,6 +543,7 @@
 				3EE502BC2E50C70500BBE86F /* InspectorPhotosView.swift */,
 				3E61247B2E5716D500B2B1E0 /* PhotoCompareGrid.swift */,
 				3E327F222E5CD15A000A7D33 /* debugDumpVM.swift */,
+				3E1B86882E6CAD52009803F9 /* MoveWorkoutsSheet.swift */,
 			);
 			path = CalendarSubView;
 			sourceTree = "<group>";
@@ -719,6 +722,7 @@
 				3E8599E22E44F31500FA1FAB /* ActivityRepositoryImpl.swift in Sources */,
 				3E7045612E4A1154005EDE48 /* StartScreen.swift in Sources */,
 				3E7045732E4A22B0005EDE48 /* AudioRecorder.swift in Sources */,
+				3E1B86892E6CAD52009803F9 /* MoveWorkoutsSheet.swift in Sources */,
 				3E7045502E49F6FD005EDE48 /* Calendar.swift in Sources */,
 				3E7045682E4A1BA7005EDE48 /* InspectorViewModel.swift in Sources */,
 				3E8599CE2E44DF2300FA1FAB /* FileManager.swift in Sources */,
@@ -956,7 +960,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.2;
+				MARKETING_VERSION = 2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.revive.main;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -997,7 +1001,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.2;
+				MARKETING_VERSION = 2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.revive.main;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

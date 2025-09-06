@@ -5,13 +5,23 @@ import SwiftUI
 struct CalendarGridView: View {
     let monthDates: [WorkoutDay]
     let displayMonth: Date
+
+    // короткий тап
     var onDayTap: ((Date) -> Void)? = nil
+    // длительное нажатие по дню — включаем режим переноса и запоминаем «неделю-источник»
+    var onDayLongPress: ((Date) -> Void)? = nil
+    // выбор целевого дня внутри подсвеченной недели
+    var onSelectMoveTarget: ((Date) -> Void)? = nil
 
     /// провайдер элементов дня
     var itemsProvider: (Date) -> [CalendarGridDayContext] = { _ in [] }
 
     /// выбранная дата — для зелёной рамки
     var selectedDate: Date? = nil
+
+    /// режим переноса + неделя, которую подсвечиваем как «доступные цели»
+    var isMoveMode: Bool = false
+    var moveHighlightWeekOf: Date? = nil
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
 
@@ -92,31 +102,57 @@ struct CalendarGridView: View {
                         return isoCal.isDate(s, inSameDayAs: cell.date)
                     }()
 
-                    Button {
-                        onDayTap?(cell.date)
-                    } label: {
-                        VStack(alignment: .center) {
-                                Text("\(Calendar.current.component(.day, from: cell.date))")
-                                    .font(.system(size: 12, weight: .semibold))           // меньше
-                                    .foregroundColor(cell.isCurrentMonth ? .white : .white.opacity(0.45))
-                                    .padding(.top, 4)
-                            Spacer()
-                            CalendarGridMarkersLayer(items: itemsProvider(cell.date))
-                                .padding(.horizontal, 2)
-                            Spacer()
-                            
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(bgColor(isCurrentMonth: cell.isCurrentMonth, isPast: isPast))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(isSelected ? Color.green : Color.white.opacity(0.10),
-                                        lineWidth: isSelected ? 2 : 1)
-                        )
-                        .cornerRadius(12)
+                    // принадлежит ли ячейка той же неделе, что и moveHighlightWeekOf
+                    let isInMoveWeek: Bool = {
+                        guard let w = moveHighlightWeekOf else { return false }
+                        return isoCal.component(.weekOfYear, from: w) == isoCal.component(.weekOfYear, from: cell.date)
+                        && isoCal.component(.yearForWeekOfYear, from: w) == isoCal.component(.yearForWeekOfYear, from: cell.date)
+                    }()
+
+                    // ⛔️ УБРАЛИ Button, чтобы long-press не конфликтовал. Управляем жестами вручную.
+                    let cellView = VStack(alignment: .center) {
+                        Text("\(Calendar.current.component(.day, from: cell.date))")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(cell.isCurrentMonth ? .white : .white.opacity(0.45))
+                            .padding(.top, 4)
+                        Spacer(minLength: 2)
+                        CalendarGridMarkersLayer(items: itemsProvider(cell.date))
+                            .padding(.horizontal, 2)
+                        Spacer(minLength: 2)
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .background(bgColor(isCurrentMonth: cell.isCurrentMonth, isPast: isPast))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(
+                                isSelected
+                                    ? Color.green
+                                    : (isMoveMode && isInMoveWeek ? Color.green.opacity(0.6) : Color.white.opacity(0.10)),
+                                lineWidth: isSelected ? 2 : (isMoveMode && isInMoveWeek ? 1.5 : 1)
+                            )
+                    )
+                    .cornerRadius(12)
                     .contentShape(Rectangle())
+
+                    // Жесты: long-press включает перенос; обычный тап — либо выбор дня, либо выбор цели
+                    cellView
+                        .allowsHitTesting(!isMoveMode || isInMoveWeek)
+                        .opacity(isMoveMode && !isInMoveWeek ? 0.45 : 1.0)
+                        .animation(.easeInOut(duration: 0.15), value: isMoveMode)
+                        .onTapGesture {
+                            if isMoveMode && isInMoveWeek {
+                                onSelectMoveTarget?(cell.date)
+                            } else if !isMoveMode {
+                                onDayTap?(cell.date)
+                            }
+                        }
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 0.55, maximumDistance: 20)
+                                .onEnded { _ in
+                                    guard cell.isCurrentMonth else { return }
+                                    onDayLongPress?(cell.date)
+                                }
+                        )
                 }
             }
         }

@@ -115,9 +115,8 @@ extension WorkoutDetailViewModel {
     /// Returns the data index for a normalized X position in [0, 1].
     /// Make x01 = (x - leftPadding) / chartWidth, clipped to [0, 1] before passing here.
     @MainActor
-    func indexForNormalizedX(_ x01: Double) -> Int? {
-        guard let rows = self.metricObjectsArray, rows.count >= 1 else { return nil }
-        let n = rows.count
+    private func indexForNormalizedX(_ x01: Double, count n: Int) -> Int? {
+        guard n > 0 else { return nil }
         let clamped = max(0.0, min(1.0, x01))
         return Int(floor(clamped * Double(n - 1)))
     }
@@ -125,16 +124,17 @@ extension WorkoutDetailViewModel {
     /// Layer at normalized X (index-based, like Flutter).
     @MainActor
     func layerAtNormalizedX(_ x01: Double) -> Int? {
-        guard let idx = indexForNormalizedX(x01),
-              let arr = self.layerSeriesInt, idx < arr.count else { return nil }
+        guard let arr = self.layerSeriesInt, !arr.isEmpty,
+              let idx = indexForNormalizedX(x01, count: arr.count) else { return nil }
         return arr[idx]
     }
+
 
     /// SubLayer at normalized X (index-based, like Flutter).
     @MainActor
     func subLayerAtNormalizedX(_ x01: Double) -> Int? {
-        guard let idx = indexForNormalizedX(x01),
-              let arr = self.subLayerSeriesInt, idx < arr.count else { return nil }
+        guard let arr = self.subLayerSeriesInt, !arr.isEmpty,
+              let idx = indexForNormalizedX(x01, count: arr.count) else { return nil }
         return arr[idx]
     }
 }

@@ -12,6 +12,11 @@ struct CalendarView: View {
     @State private var refreshToken: Int = 0
     @State private var didDebugPrintSamples = false
 
+    // ⬇️ Режим переноса по long-press
+    @State private var moveModeEnabled: Bool = false
+    @State private var sourceDayForMove: Date?
+    @State private var moveTarget: IdentDate?
+
     private var currentRole: PersonalViewModel.Role {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
     }
@@ -32,7 +37,6 @@ struct CalendarView: View {
                     }
                 }
             }
-            // 🔄 Единый оверлей загрузки, независимо от роли и режима
             if viewModel.isLoading {
                 ZStack {
                     Color.black.opacity(0.35).ignoresSafeArea()
@@ -48,6 +52,7 @@ struct CalendarView: View {
         .task(id: taskKey) {
             await viewModel.reload(role: currentRole)
         }
+        // Обычный лист выбранного дня
         .sheet(item: $selectedDay) { day in
             DayItemsSheet(
                 date: day.date,
@@ -58,6 +63,28 @@ struct CalendarView: View {
             .presentationDetents([.medium, .large])
             .presentationCornerRadius(24)
             .presentationBackground(.black)
+        }
+        // Лист переноса (источник фиксирован: sourceDayForMove)
+        .sheet(item: $moveTarget) { day in
+            if let src = sourceDayForMove {
+                MoveWorkoutsSheetFixedSource(
+                    targetDate: day.date,
+                    sourceDate: src,
+                    itemsProvider: { d in viewModel.items(on: d) },
+                    onConfirm: { ids in
+                        Task {
+                            await viewModel.moveWorkouts(withIDs: ids, to: day.date)
+                            // сброс режима переноса
+                            moveModeEnabled = false
+                            sourceDayForMove = nil
+                            moveTarget = nil
+                        }
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationCornerRadius(24)
+                .presentationBackground(.black)
+            }
         }
     }
 
@@ -95,8 +122,6 @@ struct CalendarView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.ignoresSafeArea())
-        // при желании можно заблокировать жесты во время загрузки:
-        // .allowsHitTesting(!viewModel.isLoading)
     }
 
     private var modePicker: some View {
@@ -124,33 +149,42 @@ struct CalendarView: View {
                 Button(action: { viewModel.nextMonth() }) {
                     Image(systemName: "chevron.right").foregroundColor(.white)
                 }
+                // ⛔️ Кнопку «Перенести» УДАЛИЛИ — перенос запускается только long‑press’ом
             }
             .padding(.horizontal)
+
             CalendarGridView(
                 monthDates: viewModel.monthDates,
                 displayMonth: viewModel.currentMonthDate,
                 onDayTap: { tapped in
-                    // 👇 один раз распечатаем примеры из выбранного дня
+                    // В режиме переноса обычный тап игнорируем: цель выбирается отдельным хендлером
+                    if moveModeEnabled { return }
                     if !didDebugPrintSamples {
                         let items = viewModel.items(on: tapped)
-                        if let w = items.compactMap({ $0.asWorkout }).first {
-                            print("=== SAMPLE WORKOUT ==="); dump(w)
-                        } else {
-                            print("=== SAMPLE WORKOUT: none on this day ===")
-                        }
-                        if let a = items.compactMap({ $0.asActivity }).first {
-                            print("=== SAMPLE ACTIVITY ==="); dump(a)
-                        } else {
-                            print("=== SAMPLE ACTIVITY: none on this day ===")
-                        }
+                        if let w = items.compactMap({ $0.asWorkout }).first { print("=== SAMPLE WORKOUT ==="); dump(w) } else { print("=== SAMPLE WORKOUT: none on this day ===") }
+                        if let a = items.compactMap({ $0.asActivity }).first { print("=== SAMPLE ACTIVITY ==="); dump(a) } else { print("=== SAMPLE ACTIVITY: none on this day ===") }
                         didDebugPrintSamples = true
                     }
                     selectedDay = IdentDate(tapped)
                 },
+                onDayLongPress: { d in
+                    // старт переноса → подсветить неделю исходника
+                    #if os(iOS)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    #endif
+                    sourceDayForMove = d
+                    moveModeEnabled = true
+                },
+                onSelectMoveTarget: { d in
+                    // выбрали день в подсвеченной неделе → показать шит с тренировками исходного дня
+                    moveTarget = IdentDate(d)
+                },
                 itemsProvider: { date in
                     viewModel.items(on: date).map { $0 as CalendarGridDayContext }
                 },
-                selectedDate: selectedDay?.date
+                selectedDate: selectedDay?.date,
+                isMoveMode: moveModeEnabled,
+                moveHighlightWeekOf: sourceDayForMove
             )
             .padding(.vertical)
         }
