@@ -5,7 +5,8 @@ import Foundation
 
 @MainActor
 struct CalendarView: View {
-    @StateObject private var viewModel = CalendarViewModel()
+    // Поддерживаем DI через init(vm:), но по умолчанию создаём VM сами
+    @StateObject private var viewModel: CalendarViewModel
     @AppStorage("user_role") private var storedRoleRaw = PersonalViewModel.Role.user.rawValue
 
     @State private var selectedDay: IdentDate?
@@ -16,6 +17,10 @@ struct CalendarView: View {
     @State private var moveModeEnabled: Bool = false
     @State private var sourceDayForMove: Date?
     @State private var moveTarget: IdentDate?
+
+    // DI-friendly init
+    init(vm: CalendarViewModel) { _viewModel = StateObject(wrappedValue: vm) }
+    init() { _viewModel = StateObject(wrappedValue: CalendarViewModel()) }
 
     private var currentRole: PersonalViewModel.Role {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
@@ -72,7 +77,6 @@ struct CalendarView: View {
                     onConfirm: { ids in
                         Task {
                             await viewModel.moveWorkouts(withIDs: ids, to: day.date)
-                            // сброс режима переноса
                             moveModeEnabled = false
                             sourceDayForMove = nil
                             moveTarget = nil
@@ -154,7 +158,7 @@ struct CalendarView: View {
                 monthDates: viewModel.monthDates,
                 displayMonth: viewModel.currentMonthDate,
                 onDayTap: { tapped in
-                    if moveModeEnabled { return } // цель выбирается через drag/tap внутри подсвеченной недели
+                    if moveModeEnabled { return }
                     if !didDebugPrintSamples {
                         let items = viewModel.items(on: tapped)
                         if let w = items.compactMap({ $0.asWorkout }).first { print("=== SAMPLE WORKOUT ==="); dump(w) } else { print("=== SAMPLE WORKOUT: none on this day ===") }

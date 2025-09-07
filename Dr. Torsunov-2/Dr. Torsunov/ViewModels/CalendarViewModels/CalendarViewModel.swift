@@ -66,16 +66,16 @@ private struct PlannerItemDTO: Codable {
     let description: String?
     let durationHours: Int?
     let durationMinutes: Int?
-    let activityType: String?   // итоговое поле; берём из "activity" или "activity_type"
+    let activityType: String?
     let type: String?
     let name: String?
     let workoutUuid: String?
     let workoutKey: String?
     let id: String?
 
-    // ⬇️ Доп. поля для протоколов/слоёв
-    let layers: Int?            // общее количество слоёв (например, сауна)
-    let swimLayers: [Int]?      // водные слои слева/справа
+    // Доп. поля для протоколов/слоёв
+    let layers: Int?
+    let swimLayers: [Int]?
 
     private enum CodingKeys: String, CodingKey {
         case date, description, type, name, id
@@ -84,12 +84,10 @@ private struct PlannerItemDTO: Codable {
         case workoutDate      = "workout_date"
         case durationHours    = "duration_hours"
         case durationMinutes  = "duration_minutes"
-        // поддерживаем оба названия ключа от бэка
         case activityLower    = "activity"
         case activitySnake    = "activity_type"
         case workoutUuid      = "workout_uuid"
         case workoutKey       = "workout_key"
-        // новые
         case layers
         case swimLayers       = "swim_layers"
     }
@@ -156,8 +154,13 @@ final class CalendarViewModel: ObservableObject {
     @Published var filteredItems: [CalendarItem] = []
     @Published var thumbs: [String: URL] = [:]
 
-    // 🔄 Глобовый индикатор загрузки для экрана
+    // 🔄 Глобовый индикатор загрузки
     @Published var isLoading: Bool = false
+
+    // ⬇️ ОФЛАЙН: для «быстрого отображения как во Flutter»
+    @Published var items: [CachedWorkout] = []
+    @Published var isOfflineFallback: Bool = false
+    private let offlineStore = WorkoutCacheStore()
 
     private var monthPlanned: [Workout] = []
     private var monthActivities: [Activity] = []
@@ -178,6 +181,30 @@ final class CalendarViewModel: ObservableObject {
 
     func reload(role: PersonalViewModel.Role) async {
         self.role = role
+
+        // ===== OFFLINE PREFILL — показать тренировки из кэша мгновенно =====
+        if role == .user {
+            let mk = MonthKey.from(date: currentMonthDate)
+            do {
+                if let env = try offlineStore.loadMonth(mk), !env.workouts.isEmpty {
+                    let cached = env.workouts
+                    self.items = cached
+                    self.isOfflineFallback = true
+
+                    let cachedWorkouts: [Workout] = cached.map(Self.workout(from:))
+                    self.monthPlanned = cachedWorkouts // важно, чтобы дальнейшие шаги не «стерли» точки
+                    let workoutItems  = cachedWorkouts.map { CalendarItem.workout($0) }
+                    self.byDay = Dictionary(grouping: workoutItems) { isoCal.startOfDay(for: $0.date) }
+
+                    let (s, e) = visibleGridRange(for: currentMonthDate)
+                    self.monthDates = buildMarkersGrid(from: s, to: e, planned: cachedWorkouts, done: [])
+                }
+            } catch {
+                // нет кэша — идём дальше к сети
+            }
+        }
+        // ===================================================================
+
         switch role {
         case .user:      await loadCalendarForMonth(currentMonthDate)
         case .inspector: await loadInspector()
@@ -219,29 +246,43 @@ final class CalendarViewModel: ObservableObject {
         let (gridStart, gridEnd) = visibleGridRange(for: monthDate)
         log.info("[Calendar] Fetch planner & activities…")
 
-        // 1) Планы по диапазону
-        let rangeDTOs = try? await fetchPlannerRange(email: email, start: gridStart, end: gridEnd)
-        let rangePlanned = (rangeDTOs ?? []).flatMap { Self.workouts(from: $0) }
+        // === Новый путь: месячная загрузка через ETag
+        var etagHandled = false
+        if let etagRes = try? await loadMonthViaETag() {
+            if etagRes.notModified {
+                // оставляем monthPlanned из офлайна (установлен в reload)
+            } else {
+                self.monthPlanned = etagRes.workouts
+            }
+            etagHandled = true
+        }
 
-        // 2) Fallback подневно для прошедших дней без планов
-        var plannedDict = Dictionary(uniqueKeysWithValues: rangePlanned.map { ($0.id, $0) })
-        let days = daysArray(from: gridStart, to: gridEnd)
-        for d in days where d <= isoCal.startOfDay(for: Date()) {
-            let hasForDay = rangePlanned.contains { isoCal.isDate($0.date, inSameDayAs: d) }
-            if !hasForDay {
-                if let arr = try? await fetchPlannerDay(email: email, date: d) {
-                    for dto in arr {
-                        for w in Self.workouts(from: dto) {
-                            plannedDict[w.id] = w // de-dup by id
+        // === Fallback: старые ручки (range/day), если ETag недоступен/упал
+        if !etagHandled {
+            // 1) Планы по диапазону
+            let rangeDTOs = try? await fetchPlannerRange(email: email, start: gridStart, end: gridEnd)
+            let rangePlanned = (rangeDTOs ?? []).flatMap { Self.workouts(from: $0) }
+
+            // 2) Fallback подневно для прошедших дней без планов
+            var plannedDict = Dictionary(uniqueKeysWithValues: rangePlanned.map { ($0.id, $0) })
+            let days = daysArray(from: gridStart, to: gridEnd)
+            for d in days where d <= isoCal.startOfDay(for: Date()) {
+                let hasForDay = rangePlanned.contains { isoCal.isDate($0.date, inSameDayAs: d) }
+                if !hasForDay {
+                    if let arr = try? await fetchPlannerDay(email: email, date: d) {
+                        for dto in arr {
+                            for w in Self.workouts(from: dto) {
+                                plannedDict[w.id] = w // de-dup by id
+                            }
                         }
                     }
                 }
             }
-        }
-        // Доп.дедуп: на случай, если id отсутствует
-        let deduped = Self.dedup(Array(plannedDict.values))
+            // Доп.дедуп: на случай, если id отсутствует
+            let deduped = Self.dedup(Array(plannedDict.values))
 
-        self.monthPlanned = deduped.filter { $0.date >= gridStart && $0.date <= gridEnd }
+            self.monthPlanned = deduped.filter { $0.date >= gridStart && $0.date <= gridEnd }
+        }
 
         // 3) Активности (факты)
         let allActs = try? await activitiesRepo.fetchAll()
@@ -256,13 +297,95 @@ final class CalendarViewModel: ObservableObject {
         let activityItems = monthActivities.map { CalendarItem.activity($0) }
         self.byDay = Dictionary(grouping: (workoutItems + activityItems)) { isoCal.startOfDay(for: $0.date) }
 
-        // 5) «Точки» календаря (план по типу, done — зелёный индикатор)
+        // 5) «Точки» месяца
         self.monthDates = buildMarkersGrid(from: gridStart, to: gridEnd, planned: monthPlanned, done: monthActivities)
 
         rebuildHistory()
+
+        // 6) Если работали по fallback-пути — положим месяц в офлайн-кэш
+        if !etagHandled {
+            do {
+                let mk = MonthKey.from(date: currentMonthDate)
+                let cached: [CachedWorkout] = monthPlanned.map {
+                    CachedWorkout(id: $0.id,
+                                  name: $0.name,
+                                  date: $0.date,
+                                  durationSec: $0.duration,
+                                  type: $0.activityType,
+                                  updatedAt: Date())
+                }
+                let envelope = CachedMonthEnvelope(monthKey: mk,
+                                                   fetchedAt: Date(),
+                                                   etag: nil,
+                                                   workouts: cached,
+                                                   softDeletedIDs: [])
+                try offlineStore.saveMonth(envelope)
+                self.isOfflineFallback = false
+            } catch {
+                // best-effort
+            }
+        }
+
+        // 7) Прелоад соседних месяцев (±1)
+        let store = offlineStore
+        Task.detached { [currentMonthDate, store] in
+            let cal = Calendar(identifier: .iso8601)
+            for delta in [-1, 1] {
+                if let date = cal.date(byAdding: .month, value: delta, to: currentMonthDate) {
+                    let mk = MonthKey.from(date: date)
+                    if (try? store.loadMonth(mk)) != nil { continue }
+                    if let result = try? await CalendarAPIMapping.fetchMonthMapped(monthKey: mk, ifNoneMatch: nil),
+                       !result.workouts.isEmpty {
+                        let env = CachedMonthEnvelope(monthKey: mk,
+                                                      fetchedAt: Date(),
+                                                      etag: result.etag,
+                                                      workouts: result.workouts,
+                                                      softDeletedIDs: [])
+                        try? store.saveMonth(env)
+                    }
+                }
+            }
+        }
     }
 
-    // MARK: Planner DTO / fetch
+    // MARK: ETag-month loader
+
+    /// Загружает месяц через ETag. Возвращает:
+    /// - `notModified = true` — сервер ответил 304, оставляем офлайн-кэш как есть
+    /// - иначе — массив свежих тренировок и уже сохранённый конверт с новым etag
+    private func loadMonthViaETag() async throws -> (workouts: [Workout], notModified: Bool) {
+        let mk = MonthKey.from(date: currentMonthDate)
+
+        var ifNone: String? = nil
+        do {
+            if let env = try offlineStore.loadMonth(mk) { // env: CachedMonthEnvelope (не Optional)
+                ifNone = env.etag                          // <-- без ?
+            }
+        } catch {
+            // игнорируем ошибки чтения кэша
+        }
+
+        let result = try await CalendarAPIMapping.fetchMonthMapped(monthKey: mk, ifNoneMatch: ifNone)
+
+        if let prevTag = ifNone, result.workouts.isEmpty, result.etag == prevTag {
+            return ([], true) // 304 Not Modified
+        }
+
+        let workouts = result.workouts.map(Self.workout(from:))
+        let envelope = CachedMonthEnvelope(
+            monthKey: mk,
+            fetchedAt: Date(),
+            etag: result.etag,
+            workouts: result.workouts,
+            softDeletedIDs: []
+        )
+        try? offlineStore.saveMonth(envelope)
+        self.isOfflineFallback = false
+        return (workouts, false)
+    }
+
+
+    // MARK: Planner DTO / fetch (fallback)
 
     private func fetchPlannerRange(email: String, start: Date, end: Date) async throws -> [PlannerItemDTO] {
         var comps = URLComponents(url: APIEnv.baseURL.appendingPathComponent("/workout_calendar/\(email)"), resolvingAgainstBaseURL: false)!
@@ -282,7 +405,7 @@ final class CalendarViewModel: ObservableObject {
         return try await client.request(url, ttl: 60)
     }
 
-    /// Универсальный детектор типа по нескольким строкам (учитываем синонимы/локали)
+    /// Универсальный детектор типа
     private static func inferTypeKey(from strings: [String?]) -> String? {
         let hay = strings.compactMap { $0?.lowercased() }.joined(separator: " | ")
         if hay.contains("swim") || hay.contains("плав") || hay.contains("water") { return "swim" }
@@ -371,7 +494,7 @@ final class CalendarViewModel: ObservableObject {
         return [single]
     }
 
-    /// Дедупликатор планов: вначале по id, если их нет — по ключу (ymd+lowercased name)
+    /// Дедуп по id/дню+названию
     private static func dedup(_ plans: [Workout]) -> [Workout] {
         var byID: [String: Workout] = [:]
         var seenKeys: Set<String> = []
@@ -555,9 +678,6 @@ final class CalendarViewModel: ObservableObject {
         return res
     }
 
-// MARK: - Move Workouts
-
-/// All dates (startOfDay) that have at least one planned workout
     // MARK: - Move Workouts
 
     /// Все даты (startOfDay), где есть плановые тренировки
@@ -610,7 +730,55 @@ final class CalendarViewModel: ObservableObject {
                 targetDate: newDate,
                 selectedIDs: ids.map(baseID)
             )
-            // успех — ничего не делаем (UI уже обновлён)
+
+            // === sync offline cache for source & destination months ===
+            do {
+                // Источники — по «старым» датам
+                let srcMonthKeys = Set(prevPlanned
+                    .filter { ids.contains($0.id) }
+                    .map { MonthKey.from(date: $0.date) })
+
+                // Месяц назначения
+                let dstMonthKey = MonthKey.from(date: newDate)
+
+                // 1) Источники: убрать перенесённые
+                for mk in srcMonthKeys {
+                    if var env = try offlineStore.loadMonth(mk) {
+                        env.workouts.removeAll { ids.contains($0.id) }
+                        env.fetchedAt = Date()
+                        try? offlineStore.saveMonth(env)
+                    }
+                }
+
+                // 2) Назначение: добавить перенесённые (de-dup по id)
+                let moved: [CachedWorkout] = monthPlanned
+                    .filter { ids.contains($0.id) }
+                    .map {
+                        CachedWorkout(id: $0.id,
+                                      name: $0.name,
+                                      date: newDate,
+                                      durationSec: $0.duration,
+                                      type: $0.activityType,
+                                      updatedAt: Date())
+                    }
+
+                if var dst = try offlineStore.loadMonth(dstMonthKey) {
+                    let existing = Set(dst.workouts.map(\.id))
+                    dst.workouts.append(contentsOf: moved.filter { !existing.contains($0.id) })
+                    dst.fetchedAt = Date()
+                    try? offlineStore.saveMonth(dst)
+                } else {
+                    let env = CachedMonthEnvelope(monthKey: dstMonthKey,
+                                                  fetchedAt: Date(),
+                                                  etag: nil,
+                                                  workouts: moved,
+                                                  softDeletedIDs: [])
+                    try? offlineStore.saveMonth(env)
+                }
+            } catch {
+                // best-effort
+            }
+
         } catch {
             // откат
             monthPlanned = prevPlanned
@@ -640,8 +808,7 @@ final class CalendarViewModel: ObservableObject {
         // массив объектов, как у Flutter
         let body: [MoveItem] = selectedIDs.map { .init(workout_uuid: $0, date: ymd) }
 
-        // ВАЖНО: post на тот же путь, что и get-планнер, с email в path
-        // (у тебя уже есть GET /workout_calendar/{email} — используем его же)
+        // POST на тот же путь, что и planner GET
         let url = APIEnv.baseURL.appendingPathComponent("/workout_calendar/\(email)")
 
         var req = URLRequest(url: url)
@@ -660,5 +827,20 @@ final class CalendarViewModel: ObservableObject {
                           userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(msg)"])
         }
     }
+}
 
+// MARK: - Offline helpers
+private extension CalendarViewModel {
+    static func workout(from c: CachedWorkout) -> Workout {
+        Workout(
+            id: c.id,
+            name: c.name,
+            description: nil,
+            duration: c.durationSec ?? 0,
+            date: c.date,
+            activityType: c.type,
+            plannedLayers: nil,
+            swimLayers: nil
+        )
+    }
 }

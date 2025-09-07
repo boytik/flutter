@@ -93,6 +93,12 @@
 		3EADE7812E3A2A5C002A2D67 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */; };
 		3EADE7862E3A5332002A2D67 /* ExtensionsDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE7852E3A5332002A2D67 /* ExtensionsDate.swift */; };
 		3EADE78B2E3A54A0002A2D67 /* CalendarItemCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */; };
+		3EBEA7DD2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */; };
+		3EBEA7DF2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7DE2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift */; };
+		3EBEA7E12E6D7C7E003B2D73 /* WorkoutCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7E02E6D7C7E003B2D73 /* WorkoutCacheStore.swift */; };
+		3EBEA7E32E6D7C87003B2D73 /* WorkoutCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7E22E6D7C87003B2D73 /* WorkoutCacheModels.swift */; };
+		3EBEA7E62E6D801A003B2D73 /* CalendarAPIMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7E52E6D801A003B2D73 /* CalendarAPIMapping.swift */; };
+		3EBEA7E72E6D801A003B2D73 /* CalendarAPIAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7E42E6D801A003B2D73 /* CalendarAPIAdapter.swift */; };
 		3ED089472E460168002F09CB /* ApiRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED089462E460168002F09CB /* ApiRoutes.swift */; };
 		3ED0894A2E460683002F09CB /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED089492E460683002F09CB /* HTTPClient.swift */; };
 		3EE502BB2E50C66A00BBE86F /* WorkoutMediaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE502BA2E50C66A00BBE86F /* WorkoutMediaRepository.swift */; };
@@ -200,6 +206,12 @@
 		3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
 		3EADE7852E3A5332002A2D67 /* ExtensionsDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsDate.swift; sourceTree = "<group>"; };
 		3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarItemCellView.swift; sourceTree = "<group>"; };
+		3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarViewModel+Offline.swift"; sourceTree = "<group>"; };
+		3EBEA7DE2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineWorkoutRepository.swift; sourceTree = "<group>"; };
+		3EBEA7E02E6D7C7E003B2D73 /* WorkoutCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCacheStore.swift; sourceTree = "<group>"; };
+		3EBEA7E22E6D7C87003B2D73 /* WorkoutCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCacheModels.swift; sourceTree = "<group>"; };
+		3EBEA7E42E6D801A003B2D73 /* CalendarAPIAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAPIAdapter.swift; sourceTree = "<group>"; };
+		3EBEA7E52E6D801A003B2D73 /* CalendarAPIMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAPIMapping.swift; sourceTree = "<group>"; };
 		3EC132982E4B579F00B6F9B3 /* Dr. Torsunov.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Dr. Torsunov.entitlements"; sourceTree = "<group>"; };
 		3ED089462E460168002F09CB /* ApiRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiRoutes.swift; sourceTree = "<group>"; };
 		3ED089482E4602B2002F09CB /* DrTorsunov-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "DrTorsunov-Info.plist"; sourceTree = SOURCE_ROOT; };
@@ -289,6 +301,8 @@
 			isa = PBXGroup;
 			children = (
 				3E70454F2E49F6FD005EDE48 /* Calendar.swift */,
+				3EBEA7E42E6D801A003B2D73 /* CalendarAPIAdapter.swift */,
+				3EBEA7E52E6D801A003B2D73 /* CalendarAPIMapping.swift */,
 			);
 			path = CalendarElement;
 			sourceTree = "<group>";
@@ -337,6 +351,7 @@
 			children = (
 				3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */,
 				3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */,
+				3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */,
 				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
 				3E672C402E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift */,
 				3E672C382E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift */,
@@ -435,6 +450,9 @@
 		3E8599D32E44E95B00FA1FAB /* WorkOut */ = {
 			isa = PBXGroup;
 			children = (
+				3EBEA7E22E6D7C87003B2D73 /* WorkoutCacheModels.swift */,
+				3EBEA7E02E6D7C7E003B2D73 /* WorkoutCacheStore.swift */,
+				3EBEA7DE2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift */,
 				3E8599D82E44E9B500FA1FAB /* WorkoutRepositoryImpl.swift */,
 				3EE502BA2E50C66A00BBE86F /* WorkoutMediaRepository.swift */,
 			);
@@ -693,6 +711,7 @@
 				3E7045842E4A42E5005EDE48 /* DeepLinkRouter.swift in Sources */,
 				3EADE77F2E3A2577002A2D67 /* TapBarView.swift in Sources */,
 				3E672C032E697D7D003E2594 /* StatesJSONHelpers.swift in Sources */,
+				3EBEA7DD2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift in Sources */,
 				3E70454D2E49F6D2005EDE48 /* Inspector.swift in Sources */,
 				3E327F1D2E5C9072000A7D33 /* CalendarGridView+Markers.swift in Sources */,
 				3E327F1B2E5C8FE6000A7D33 /* CalendarCellMarkersView.swift in Sources */,
@@ -734,6 +753,7 @@
 				3E55E9472E3A829900CBBC29 /*  TokenStorage.swift in Sources */,
 				3E3BAF0A2E3BB26C0013DE9B /* ProfileViewModel.swift in Sources */,
 				3E61247C2E5716D500B2B1E0 /* PhotoCompareGrid.swift in Sources */,
+				3EBEA7E12E6D7C7E003B2D73 /* WorkoutCacheStore.swift in Sources */,
 				3E8599D02E44DFC500FA1FAB /* ProfilePhotoView.swift in Sources */,
 				3E375E272E65D86700989A37 /* ActivityChartsSectionView.swift in Sources */,
 				3E375E282E65D86700989A37 /* NumericChartSectionView.swift in Sources */,
@@ -749,6 +769,7 @@
 				3E7B17772E424F30001AF947 /* DataSectionView.swift in Sources */,
 				3E7045632E4A1363005EDE48 /* DemoPasswordView.swift in Sources */,
 				3E672C472E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift in Sources */,
+				3EBEA7DF2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift in Sources */,
 				3E70455D2E4A06E8005EDE48 /* AppAuthState.swift in Sources */,
 				3E670BDB2E560463007E5AA2 /* NotificationCategoryFactory.swift in Sources */,
 				3E3D33C52E40BF8E009A5DCD /* PersonalView.swift in Sources */,
@@ -763,6 +784,8 @@
 				3E7B17752E424EFF001AF947 /* PhysicalDataViewModel.swift in Sources */,
 				3E327F192E5C8F61000A7D33 /* ChartsFullScreenButton.swift in Sources */,
 				3E7045712E4A2295005EDE48 /* ChatRepositoryImpl.swift in Sources */,
+				3EBEA7E62E6D801A003B2D73 /* CalendarAPIMapping.swift in Sources */,
+				3EBEA7E72E6D801A003B2D73 /* CalendarAPIAdapter.swift in Sources */,
 				3E7045652E4A1780005EDE48 /* Unauthorized.swift in Sources */,
 				3E327F1F2E5C91C5000A7D33 /* CalendarItem+CalendarGridDayContext.swift in Sources */,
 				3E70455F2E4A112F005EDE48 /* AuthLandingView.swift in Sources */,
@@ -774,6 +797,7 @@
 				3E7B17802E425077001AF947 /* PickerSheet.swift in Sources */,
 				3E327F232E5CD15A000A7D33 /* debugDumpVM.swift in Sources */,
 				3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */,
+				3EBEA7E32E6D7C87003B2D73 /* WorkoutCacheModels.swift in Sources */,
 				3E8F8A592E43A28900CE00CB /* ImagePicker.swift in Sources */,
 				3EE536892E4DFC630016D879 /* HTTPClient+RawJSON.swift in Sources */,
 				3EE5368A2E4DFC630016D879 /* BLEManager.swift in Sources */,

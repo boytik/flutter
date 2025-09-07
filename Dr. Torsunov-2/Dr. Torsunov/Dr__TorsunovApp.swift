@@ -2,6 +2,35 @@ import SwiftUI
 import Combine
 import UserNotifications
 import UIKit
+import Foundation
+
+// MARK: - Offline DI EnvironmentKey
+private struct CalendarOfflineLoaderKey: EnvironmentKey {
+    static let defaultValue: CalendarOfflineLoader? = nil
+}
+extension EnvironmentValues {
+    var calendarOfflineLoader: CalendarOfflineLoader? {
+        get { self[CalendarOfflineLoaderKey.self] }
+        set { self[CalendarOfflineLoaderKey.self] = newValue }
+    }
+}
+
+// MARK: - DI Container (class, чтобы обойти иммутабельность App)
+final class AppDI: ObservableObject {
+    let workoutCache: WorkoutCacheStore
+    let calendarAdapter: CalendarAPIAdapter
+    let offlineRepo: OfflineWorkoutRepository
+    let calendarOfflineLoader: CalendarOfflineLoader
+
+    init() {
+        self.workoutCache = WorkoutCacheStore()
+        self.calendarAdapter = CalendarAPIAdapter(fetcher: .init { monthKey, ifNoneMatch in
+            try await CalendarAPIMapping.fetchMonthMapped(monthKey: monthKey, ifNoneMatch: ifNoneMatch)
+        })
+        self.offlineRepo = OfflineWorkoutRepository(cache: workoutCache, api: calendarAdapter)
+        self.calendarOfflineLoader = CalendarOfflineLoader(repo: offlineRepo)
+    }
+}
 
 @main
 struct Dr__TorsunovApp: App {
@@ -9,6 +38,7 @@ struct Dr__TorsunovApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     @StateObject var auth = AppAuthState()
+    @StateObject var di = AppDI() // <-- держим контейнер как StateObject
 
     init() {
         segmentStyle()
@@ -25,19 +55,17 @@ struct Dr__TorsunovApp: App {
                 }
             }
             .environmentObject(auth)
+            // Прокидываем офлайн-лоадер во всё дерево
+            .environment(\.calendarOfflineLoader, di.calendarOfflineLoader)
 
             // Deep links из нотификаций/URL
             .onReceive(NotificationCenter.default.publisher(for: .didReceiveDeepLink)) { note in
                 guard let link = note.object as? DeepLink else { return }
                 switch link {
-                case .workout(_):
-                    break
-                case .activities:
-                    break
-                case .profile:
-                    break
-                case .unknown:
-                    break
+                case .workout(_): break
+                case .activities: break
+                case .profile: break
+                case .unknown: break
                 }
             }
             .onOpenURL { url in
@@ -47,11 +75,8 @@ struct Dr__TorsunovApp: App {
             // Запрос разрешений на уведомления при первом запуске UI
             .onAppear {
                 PushNotificationManager.requestAuthorization { granted in
-                    if !granted {
-                        print("Notifications permission not granted")
-                    }
+                    if !granted { print("Notifications permission not granted") }
                 }
-                // Регистрация на пуши (на случай если AppDelegate ещё не успел)
                 UIApplication.shared.registerForRemoteNotifications()
             }
         }
@@ -70,7 +95,6 @@ struct Dr__TorsunovApp: App {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(named: "TapBar")
-
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
