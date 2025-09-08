@@ -37,7 +37,7 @@ final class TokenStorage {
     func currentEmail() -> String? {
         #if DEBUG
         // ⛔️ ВРЕМЕННО: форсим тестовый email для всех запросов
-        return "vasiariov@gmail.com"
+        return "dmitriyt21@gmail.com"
         #else
         // на проде – как было
         return appleEmail?.removingPercentEncoding

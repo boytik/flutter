@@ -90,7 +90,6 @@
 		3EADE7782E3A2396002A2D67 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EADE7722E3A2396002A2D67 /* Assets.xcassets */; };
 		3EADE77D2E3A2558002A2D67 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE77C2E3A2558002A2D67 /* ProfileView.swift */; };
 		3EADE77F2E3A2577002A2D67 /* TapBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE77E2E3A2577002A2D67 /* TapBarView.swift */; };
-		3EADE7812E3A2A5C002A2D67 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */; };
 		3EADE7862E3A5332002A2D67 /* ExtensionsDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE7852E3A5332002A2D67 /* ExtensionsDate.swift */; };
 		3EADE78B2E3A54A0002A2D67 /* CalendarItemCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */; };
 		3EBEA7DD2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */; };
@@ -109,6 +108,16 @@
 		3EE5368B2E4DFC630016D879 /* ApiRoutes+InsertData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5367F2E4DFC630016D879 /* ApiRoutes+InsertData.swift */; };
 		3EE5368D2E4DFC630016D879 /* BLEUploadRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE536802E4DFC630016D879 /* BLEUploadRepository.swift */; };
 		3EE536902E4E192D0016D879 /* DayItemsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */; };
+		3EFD008D2E6F6DD100983731 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00882E6F6DD100983731 /* CalendarService.swift */; };
+		3EFD008E2E6F6DD100983731 /* CalendarColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00842E6F6DD100983731 /* CalendarColors.swift */; };
+		3EFD008F2E6F6DD100983731 /* CalendarMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00862E6F6DD100983731 /* CalendarMapping.swift */; };
+		3EFD00902E6F6DD100983731 /* CacheJSONClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00832E6F6DD100983731 /* CacheJSONClient.swift */; };
+		3EFD00912E6F6DD100983731 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00892E6F6DD100983731 /* CalendarViewModel.swift */; };
+		3EFD00922E6F6DD100983731 /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD008A2E6F6DD100983731 /* DateUtils.swift */; };
+		3EFD00932E6F6DD100983731 /* MoveWorkoutsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD008B2E6F6DD100983731 /* MoveWorkoutsService.swift */; };
+		3EFD00942E6F6DD100983731 /* PlannerItemDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD008C2E6F6DD100983731 /* PlannerItemDTO.swift */; };
+		3EFD00952E6F6DD100983731 /* CalendarGridBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00852E6F6DD100983731 /* CalendarGridBuilder.swift */; };
+		3EFD00962E6F6DD100983731 /* CalendarMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00872E6F6DD100983731 /* CalendarMath.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -203,7 +212,6 @@
 		3EADE7742E3A2396002A2D67 /* Dr__TorsunovApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dr__TorsunovApp.swift; sourceTree = "<group>"; };
 		3EADE77C2E3A2558002A2D67 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		3EADE77E2E3A2577002A2D67 /* TapBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapBarView.swift; sourceTree = "<group>"; };
-		3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
 		3EADE7852E3A5332002A2D67 /* ExtensionsDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsDate.swift; sourceTree = "<group>"; };
 		3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarItemCellView.swift; sourceTree = "<group>"; };
 		3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarViewModel+Offline.swift"; sourceTree = "<group>"; };
@@ -224,6 +232,16 @@
 		3EE536802E4DFC630016D879 /* BLEUploadRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEUploadRepository.swift; sourceTree = "<group>"; };
 		3EE536812E4DFC630016D879 /* HTTPClient+RawJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HTTPClient+RawJSON.swift"; sourceTree = "<group>"; };
 		3EE5368F2E4E192D0016D879 /* DayItemsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayItemsSheet.swift; sourceTree = "<group>"; };
+		3EFD00832E6F6DD100983731 /* CacheJSONClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheJSONClient.swift; sourceTree = "<group>"; };
+		3EFD00842E6F6DD100983731 /* CalendarColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarColors.swift; sourceTree = "<group>"; };
+		3EFD00852E6F6DD100983731 /* CalendarGridBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGridBuilder.swift; sourceTree = "<group>"; };
+		3EFD00862E6F6DD100983731 /* CalendarMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMapping.swift; sourceTree = "<group>"; };
+		3EFD00872E6F6DD100983731 /* CalendarMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMath.swift; sourceTree = "<group>"; };
+		3EFD00882E6F6DD100983731 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		3EFD00892E6F6DD100983731 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
+		3EFD008A2E6F6DD100983731 /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
+		3EFD008B2E6F6DD100983731 /* MoveWorkoutsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveWorkoutsService.swift; sourceTree = "<group>"; };
+		3EFD008C2E6F6DD100983731 /* PlannerItemDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerItemDTO.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -349,15 +367,10 @@
 		3E7045742E4A22E7005EDE48 /* CalendarViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				3EFD00822E6F6D9F00983731 /* Cal */,
+				3EFD00812E6F6D9700983731 /* Work */,
 				3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */,
-				3EADE7802E3A2A5C002A2D67 /* CalendarViewModel.swift */,
 				3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */,
-				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
-				3E672C402E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift */,
-				3E672C382E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift */,
-				3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */,
-				3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */,
-				3E672C462E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
 				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
 				3E7045672E4A1BA7005EDE48 /* InspectorViewModel.swift */,
@@ -631,6 +644,36 @@
 			path = BLE_Starter;
 			sourceTree = "<group>";
 		};
+		3EFD00812E6F6D9700983731 /* Work */ = {
+			isa = PBXGroup;
+			children = (
+				3E31C8CD2E4C876700527C76 /* WorkoutDetailViewModel.swift */,
+				3E672C402E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift */,
+				3E672C382E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift */,
+				3E327F202E5CAD6F000A7D33 /* WorkoutDetailViewModel+Metrics.swift */,
+				3E672BFE2E695133003E2594 /* WorkoutDetailViewModel+States.swift */,
+				3E672C462E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift */,
+			);
+			path = Work;
+			sourceTree = "<group>";
+		};
+		3EFD00822E6F6D9F00983731 /* Cal */ = {
+			isa = PBXGroup;
+			children = (
+				3EFD00892E6F6DD100983731 /* CalendarViewModel.swift */,
+				3EFD00832E6F6DD100983731 /* CacheJSONClient.swift */,
+				3EFD00842E6F6DD100983731 /* CalendarColors.swift */,
+				3EFD00852E6F6DD100983731 /* CalendarGridBuilder.swift */,
+				3EFD00862E6F6DD100983731 /* CalendarMapping.swift */,
+				3EFD00872E6F6DD100983731 /* CalendarMath.swift */,
+				3EFD00882E6F6DD100983731 /* CalendarService.swift */,
+				3EFD008A2E6F6DD100983731 /* DateUtils.swift */,
+				3EFD008B2E6F6DD100983731 /* MoveWorkoutsService.swift */,
+				3EFD008C2E6F6DD100983731 /* PlannerItemDTO.swift */,
+			);
+			path = Cal;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -756,6 +799,16 @@
 				3EBEA7E12E6D7C7E003B2D73 /* WorkoutCacheStore.swift in Sources */,
 				3E8599D02E44DFC500FA1FAB /* ProfilePhotoView.swift in Sources */,
 				3E375E272E65D86700989A37 /* ActivityChartsSectionView.swift in Sources */,
+				3EFD008D2E6F6DD100983731 /* CalendarService.swift in Sources */,
+				3EFD008E2E6F6DD100983731 /* CalendarColors.swift in Sources */,
+				3EFD008F2E6F6DD100983731 /* CalendarMapping.swift in Sources */,
+				3EFD00902E6F6DD100983731 /* CacheJSONClient.swift in Sources */,
+				3EFD00912E6F6DD100983731 /* CalendarViewModel.swift in Sources */,
+				3EFD00922E6F6DD100983731 /* DateUtils.swift in Sources */,
+				3EFD00932E6F6DD100983731 /* MoveWorkoutsService.swift in Sources */,
+				3EFD00942E6F6DD100983731 /* PlannerItemDTO.swift in Sources */,
+				3EFD00952E6F6DD100983731 /* CalendarGridBuilder.swift in Sources */,
+				3EFD00962E6F6DD100983731 /* CalendarMath.swift in Sources */,
 				3E375E282E65D86700989A37 /* NumericChartSectionView.swift in Sources */,
 				3E375E292E65D86700989A37 /* ADUIKit.swift in Sources */,
 				3E375E2A2E65D86700989A37 /* SecondChartFactory.swift in Sources */,
@@ -763,7 +816,6 @@
 				3E375E2C2E65D86700989A37 /* CategoricalChartSectionView.swift in Sources */,
 				3E375E2D2E65D86700989A37 /* ActivityDetailView.swift in Sources */,
 				3E375E2E2E65D86700989A37 /* ActivityAnalysisUtils.swift in Sources */,
-				3EADE7812E3A2A5C002A2D67 /* CalendarViewModel.swift in Sources */,
 				3E3BAF082E3B6D7B0013DE9B /* CalendarGridView.swift in Sources */,
 				3EADE78B2E3A54A0002A2D67 /* CalendarItemCellView.swift in Sources */,
 				3E7B17772E424F30001AF947 /* DataSectionView.swift in Sources */,
