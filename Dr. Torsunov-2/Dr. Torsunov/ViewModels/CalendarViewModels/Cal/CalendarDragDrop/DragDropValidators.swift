@@ -67,7 +67,6 @@ enum DragDropValidators {
         else if s.contains("water") || s.contains("swim") || s.contains("плав") || s.contains("вода") { kind = .water }
         else if s.contains("yoga") || s.contains("йога") { kind = .yoga }
         else { kind = .other }
-        dragLog.debug("normalize(raw): '\(s, privacy: .public)' -> \(kind.rawValue, privacy: .public)")
         return kind
     }
 
