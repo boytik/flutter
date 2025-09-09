@@ -63,6 +63,10 @@ final class PersonalViewModel: ObservableObject {
             await self?.loadUser()
         }
     }
+    func openPhysicalData() {
+        physicalDataVM.bindEmail(self.email)          // передаём e-mail
+        showPhysicalDataSheet = true                  // открываем экран
+    }
 
     // MARK: - Data
     func loadUser() async {

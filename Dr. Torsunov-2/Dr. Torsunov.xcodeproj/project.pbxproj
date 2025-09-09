@@ -92,6 +92,10 @@
 		3EADE77F2E3A2577002A2D67 /* TapBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE77E2E3A2577002A2D67 /* TapBarView.swift */; };
 		3EADE7862E3A5332002A2D67 /* ExtensionsDate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE7852E3A5332002A2D67 /* ExtensionsDate.swift */; };
 		3EADE78B2E3A54A0002A2D67 /* CalendarItemCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */; };
+		3EB67A242E70AAF100B1D46B /* ApiRoutes+Planner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EB67A212E70AAF100B1D46B /* ApiRoutes+Planner.swift */; };
+		3EB67A252E70AAF100B1D46B /* PlannerModels-2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EB67A222E70AAF100B1D46B /* PlannerModels-2.swift */; };
+		3EB67A262E70AAF100B1D46B /* PlannerRepository-2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EB67A232E70AAF100B1D46B /* PlannerRepository-2.swift */; };
+		3EB67A282E70ADC200B1D46B /* PlannerToggleBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EB67A272E70ADC200B1D46B /* PlannerToggleBar.swift */; };
 		3EBEA7DD2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */; };
 		3EBEA7DF2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7DE2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift */; };
 		3EBEA7E12E6D7C7E003B2D73 /* WorkoutCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBEA7E02E6D7C7E003B2D73 /* WorkoutCacheStore.swift */; };
@@ -220,6 +224,10 @@
 		3EADE77E2E3A2577002A2D67 /* TapBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapBarView.swift; sourceTree = "<group>"; };
 		3EADE7852E3A5332002A2D67 /* ExtensionsDate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsDate.swift; sourceTree = "<group>"; };
 		3EADE78A2E3A54A0002A2D67 /* CalendarItemCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarItemCellView.swift; sourceTree = "<group>"; };
+		3EB67A212E70AAF100B1D46B /* ApiRoutes+Planner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ApiRoutes+Planner.swift"; sourceTree = "<group>"; };
+		3EB67A222E70AAF100B1D46B /* PlannerModels-2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlannerModels-2.swift"; sourceTree = "<group>"; };
+		3EB67A232E70AAF100B1D46B /* PlannerRepository-2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlannerRepository-2.swift"; sourceTree = "<group>"; };
+		3EB67A272E70ADC200B1D46B /* PlannerToggleBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerToggleBar.swift; sourceTree = "<group>"; };
 		3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarViewModel+Offline.swift"; sourceTree = "<group>"; };
 		3EBEA7DE2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineWorkoutRepository.swift; sourceTree = "<group>"; };
 		3EBEA7E02E6D7C7E003B2D73 /* WorkoutCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCacheStore.swift; sourceTree = "<group>"; };
@@ -426,6 +434,7 @@
 				3E7B17722E424595001AF947 /* PhysicalDataView.swift */,
 				3E7B177C2E42503C001AF947 /* PhysicalSubViews */,
 				3E8599CF2E44DFC500FA1FAB /* ProfilePhotoView.swift */,
+				3EB67A272E70ADC200B1D46B /* PlannerToggleBar.swift */,
 			);
 			path = PersonalSubViews;
 			sourceTree = "<group>";
@@ -486,6 +495,9 @@
 			isa = PBXGroup;
 			children = (
 				3E8599E12E44F31500FA1FAB /* ActivityRepositoryImpl.swift */,
+				3EB67A212E70AAF100B1D46B /* ApiRoutes+Planner.swift */,
+				3EB67A222E70AAF100B1D46B /* PlannerModels-2.swift */,
+				3EB67A232E70AAF100B1D46B /* PlannerRepository-2.swift */,
 			);
 			path = Activitys;
 			sourceTree = "<group>";
@@ -798,6 +810,7 @@
 				3E8599C52E44CA2B00FA1FAB /* UserRepositoryImpl.swift in Sources */,
 				3E31C8CE2E4C876700527C76 /* WorkoutDetailViewModel.swift in Sources */,
 				3E672C412E69ED1B003E2594 /* WorkoutDetailViewModelDerivedSeries.swift in Sources */,
+				3EB67A282E70ADC200B1D46B /* PlannerToggleBar.swift in Sources */,
 				3E70455B2E4A054C005EDE48 /* SignInView.swift in Sources */,
 				3E7045762E4A2317005EDE48 /* ChatViewModel.swift in Sources */,
 				3EADE77D2E3A2558002A2D67 /* ProfileView.swift in Sources */,
@@ -849,6 +862,9 @@
 				3E7B17772E424F30001AF947 /* DataSectionView.swift in Sources */,
 				3E7045632E4A1363005EDE48 /* DemoPasswordView.swift in Sources */,
 				3E672C472E6A0AE6003E2594 /* WorkoutDetailViewModel+FlutterPort.swift in Sources */,
+				3EB67A242E70AAF100B1D46B /* ApiRoutes+Planner.swift in Sources */,
+				3EB67A252E70AAF100B1D46B /* PlannerModels-2.swift in Sources */,
+				3EB67A262E70AAF100B1D46B /* PlannerRepository-2.swift in Sources */,
 				3EBEA7DF2E6D7C73003B2D73 /* OfflineWorkoutRepository.swift in Sources */,
 				3E70455D2E4A06E8005EDE48 /* AppAuthState.swift in Sources */,
 				3E670BDB2E560463007E5AA2 /* NotificationCategoryFactory.swift in Sources */,

@@ -18,7 +18,7 @@ struct PersonalView: View {
                 roleTitle: viewModel.role.rawValue,
                 onEditEmail: { viewModel.editingField = .email },
                 onEditName: { viewModel.editingField = .name },
-                onShowPhysical: { viewModel.showPhysicalDataSheet = true },
+                onShowPhysical: { viewModel.openPhysicalData() },
                 onPickRole: { viewModel.showRolePicker = true }
             )
             .background(cardBackground)

@@ -31,7 +31,7 @@ struct WorkoutDay: Identifiable {
 }
 
 // MARK: - DTO ответа планировщика (/workout_calendar)
-struct ScheduledWorkoutDTO: Decodable, Identifiable {
+public struct ScheduledWorkoutDTO: Decodable, Identifiable {
     let workoutUuid: String?
     let userEmail: String?
     let activityType: String?
@@ -48,7 +48,7 @@ struct ScheduledWorkoutDTO: Decodable, Identifiable {
     let swimLayers: [Int]?     // ← слои для воды
     let protocolName: String?
 
-    var id: String { workoutUuid ?? UUID().uuidString }
+    public var id: String { workoutUuid ?? UUID().uuidString }
 
     enum CodingKeys: String, CodingKey {
         case workoutUuid       = "workout_uuid"
