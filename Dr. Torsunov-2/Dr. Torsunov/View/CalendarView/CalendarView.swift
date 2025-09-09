@@ -5,28 +5,32 @@ import Foundation
 
 @MainActor
 struct CalendarView: View {
-    // Поддерживаем DI через init(vm:), но по умолчанию создаём VM сами
-    @StateObject private var viewModel: CalendarViewModel
+    // DI: можно передать свою VM, иначе создастся дефолтная
+    @StateObject private var vm: CalendarViewModel
     @AppStorage("user_role") private var storedRoleRaw = PersonalViewModel.Role.user.rawValue
 
+    // UI state
     @State private var selectedDay: IdentDate?
     @State private var refreshToken: Int = 0
     @State private var didDebugPrintSamples = false
 
-    // Перенос по long-press/drag
+    // Move mode
     @State private var moveModeEnabled: Bool = false
     @State private var sourceDayForMove: Date?
     @State private var moveTarget: IdentDate?
 
-    // DI-friendly init
-    init(vm: CalendarViewModel) { _viewModel = StateObject(wrappedValue: vm) }
-    init() { _viewModel = StateObject(wrappedValue: CalendarViewModel()) }
+    init(vm: CalendarViewModel) { _vm = StateObject(wrappedValue: vm) }
+    init() { _vm = StateObject(wrappedValue: CalendarViewModel()) }
 
     private var currentRole: PersonalViewModel.Role {
         PersonalViewModel.Role(rawValue: storedRoleRaw) ?? .user
     }
-
     private var taskKey: String { "\(storedRoleRaw)_\(refreshToken)" }
+
+    // MARK: - Thumbs
+    private func thumbURL(for item: CalendarItem) -> URL? {
+        vm.thumbs[item.id]      // берём из @Published словаря VM
+    }
 
     var body: some View {
         ZStack {
@@ -42,7 +46,8 @@ struct CalendarView: View {
                     }
                 }
             }
-            if viewModel.isLoading {
+
+            if vm.isLoading {
                 ZStack {
                     Color.black.opacity(0.35).ignoresSafeArea()
                     ProgressView()
@@ -53,30 +58,32 @@ struct CalendarView: View {
                 .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: viewModel.isLoading)
+        .animation(.easeInOut(duration: 0.2), value: vm.isLoading)
         .task(id: taskKey) {
-            await viewModel.reload(role: currentRole)
+            await vm.reload(role: currentRole)
         }
+        // Sheet: список элементов дня
         .sheet(item: $selectedDay) { day in
             DayItemsSheet(
                 date: day.date,
-                items: viewModel.items(on: day.date),
-                role: viewModel.role,
-                thumbProvider: { item in viewModel.thumbFor(item) }
+                items: vm.items(on: day.date),
+                role: vm.role,
+                thumbProvider: { item in thumbURL(for: item) }   // <- URL?, без Binding и без vm.thumbFor
             )
             .presentationDetents([.medium, .large])
             .presentationCornerRadius(24)
             .presentationBackground(.black)
         }
+        // Sheet: перенос тренировки
         .sheet(item: $moveTarget) { day in
             if let src = sourceDayForMove {
                 MoveWorkoutsSheetFixedSource(
                     targetDate: day.date,
                     sourceDate: src,
-                    itemsProvider: { d in viewModel.items(on: d) },
+                    itemsProvider: { d in vm.items(on: d) },
                     onConfirm: { ids in
                         Task {
-                            await viewModel.moveWorkouts(withIDs: ids, to: day.date)
+                            await vm.moveWorkouts(withIDs: ids, to: day.date)
                             moveModeEnabled = false
                             sourceDayForMove = nil
                             moveTarget = nil
@@ -90,28 +97,17 @@ struct CalendarView: View {
         }
     }
 
+    // MARK: - Content
+
     private var contentView: some View {
         VStack(spacing: 16) {
-            HStack {
-                Text(currentRole == .user ? "Тренировки" : "Тренировки на проверку")
-                    .font(.title2.weight(.bold))
-                    .foregroundColor(.white)
-                Spacer()
-                Button(action: { refreshToken &+= 1 }) {
-                    Image(systemName: "arrow.clockwise")
-                        .foregroundColor(.white)
-                        .font(.system(size: 17, weight: .semibold))
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 4)
-            .padding(.bottom, 8)
+            header
 
             if currentRole == .user {
                 modePicker
                     .padding(.vertical)
 
-                if viewModel.pickerMode == .calendar {
+                if vm.pickerMode == .calendar {
                     calendarSection
                     Spacer()
                 } else {
@@ -126,8 +122,25 @@ struct CalendarView: View {
         .background(Color.black.ignoresSafeArea())
     }
 
+    private var header: some View {
+        HStack {
+            Text(currentRole == .user ? "Тренировки" : "Тренировки на проверку")
+                .font(.title2.weight(.bold))
+                .foregroundColor(.white)
+            Spacer()
+            Button(action: { refreshToken &+= 1 }) {
+                Image(systemName: "arrow.clockwise")
+                    .foregroundColor(.white)
+                    .font(.system(size: 17, weight: .semibold))
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
+    }
+
     private var modePicker: some View {
-        Picker("", selection: $viewModel.pickerMode) {
+        Picker("", selection: $vm.pickerMode) {
             ForEach(CalendarViewModel.PickersModes.allCases, id: \.self) { mode in
                 Text(mode.rawValue).tag(mode)
             }
@@ -140,29 +153,33 @@ struct CalendarView: View {
     private var calendarSection: some View {
         VStack(spacing: 0) {
             HStack {
-                Button(action: { viewModel.previousMonth() }) {
+                Button(action: { vm.previousMonth() }) {
                     Image(systemName: "chevron.left").foregroundColor(.white)
                 }
                 Spacer()
-                Text(viewModel.currentMonth)
+                Text(vm.currentMonth)
                     .foregroundColor(.white)
                     .font(.headline)
                 Spacer()
-                Button(action: { viewModel.nextMonth() }) {
+                Button(action: { vm.nextMonth() }) {
                     Image(systemName: "chevron.right").foregroundColor(.white)
                 }
             }
             .padding(.horizontal)
 
             CalendarGridView(
-                monthDates: viewModel.monthDates,
-                displayMonth: viewModel.currentMonthDate,
+                monthDates: vm.monthDates,
+                displayMonth: vm.currentMonthDate,
                 onDayTap: { tapped in
-                    if moveModeEnabled { return }
+                    guard !moveModeEnabled else { return }
                     if !didDebugPrintSamples {
-                        let items = viewModel.items(on: tapped)
-                        if let w = items.compactMap({ $0.asWorkout }).first { print("=== SAMPLE WORKOUT ==="); dump(w) } else { print("=== SAMPLE WORKOUT: none on this day ===") }
-                        if let a = items.compactMap({ $0.asActivity }).first { print("=== SAMPLE ACTIVITY ==="); dump(a) } else { print("=== SAMPLE ACTIVITY: none on this day ===") }
+                        let items = vm.items(on: tapped)
+                        if let w = items.compactMap({ $0.asWorkout }).first {
+                            print("=== SAMPLE WORKOUT ==="); dump(w)
+                        } else { print("=== SAMPLE WORKOUT: none on this day ===") }
+                        if let a = items.compactMap({ $0.asActivity }).first {
+                            print("=== SAMPLE ACTIVITY ==="); dump(a)
+                        } else { print("=== SAMPLE ACTIVITY: none on this day ===") }
                         didDebugPrintSamples = true
                     }
                     selectedDay = IdentDate(tapped)
@@ -177,9 +194,7 @@ struct CalendarView: View {
                 onSelectMoveTarget: { d in
                     moveTarget = IdentDate(d)
                 },
-                itemsProvider: { date in
-                    viewModel.items(on: date).map { $0 as CalendarGridDayContext }
-                },
+                itemsProvider: { date in vm.items(on: date).map { $0 as CalendarGridDayContext } },
                 selectedDate: selectedDay?.date,
                 isMoveMode: moveModeEnabled,
                 moveHighlightWeekOf: sourceDayForMove,
@@ -189,13 +204,15 @@ struct CalendarView: View {
         }
     }
 
+    // MARK: - History (User)
+
     private var historyHeader: some View {
         HStack {
             Text("История")
                 .font(.headline)
                 .foregroundColor(.white)
             Spacer()
-            Picker("", selection: $viewModel.historyFilter) {
+            Picker("", selection: $vm.historyFilter) {
                 ForEach(CalendarViewModel.HistoryFilter.allCases, id: \.self) { f in
                     Text(f.rawValue).tag(f)
                 }
@@ -211,20 +228,14 @@ struct CalendarView: View {
     private var historyGridUser: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.flexible())], spacing: 12) {
-                ForEach(Array(viewModel.filteredItems.enumerated()), id: \.1.id) { _, item in
+                ForEach(vm.filteredItems, id: \.id) { item in
                     NavigationLink {
-                        if item.asWorkout != nil {
-                            WorkoutDetailView(item: item, role: viewModel.role)
-                        } else if let activity = item.asActivity {
-                            ActivityDetailView(activity: activity, role: viewModel.role)
-                        } else {
-                            Text("Неизвестный тип").foregroundColor(.white)
-                        }
+                        destination(for: item)
                     } label: {
                         CalendarItemCellView(
                             item: item,
-                            role: viewModel.role,
-                            thumbURL: viewModel.thumbFor(item)
+                            role: vm.role,
+                            thumbURL: thumbURL(for: item)   // <- URL?
                         )
                     }
                 }
@@ -234,25 +245,21 @@ struct CalendarView: View {
         .scrollContentBackground(.hidden)
     }
 
+    // MARK: - History (Inspector)
+
     private var historyGridInspector: some View {
         ScrollView {
             LazyVStack(pinnedViews: [.sectionHeaders]) {
                 Section {
                     LazyVGrid(columns: [GridItem(.flexible())], spacing: 12) {
-                        ForEach(Array(viewModel.filteredItems.enumerated()), id: \.1.id) { _, item in
+                        ForEach(vm.filteredItems, id: \.id) { item in
                             NavigationLink {
-                                if item.asWorkout != nil {
-                                    WorkoutDetailView(item: item, role: viewModel.role)
-                                } else if let activity = item.asActivity {
-                                    ActivityDetailView(activity: activity, role: viewModel.role)
-                                } else {
-                                    Text("Неизвестный тип").foregroundColor(.white)
-                                }
+                                destination(for: item)
                             } label: {
                                 CalendarItemCellView(
                                     item: item,
-                                    role: viewModel.role,
-                                    thumbURL: viewModel.thumbFor(item)
+                                    role: vm.role,
+                                    thumbURL: thumbURL(for: item)   // <- URL?
                                 )
                             }
                         }
@@ -266,19 +273,30 @@ struct CalendarView: View {
         .scrollContentBackground(.hidden)
     }
 
+    @ViewBuilder
+    private func destination(for item: CalendarItem) -> some View {
+        if item.asWorkout != nil {
+            WorkoutDetailView(item: item, role: vm.role)
+        } else if let activity = item.asActivity {
+            ActivityDetailView(activity: activity, role: vm.role)
+        } else {
+            Text("Неизвестный тип").foregroundColor(.white)
+        }
+    }
+
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 FilterChip(
                     text: "Все",
-                    selected: viewModel.inspectorTypeFilter == nil,
-                    action: { viewModel.setInspectorFilter(nil) }
+                    selected: vm.inspectorTypeFilter == nil,
+                    action: { vm.setInspectorFilter(nil) }
                 )
-                ForEach(viewModel.inspectorTypes, id: \.self) { t in
+                ForEach(vm.inspectorTypes, id: \.self) { t in
                     FilterChip(
                         text: t,
-                        selected: viewModel.inspectorTypeFilter == t,
-                        action: { viewModel.setInspectorFilter(t) }
+                        selected: vm.inspectorTypeFilter == t,
+                        action: { vm.setInspectorFilter(t) }
                     )
                 }
             }
@@ -287,6 +305,8 @@ struct CalendarView: View {
         }
     }
 }
+
+// MARK: - Reusable bits
 
 private struct FilterChip: View {
     let text: String

@@ -118,6 +118,12 @@
 		3EFD00942E6F6DD100983731 /* PlannerItemDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD008C2E6F6DD100983731 /* PlannerItemDTO.swift */; };
 		3EFD00952E6F6DD100983731 /* CalendarGridBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00852E6F6DD100983731 /* CalendarGridBuilder.swift */; };
 		3EFD00962E6F6DD100983731 /* CalendarMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00872E6F6DD100983731 /* CalendarMath.swift */; };
+		3EFD00A72E6F703E00983731 /* MoveWorkoutsDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00A42E6F703E00983731 /* MoveWorkoutsDialog.swift */; };
+		3EFD00A82E6F703E00983731 /* MoveWorkoutsService+Payload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00A52E6F703E00983731 /* MoveWorkoutsService+Payload.swift */; };
+		3EFD00A92E6F703E00983731 /* DayDropTargetModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00A22E6F703E00983731 /* DayDropTargetModifier.swift */; };
+		3EFD00AA2E6F703E00983731 /* DragDropValidators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00A32E6F703E00983731 /* DragDropValidators.swift */; };
+		3EFD00AD2E6F80F000983731 /* PostMoveVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00AC2E6F80F000983731 /* PostMoveVerifier.swift */; };
+		3EFD00AF2E6F87DA00983731 /* MoveWorkoutsService+OfflineSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFD00AE2E6F87DA00983731 /* MoveWorkoutsService+OfflineSync.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -242,6 +248,12 @@
 		3EFD008A2E6F6DD100983731 /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
 		3EFD008B2E6F6DD100983731 /* MoveWorkoutsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveWorkoutsService.swift; sourceTree = "<group>"; };
 		3EFD008C2E6F6DD100983731 /* PlannerItemDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerItemDTO.swift; sourceTree = "<group>"; };
+		3EFD00A22E6F703E00983731 /* DayDropTargetModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDropTargetModifier.swift; sourceTree = "<group>"; };
+		3EFD00A32E6F703E00983731 /* DragDropValidators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragDropValidators.swift; sourceTree = "<group>"; };
+		3EFD00A42E6F703E00983731 /* MoveWorkoutsDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveWorkoutsDialog.swift; sourceTree = "<group>"; };
+		3EFD00A52E6F703E00983731 /* MoveWorkoutsService+Payload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MoveWorkoutsService+Payload.swift"; sourceTree = "<group>"; };
+		3EFD00AC2E6F80F000983731 /* PostMoveVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostMoveVerifier.swift; sourceTree = "<group>"; };
+		3EFD00AE2E6F87DA00983731 /* MoveWorkoutsService+OfflineSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MoveWorkoutsService+OfflineSync.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -370,9 +382,7 @@
 				3EFD00822E6F6D9F00983731 /* Cal */,
 				3EFD00812E6F6D9700983731 /* Work */,
 				3E672C022E697D7D003E2594 /* StatesJSONHelpers.swift */,
-				3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */,
 				3E7045562E4A009D005EDE48 /* ActivityViewModel.swift */,
-				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
 				3E7045672E4A1BA7005EDE48 /* InspectorViewModel.swift */,
 				3E7045752E4A2317005EDE48 /* ChatViewModel.swift */,
 				3E672C002E6953A0003E2594 /* ChartStatesTimeOverlay.swift */,
@@ -661,17 +671,33 @@
 			isa = PBXGroup;
 			children = (
 				3EFD00892E6F6DD100983731 /* CalendarViewModel.swift */,
-				3EFD00832E6F6DD100983731 /* CacheJSONClient.swift */,
-				3EFD00842E6F6DD100983731 /* CalendarColors.swift */,
+				3EBEA7DC2E6D7C57003B2D73 /* CalendarViewModel+Offline.swift */,
+				3E8599E32E45203100FA1FAB /* CalendarItem.swift */,
+				3EFD00882E6F6DD100983731 /* CalendarService.swift */,
 				3EFD00852E6F6DD100983731 /* CalendarGridBuilder.swift */,
 				3EFD00862E6F6DD100983731 /* CalendarMapping.swift */,
+				3EFD00832E6F6DD100983731 /* CacheJSONClient.swift */,
+				3EFD00842E6F6DD100983731 /* CalendarColors.swift */,
 				3EFD00872E6F6DD100983731 /* CalendarMath.swift */,
-				3EFD00882E6F6DD100983731 /* CalendarService.swift */,
 				3EFD008A2E6F6DD100983731 /* DateUtils.swift */,
 				3EFD008B2E6F6DD100983731 /* MoveWorkoutsService.swift */,
 				3EFD008C2E6F6DD100983731 /* PlannerItemDTO.swift */,
+				3EFD00A62E6F703E00983731 /* CalendarDragDrop */,
 			);
 			path = Cal;
+			sourceTree = "<group>";
+		};
+		3EFD00A62E6F703E00983731 /* CalendarDragDrop */ = {
+			isa = PBXGroup;
+			children = (
+				3EFD00AC2E6F80F000983731 /* PostMoveVerifier.swift */,
+				3EFD00A22E6F703E00983731 /* DayDropTargetModifier.swift */,
+				3EFD00A32E6F703E00983731 /* DragDropValidators.swift */,
+				3EFD00A42E6F703E00983731 /* MoveWorkoutsDialog.swift */,
+				3EFD00A52E6F703E00983731 /* MoveWorkoutsService+Payload.swift */,
+				3EFD00AE2E6F87DA00983731 /* MoveWorkoutsService+OfflineSync.swift */,
+			);
+			path = CalendarDragDrop;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -761,6 +787,7 @@
 				3EE502BD2E50C70500BBE86F /* InspectorPhotosView.swift in Sources */,
 				3EADE7862E3A5332002A2D67 /* ExtensionsDate.swift in Sources */,
 				3E7045782E4A232D005EDE48 /* ChatView.swift in Sources */,
+				3EFD00AD2E6F80F000983731 /* PostMoveVerifier.swift in Sources */,
 				3EADE7762E3A2396002A2D67 /* CalendarView.swift in Sources */,
 				3E672C492E6A0B56003E2594 /* NumericChartSectionView+FlutterPatch.swift in Sources */,
 				3E672C392E69E616003E2594 /* WorkoutDetailViewModelLayerLookup.swift in Sources */,
@@ -774,6 +801,7 @@
 				3E70455B2E4A054C005EDE48 /* SignInView.swift in Sources */,
 				3E7045762E4A2317005EDE48 /* ChatViewModel.swift in Sources */,
 				3EADE77D2E3A2558002A2D67 /* ProfileView.swift in Sources */,
+				3EFD00AF2E6F87DA00983731 /* MoveWorkoutsService+OfflineSync.swift in Sources */,
 				3E7B17792E424F4D001AF947 /* ToggleSectionView.swift in Sources */,
 				3E8599E42E45203100FA1FAB /* CalendarItem.swift in Sources */,
 				3EE502BB2E50C66A00BBE86F /* WorkoutMediaRepository.swift in Sources */,
@@ -846,6 +874,10 @@
 				3ED0894A2E460683002F09CB /* HTTPClient.swift in Sources */,
 				3E8F8A552E4371F200CE00CB /* ExtensionView.swift in Sources */,
 				3E7045592E4A04C1005EDE48 /* AppleSignInError.swift in Sources */,
+				3EFD00A72E6F703E00983731 /* MoveWorkoutsDialog.swift in Sources */,
+				3EFD00A82E6F703E00983731 /* MoveWorkoutsService+Payload.swift in Sources */,
+				3EFD00A92E6F703E00983731 /* DayDropTargetModifier.swift in Sources */,
+				3EFD00AA2E6F703E00983731 /* DragDropValidators.swift in Sources */,
 				3E7B17802E425077001AF947 /* PickerSheet.swift in Sources */,
 				3E327F232E5CD15A000A7D33 /* debugDumpVM.swift in Sources */,
 				3E56032D2E534C4D00C401DB /* HTTPCacheStore.swift in Sources */,
